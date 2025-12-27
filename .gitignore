@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Configuration (contains secrets)
+config.yaml
+
+# Logs
+*.log
+
+# Database
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
