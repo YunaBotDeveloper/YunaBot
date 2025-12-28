@@ -7,6 +7,9 @@ export interface BotConfig {
     token: string;
     prefix: string;
   };
+  logChannel: {
+    nuke: string;
+  };
 }
 
 class Config {
@@ -39,6 +42,10 @@ class Config {
 
   public get prefix(): string {
     return this.config.bot.prefix || '!';
+  }
+
+  public get nukeLogChannel(): string {
+    return this.config.logChannel.nuke;
   }
 
   public getConfig(): BotConfig {
