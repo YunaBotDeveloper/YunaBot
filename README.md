@@ -60,37 +60,19 @@ yarn compile
 
 ### 2. Configuration
 
-Copy `config.example.yaml` to `config.yaml` in the project root:
+Create a `config.yaml` file in the project root:
 
 ```yaml
-# Discord Configuration
+# Discord Bot Configuration
 bot:
+  # Your Discord bot token from https://discord.com/developers/applications
   token: "your_discord_bot_token"
+  
+  # Command prefix for prefix-based commands (default: ",")
   prefix: ","
-
-# OAuth2 Verification System (Optional)
-oauth2:
-  clientSecret: "your_client_secret"
-  callbackUrl: "http://localhost:8080/verify"
-  serverId: "your_server_id"
-  verifiedRoleId: "your_verified_role_id"
-
-# Cloudflare Turnstile (Optional)
-captcha:
-  provider: "turnstile"  # Options: turnstile, none
-  turnstile:
-    siteKey: "your_turnstile_sitekey"
-    secret: "your_turnstile_secret"
-
-# VPN Detection (Optional)
-vpn:
-  apiKey: "your_vpnapi_key"
-
-# Server Configuration (Optional)
-server:
-  port: 8080
-  requireVerifiedEmail: false
 ```
+
+> **Note:** Never commit your `config.yaml` to version control. It's already in `.gitignore`.
 
 ### 3. Deployment
 
@@ -333,43 +315,17 @@ Express-based rate limiting protects against:
 
 ## 📝 Configuration Variables
 
-### Required Variables
+### Required
 
-```yaml
-bot:
-  token: ""               # Discord bot token (required)
-```
+| Variable | Description |
+|----------|-------------|
+| `bot.token` | Your Discord bot token from the Developer Portal |
 
-### Optional Variables
+### Optional
 
-```yaml
-# Command System
-bot:
-  prefix: ","             # Command prefix (default: ,)
-
-# OAuth2 Verification
-oauth2:
-  clientSecret: ""        # Discord application client secret
-  callbackUrl: ""         # OAuth2 callback URL
-  serverId: ""            # Target server ID
-  verifiedRoleId: ""      # Role ID to assign after verification
-
-# CAPTCHA
-captcha:
-  provider: "none"        # Options: turnstile, none
-  turnstile:
-    siteKey: ""           # Cloudflare Turnstile site key
-    secret: ""            # Cloudflare Turnstile secret
-
-# Security
-vpn:
-  apiKey: ""              # VPNAPI.io API key
-
-# Server
-server:
-  port: 8080              # Web server port
-  requireVerifiedEmail: false  # Require verified Discord email
-```
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `bot.prefix` | `,` | Command prefix for prefix-based commands |
 
 ---
 
