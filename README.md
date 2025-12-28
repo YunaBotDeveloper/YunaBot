@@ -28,6 +28,8 @@ A robust, enterprise-grade Discord bot built with TypeScript and Discord.js v14.
 ### Utilities
 - **Professional Logging** - Log4TS-powered structured logging
 - **Time Parsing** - Advanced duration and timestamp parsing
+- **Embed Colors** - Pre-defined Discord embed color constants
+- **ASCII Colors** - Terminal color formatting
 
 ---
 
@@ -68,8 +70,8 @@ bot:
   # Your Discord bot token from https://discord.com/developers/applications
   token: "your_discord_bot_token"
   
-  # Command prefix for prefix-based commands (default: ",")
-  prefix: ","
+  # Command prefix for prefix-based commands (default: "!")
+  prefix: "!"
 ```
 
 > **Note:** Never commit your `config.yaml` to version control. It's already in `.gitignore`.
@@ -90,9 +92,6 @@ yarn dev
 # Build and start
 yarn compile
 node build/src/index.js
-
-# Or use PM2 (recommended)
-pm2 start ecosystem.config.json
 ```
 
 ---
@@ -105,10 +104,8 @@ ManagerBot/
 │   ├── index.ts                    # Application entry point
 │   │
 │   ├── api/                        # External API integrations
-│   │   ├── discord/                # Discord-specific APIs
-│   │   │   └── ApplicationEmoji.ts # Emoji management
-│   │   └── external/               # Third-party services
-│   │       └── VPNChecker.ts       # VPN detection service
+│   │   └── discord/                # Discord-specific APIs
+│   │       └── ApplicationEmoji.ts # Emoji management
 │   │
 │   ├── classes/
 │   │   └── ExtendedClient.ts       # Enhanced Discord client
@@ -120,7 +117,9 @@ ManagerBot/
 │   │   ├── CooldownManager.ts      # Cooldown handler
 │   │   └── impl/
 │   │       ├── prefixes/           # Prefix command implementations
+│   │       │   └── HelpCommand.ts
 │   │       └── slashes/            # Slash command implementations
+│   │           └── HelpCommand.ts
 │   │
 │   ├── component/                  # UI Component system
 │   │   ├── api/
@@ -132,9 +131,13 @@ ManagerBot/
 │   │   └── manager/
 │   │       └── ComponentManager.ts # Component handler
 │   │
+│   ├── config/
+│   │   └── Config.ts               # YAML configuration loader
+│   │
 │   ├── database/                   # Data persistence
 │   │   ├── SQLize.ts               # Database connection
 │   │   └── models/                 # Sequelize models
+│   │       └── index.ts
 │   │
 │   ├── enum/
 │   │   └── ComponentEnum.ts        # Component type definitions
@@ -143,12 +146,10 @@ ManagerBot/
 │   │   ├── Event.ts                # Event base class
 │   │   ├── EventManager.ts         # Event registration
 │   │   └── impl/                   # Event implementations
-│   │
-│   ├── html/                       # Web verification UI
-│   │   ├── error.html
-│   │   ├── success.html
-│   │   ├── verify-all.html
-│   │   └── stylesheet.css
+│   │       ├── NewWelcomeEvent.ts
+│   │       ├── PrefixCommandHandler.ts
+│   │       ├── ReadyEvent.ts
+│   │       └── SlashCommandHandler.ts
 │   │
 │   ├── instances/
 │   │   └── Access.ts               # Singleton client access
@@ -163,20 +164,13 @@ ManagerBot/
 │   ├── logger/
 │   │   └── Log4TS.ts               # Structured logging utility
 │   │
-│   ├── server/                     # Web server
-│   │   └── VerifyServer.ts         # OAuth2 verification server
-│   │
 │   └── util/                       # Utilities
-│       ├── ArrayUtils.ts           # Array manipulation
 │       ├── ASCIIColors.ts          # Terminal colors
 │       ├── EmbedColors.ts          # Discord embed colors
-│       ├── IdGenerator.ts          # ID generation
-│       ├── TimeParser.ts           # Duration parsing
-│       └── ValidateEnv.ts          # Environment validation
+│       └── TimeParser.ts           # Duration parsing
 │
 ├── build/                          # Compiled output
-├── deploy/                         # Deployment configurations
-├── ecosystem.config.json           # PM2 configuration
+├── config.yaml                     # Bot configuration
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -268,7 +262,7 @@ export default class ExamplePrefixCommand extends PrefixCommand {
 | **typescript** | ^5.x | Type-safe JavaScript |
 | **sequelize** | ^6.x | ORM for database operations |
 | **sqlite3** | ^5.x | Embedded database engine |
-| **express** | ^4.x | Web server framework |
+| **express** | ^5.x | Web server framework |
 | **axios** | ^1.x | HTTP client |
 
 ### Verification & Security
@@ -288,28 +282,7 @@ export default class ExamplePrefixCommand extends PrefixCommand {
 | **canvas** | Image manipulation |
 | **discord-html-transcripts** | Chat log generation |
 | **tsx** | TypeScript execution |
-
----
-
-## 🔐 Security Features
-
-### VPN/Proxy Detection
-ManagerBot integrates with [VPNAPI.io](https://vpnapi.io) to detect and block users connecting through:
-- VPN services
-- Proxy servers
-- Tor exit nodes
-
-### CAPTCHA Verification
-Cloudflare Turnstile integration provides:
-- Bot detection
-- Human verification
-- Spam prevention
-
-### Rate Limiting
-Express-based rate limiting protects against:
-- Brute force attacks
-- API abuse
-- Resource exhaustion
+| **uuid** | Unique ID generation |
 
 ---
 
@@ -325,7 +298,7 @@ Express-based rate limiting protects against:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `bot.prefix` | `,` | Command prefix for prefix-based commands |
+| `bot.prefix` | `!` | Command prefix for prefix-based commands |
 
 ---
 
