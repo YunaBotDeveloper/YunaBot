@@ -291,7 +291,9 @@ export default class NukeCommand extends Command {
             )
             .addSeparatorComponents(seperator => seperator)
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(time(now)),
+              textDisplay.setContent(
+                subtext(`Được thực hiện vào ${time(now)}`),
+              ),
             );
 
           const logChannel = (await newChannel.guild.channels.fetch(
