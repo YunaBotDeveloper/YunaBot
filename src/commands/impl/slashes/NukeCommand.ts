@@ -225,7 +225,7 @@ export default class NukeCommand extends Command {
       {
         customId: 'confirm',
         timeout: timeout,
-        onTimeout,
+        onTimeout: onTimeout,
         handler: async (interaction: ButtonInteraction): Promise<void> => {
           ComponentManager.getComponentManager().unregisterMany([
             'confirm',
@@ -318,7 +318,7 @@ export default class NukeCommand extends Command {
       {
         customId: 'reject',
         timeout: timeout,
-        onTimeout,
+        onTimeout: onTimeout,
         handler: async () => {
           ComponentManager.getComponentManager().unregisterMany([
             'confirm',
