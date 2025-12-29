@@ -50,7 +50,7 @@ export default class HelpCommand extends Command {
 
     // Get command counts
     const slashCommands = client.commandManager.getAllSlashCommand();
-    const totalCommands = slashCommands.length
+    const totalCommands = slashCommands.length;
 
     // Build category list with proper formatting like the image
     const categoryList = CATEGORIES.map(
