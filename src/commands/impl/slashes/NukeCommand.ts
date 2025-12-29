@@ -7,7 +7,6 @@ import {
   ContainerBuilder,
   MessageFlags,
   PermissionFlagsBits,
-  RESTJSONErrorCodes,
   subtext,
   TextChannel,
   userMention,
@@ -210,7 +209,7 @@ export default class NukeCommand extends Command {
         customId: 'confirm',
         timeout: timeout,
         onTimeout,
-        handler: async (interaction: ButtonInteraction) => {
+        handler: async (interaction: ButtonInteraction): Promise<void> => {
           ComponentManager.getComponentManager().unregisterMany([
             'confirm',
             'reject',
