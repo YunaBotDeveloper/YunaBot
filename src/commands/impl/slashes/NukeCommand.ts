@@ -1,11 +1,15 @@
 import {
   ButtonInteraction,
   ButtonStyle,
+  channelMention,
   ChannelType,
   ChatInputCommandInteraction,
   ContainerBuilder,
   MessageFlags,
   PermissionFlagsBits,
+  RESTJSONErrorCodes,
+  subtext,
+  TextChannel,
   userMention,
 } from 'discord.js';
 import {Command} from '../../Command';
@@ -14,6 +18,7 @@ import ExtendedClient from '../../../classes/ExtendedClient';
 import ComponentManager from '../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../enum/ComponentEnum';
 import Config from '../../../config/Config';
+import Log4TS from '../../../logger/Log4TS';
 
 export default class NukeCommand extends Command {
   constructor() {
@@ -42,6 +47,9 @@ export default class NukeCommand extends Command {
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
+    const logging = Log4TS.getLogger();
+    const logChannelId: string | undefined =
+      Config.getInstance().nukeLogChannel;
 
     const reason =
       interaction.options.getString('reason', false) ||
@@ -57,7 +65,7 @@ export default class NukeCommand extends Command {
         .setAccentColor(EmbedColors.red())
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**${failedEmoji} Lỗi: Bạn không có quyền để sử dụng lệnh này!**`,
+            `## ${failedEmoji} Lỗi: Bạn không có quyền để sử dụng lệnh này!`,
           ),
         );
 
@@ -95,7 +103,7 @@ export default class NukeCommand extends Command {
       const invaildChannelContainer = new ContainerBuilder()
         .setAccentColor(EmbedColors.red())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(`**${failedEmoji} Lỗi: Kênh không hợp lệ!**`),
+          textDisplay.setContent(`## ${failedEmoji} Lỗi: Kênh không hợp lệ!`),
         );
       await interaction.reply({
         components: [invaildChannelContainer],
@@ -144,7 +152,7 @@ export default class NukeCommand extends Command {
         section
           .addTextDisplayComponents(textDisplay =>
             textDisplay.setContent(
-              '-# Nếu bạn không muốn nữa, bẩm nút này để huỷ bỏ.',
+              subtext('Nếu bạn không muốn nữa, bẩm nút này để huỷ bỏ.'),
             ),
           )
           .setButtonAccessory(button =>
@@ -156,15 +164,34 @@ export default class NukeCommand extends Command {
       );
     const ogMsg = await interaction.reply({
       components: [confirmContainer],
-      flags: [MessageFlags.IsComponentsV2],
+      flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
     });
 
     ComponentManager.getComponentManager().register([
       {
         customId: 'confirm',
         handler: async (interaction: ButtonInteraction) => {
-          await channel.delete(reason);
+          await interaction.deferUpdate();
 
+          await channel.delete(reason).catch(async error => {
+            if (
+              error.code ===
+              RESTJSONErrorCodes.CannotDeleteChannelRequiredForCommunityGuilds
+            ) {
+              const deleteErrorContainer = new ContainerBuilder()
+                .setAccentColor(EmbedColors.red())
+                .addTextDisplayComponents(textDisplay =>
+                  textDisplay.setContent(
+                    `## ${failedEmoji} Lỗi: Không thể xoá kênh này.`,
+                  ),
+                );
+
+              await ogMsg.edit({
+                components: [deleteErrorContainer],
+                flags: [MessageFlags.IsComponentsV2],
+              });
+            }
+          });
           const newChannel = await interaction.guild?.channels.create({
             name: channelName,
             type: channelType,
@@ -184,13 +211,52 @@ export default class NukeCommand extends Command {
             .setAccentColor(EmbedColors.blue())
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                `**${infoEmoji} Kênh này đã được tạo lại bởi ${userMention(interaction.user.id)}**`,
+                `## ${infoEmoji} Kênh này đã được tạo lại bởi ${userMention(interaction.user.id)}`,
               ),
             );
           await newChannel.send({
             components: [confirmContainer],
             flags: MessageFlags.IsComponentsV2,
           });
+
+          if (!logChannelId) {
+            return;
+          }
+
+          const logContainer = new ContainerBuilder()
+            .setAccentColor(EmbedColors.green())
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `## ${successEmoji} Tạo lại kênh thành công!`,
+              ),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `Kênh tạo lại: ${channelMention(newChannel.id)}`,
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `Người thực hiện: ${userMention(interaction.user.id)} (${interaction.user.id})`,
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`Lý do: ${reason}`),
+            );
+
+          const logChannel = (await newChannel.guild.channels.fetch(
+            logChannelId,
+          )) as TextChannel | null;
+
+          if (logChannel) {
+            await logChannel.send({
+              components: [logContainer],
+              flags: MessageFlags.IsComponentsV2,
+            });
+          } else {
+            logging.error('Nuke logging channel not found!');
+          }
 
           return;
         },

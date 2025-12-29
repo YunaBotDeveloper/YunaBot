@@ -3,12 +3,12 @@ import * as path from 'path';
 import {parse} from 'yaml';
 
 export interface BotConfig {
-  bot: {
-    token: string;
-    prefix: string;
+  bot?: {
+    token?: string;
+    prefix?: string;
   };
-  logChannel: {
-    nuke: string;
+  logChannel?: {
+    nuke?: string;
   };
 }
 
@@ -36,16 +36,16 @@ class Config {
     return Config.instance;
   }
 
-  public get token(): string {
-    return this.config.bot.token;
+  public get token(): string | undefined {
+    return this.config?.bot?.token ?? undefined;
   }
 
-  public get prefix(): string {
-    return this.config.bot.prefix || '!';
+  public get prefix(): string | undefined {
+    return this.config?.bot?.prefix ?? undefined;
   }
 
-  public get nukeLogChannel(): string {
-    return this.config.logChannel.nuke;
+  public get nukeLogChannel(): string | undefined {
+    return this.config?.logChannel?.nuke ?? undefined;
   }
 
   public getConfig(): BotConfig {
