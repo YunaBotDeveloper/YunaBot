@@ -2,7 +2,9 @@ import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
   EmbedBuilder,
+  GuildMember,
   MessageFlags,
+  PermissionsBitField,
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
 } from 'discord.js';
@@ -52,6 +54,27 @@ export default class HelpCommand extends Command {
     const slashCommands = client.commandManager.getAllSlashCommand();
     const totalCommands = slashCommands.length;
 
+    // Calculate "For You" count - commands the user has permission to use
+    const member = interaction.member as GuildMember | null;
+    const memberPermissions = member?.permissions;
+
+    const forYouCount = slashCommands.filter(cmd => {
+      const requiredPermissions = cmd.data.default_member_permissions;
+      // If no permissions required, command is available to everyone
+      if (!requiredPermissions) return true;
+
+      // Check if user has the required permissions
+      if (memberPermissions) {
+        const permBitField = new PermissionsBitField(
+          // eslint-disable-next-line n/no-unsupported-features/es-builtins
+          BigInt(requiredPermissions),
+        );
+        return memberPermissions.has(permBitField);
+      }
+
+      return false;
+    }).length;
+
     // Build category list with proper formatting like the image
     const categoryList = CATEGORIES.map(
       cat => `${cat.emoji} » **${cat.name}**`,
@@ -61,7 +84,7 @@ export default class HelpCommand extends Command {
       .setColor(EmbedColors.blue())
       .setDescription(
         `**Type** \`${prefix}<cmd> ?h\` **to get detailed info**\n` +
-          `**Total Cmds:** \`${totalCommands}\` | **For You:** \`${totalCommands}\`\n\n` +
+          `**Total Cmds:** \`${totalCommands}\` | **For You:** \`${forYouCount}\`\n\n` +
           '`<>` - Required Argument **|** `[]` - Optional Argument\n\n' +
           '**Main Modules**\n' +
           `${categoryList}\n\n` +

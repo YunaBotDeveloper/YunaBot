@@ -26,6 +26,8 @@ export default class NukeCommand extends Command {
 
     this.advancedOptions.cooldown = 30000;
 
+    this.data.setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels);
+
     this.data.addChannelOption(option =>
       option
         .setName('channel')
@@ -55,25 +57,6 @@ export default class NukeCommand extends Command {
       interaction.options.getString('reason', false) ||
       `Tạo lại kênh | Người thực hiện: ${interaction.user.displayName} (${interaction.user.id})`;
     if (interaction.user.bot) {
-      return;
-    }
-
-    if (
-      !interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)
-    ) {
-      const noPermissionContainer = new ContainerBuilder()
-        .setAccentColor(EmbedColors.red())
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `## ${failedEmoji} Lỗi: Bạn không có quyền để sử dụng lệnh này!`,
-          ),
-        );
-
-      await interaction.reply({
-        components: [noPermissionContainer],
-        flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
-      });
-
       return;
     }
 
