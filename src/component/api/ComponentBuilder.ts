@@ -37,6 +37,16 @@ export default abstract class ComponentBuilder {
     return this;
   }
 
+  public setTimeout(timeout: number): this {
+    this.data.timeout = timeout;
+    return this;
+  }
+
+  public setOnTimeout(onTimeout: () => Promise<void> | void): this {
+    this.data.onTimeout = onTimeout;
+    return this;
+  }
+
   public build(): IComponent {
     if (
       !this.data.customId ||

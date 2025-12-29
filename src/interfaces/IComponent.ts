@@ -5,4 +5,6 @@ export interface IComponent {
   handler: (interaction: any) => Promise<void>;
   type: ComponentEnum;
   userCheck?: string[];
+  timeout?: number;
+  onTimeout?: () => Promise<void> | void;
 }

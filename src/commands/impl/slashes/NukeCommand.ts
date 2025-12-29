@@ -78,6 +78,7 @@ export default class NukeCommand extends Command {
     }
 
     const ruleChannelId = interaction.guild?.rulesChannelId;
+    const publicUpdateChannelId = interaction.guild?.publicUpdatesChannelId;
 
     if (!ruleChannelId) {
       return;
@@ -91,6 +92,24 @@ export default class NukeCommand extends Command {
 
     if (!channel) {
       return;
+    }
+
+    if (publicUpdateChannelId) {
+      if (publicUpdateChannelId === channel.id) {
+        const invaildChannelContainer = new ContainerBuilder()
+          .setAccentColor(EmbedColors.red())
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(
+              `## ${failedEmoji} Lỗi: Kênh này không thể xoá!`,
+            ),
+          );
+
+        await interaction.reply({
+          components: [invaildChannelContainer],
+          flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
+        });
+        return;
+      }
     }
 
     if (
@@ -167,31 +186,39 @@ export default class NukeCommand extends Command {
       flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
     });
 
+    const TIMEOUT_MS = 30000; // 30 seconds
+
+    const onTimeout = async () => {
+      try {
+        const timeoutContainer = new ContainerBuilder()
+          .setAccentColor(EmbedColors.red())
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(
+              `**${failedEmoji} Đã hết thời gian! Vui lòng thử lại.**`,
+            ),
+          );
+        await interaction.editReply({
+          components: [timeoutContainer],
+        });
+      } catch {
+        // Message may have been deleted
+      }
+    };
+
     ComponentManager.getComponentManager().register([
       {
         customId: 'confirm',
+        timeout: TIMEOUT_MS,
+        onTimeout,
         handler: async (interaction: ButtonInteraction) => {
+          ComponentManager.getComponentManager().unregisterMany([
+            'confirm',
+            'reject',
+          ]);
+
           await interaction.deferUpdate();
-
-          await channel.delete(reason).catch(async error => {
-            if (
-              error.code ===
-              RESTJSONErrorCodes.CannotDeleteChannelRequiredForCommunityGuilds
-            ) {
-              const deleteErrorContainer = new ContainerBuilder()
-                .setAccentColor(EmbedColors.red())
-                .addTextDisplayComponents(textDisplay =>
-                  textDisplay.setContent(
-                    `## ${failedEmoji} Lỗi: Không thể xoá kênh này.`,
-                  ),
-                );
-
-              await ogMsg.edit({
-                components: [deleteErrorContainer],
-                flags: [MessageFlags.IsComponentsV2],
-              });
-            }
-          });
+          await ogMsg.delete();
+          await channel.delete(reason);
           const newChannel = await interaction.guild?.channels.create({
             name: channelName,
             type: channelType,
@@ -253,6 +280,7 @@ export default class NukeCommand extends Command {
             await logChannel.send({
               components: [logContainer],
               flags: MessageFlags.IsComponentsV2,
+              allowedMentions: {users: []},
             });
           } else {
             logging.error('Nuke logging channel not found!');
@@ -265,7 +293,14 @@ export default class NukeCommand extends Command {
       },
       {
         customId: 'reject',
+        timeout: TIMEOUT_MS,
+        onTimeout,
         handler: async () => {
+          ComponentManager.getComponentManager().unregisterMany([
+            'confirm',
+            'reject',
+          ]);
+
           await ogMsg.delete();
 
           return;
