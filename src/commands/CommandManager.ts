@@ -18,7 +18,11 @@ export class CommandManager {
     this.client = client;
     this.slashCommands = [];
     this.prefixCommands = [];
-    this.rest = new REST({version: '10'}).setToken(Config.getInstance().token);
+    const token = Config.getInstance().token;
+    if (!token) {
+      throw new Error('Bot token is not configured in config.yaml');
+    }
+    this.rest = new REST({version: '10'}).setToken(token);
     this.logger = Log4TS.getLogger();
   }
 

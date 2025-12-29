@@ -186,7 +186,7 @@ export default class NukeCommand extends Command {
       flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
     });
 
-    const timeout = 100000;
+    const timeout = 10000;
 
     const onTimeout = async () => {
       try {

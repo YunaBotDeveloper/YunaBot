@@ -18,6 +18,7 @@ A robust, enterprise-grade Discord bot built with TypeScript and Discord.js v14.
 ### Component Management
 - **Interactive Components** - Button, modal, and select menu builders
 - **Component Manager** - Centralized handler for Discord UI components
+- **Component Timeouts** - Automatic expiration and cleanup of interactive components
 - **Event-Driven Architecture** - Modular event system with automatic registration
 
 ### Database & Persistence
@@ -70,8 +71,13 @@ bot:
   # Your Discord bot token from https://discord.com/developers/applications
   token: "your_discord_bot_token"
   
-  # Command prefix for prefix-based commands (default: "!")
+  # Command prefix for prefix-based commands (optional)
   prefix: "!"
+
+# Log Channel Configuration (optional)
+logChannel:
+  # Channel ID for nuke command logs
+  nuke: "your_log_channel_id"
 ```
 
 > **Note:** Never commit your `config.yaml` to version control. It's already in `.gitignore`.
@@ -250,6 +256,34 @@ export default class ExamplePrefixCommand extends PrefixCommand {
 }
 ```
 
+### Component with Timeout
+
+Register interactive components with automatic timeout:
+
+```typescript
+import ComponentManager from '../component/manager/ComponentManager';
+import {ComponentEnum} from '../enum/ComponentEnum';
+
+// Register components with timeout
+ComponentManager.getComponentManager().register([
+  {
+    customId: 'confirm-button',
+    type: ComponentEnum.BUTTON,
+    userCheck: [interaction.user.id],
+    timeout: 30000, // 30 seconds
+    onTimeout: async () => {
+      await interaction.editReply({ content: 'This interaction has expired.' });
+    },
+    handler: async (buttonInteraction) => {
+      // Unregister components when handled
+      ComponentManager.getComponentManager().unregisterMany(['confirm-button', 'cancel-button']);
+      
+      await buttonInteraction.reply({ content: 'Confirmed!' });
+    },
+  },
+]);
+```
+
 ---
 
 ## 🔌 Technology Stack
@@ -298,7 +332,8 @@ export default class ExamplePrefixCommand extends PrefixCommand {
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `bot.prefix` | `!` | Command prefix for prefix-based commands |
+| `bot.prefix` | `undefined` | Command prefix for prefix-based commands |
+| `logChannel.nuke` | `undefined` | Channel ID for nuke command logging |
 
 ---
 
