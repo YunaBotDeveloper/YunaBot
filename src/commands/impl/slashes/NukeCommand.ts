@@ -186,7 +186,7 @@ export default class NukeCommand extends Command {
       flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
     });
 
-    const TIMEOUT_MS = 30000; // 30 seconds
+    const timeout = 100000;
 
     const onTimeout = async () => {
       try {
@@ -194,21 +194,21 @@ export default class NukeCommand extends Command {
           .setAccentColor(EmbedColors.red())
           .addTextDisplayComponents(textDisplay =>
             textDisplay.setContent(
-              `**${failedEmoji} Đã hết thời gian! Vui lòng thử lại.**`,
+              `## ${failedEmoji} Đã hết thời gian! Vui lòng thử lại.`,
             ),
           );
         await interaction.editReply({
           components: [timeoutContainer],
         });
       } catch {
-        // Message may have been deleted
+        //
       }
     };
 
     ComponentManager.getComponentManager().register([
       {
         customId: 'confirm',
-        timeout: TIMEOUT_MS,
+        timeout: timeout,
         onTimeout,
         handler: async (interaction: ButtonInteraction) => {
           ComponentManager.getComponentManager().unregisterMany([
@@ -293,7 +293,7 @@ export default class NukeCommand extends Command {
       },
       {
         customId: 'reject',
-        timeout: TIMEOUT_MS,
+        timeout: timeout,
         onTimeout,
         handler: async () => {
           ComponentManager.getComponentManager().unregisterMany([
