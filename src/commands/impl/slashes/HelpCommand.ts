@@ -1,7 +1,41 @@
-import {ChatInputCommandInteraction} from 'discord.js';
+import {
+  ActionRowBuilder,
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  MessageFlags,
+  StringSelectMenuBuilder,
+  StringSelectMenuInteraction,
+} from 'discord.js';
 import {Command} from '../../Command';
-import {EmbedBuilder} from 'discord.js';
 import {EmbedColors} from '../../../util/EmbedColors';
+import ExtendedClient from '../../../classes/ExtendedClient';
+import Config from '../../../config/Config';
+import ComponentManager from '../../../component/manager/ComponentManager';
+import {ComponentEnum} from '../../../enum/ComponentEnum';
+
+// Define command categories with emojis
+interface CommandCategory {
+  name: string;
+  emoji: string;
+  description: string;
+  commands: string[];
+}
+
+const CATEGORIES: CommandCategory[] = [
+  {
+    name: 'Moderation',
+    emoji: '🛡️',
+    description: 'Các lệnh quản lý server',
+    commands: ['nuke'],
+  },
+  {
+    name: 'Information',
+    emoji: '📖',
+    description: 'Các lệnh thông tin',
+    commands: ['help'],
+  },
+  // Add more categories as needed
+];
 
 export default class HelpCommand extends Command {
   constructor() {
@@ -11,28 +45,123 @@ export default class HelpCommand extends Command {
   }
 
   async run(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply();
-    const commands = await interaction.client.application?.commands.fetch();
-    const embed: EmbedBuilder = new EmbedBuilder()
-      .setTitle('Available Commands:')
+    const client = interaction.client as ExtendedClient;
+    const prefix = Config.getInstance().prefix || '/';
+
+    // Get command counts
+    const slashCommands = client.commandManager.getAllSlashCommand();
+    const prefixCommands = client.commandManager.getAllPrefixCommand();
+    const totalCommands = slashCommands.length + prefixCommands.length;
+
+    // Build category list with proper formatting like the image
+    const categoryList = CATEGORIES.map(
+      cat => `${cat.emoji} » **${cat.name}**`,
+    ).join('\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(EmbedColors.blue())
+      .setDescription(
+        `**Type** \`${prefix}<cmd> ?h\` **to get detailed info**\n` +
+          `**Total Cmds:** \`${totalCommands}\` | **For You:** \`${totalCommands}\`\n\n` +
+          '`<>` - Required Argument **|** `[]` - Optional Argument\n\n' +
+          '**Main Modules**\n' +
+          `${categoryList}\n\n` +
+          '• Select a category from the dropdown below.\n' +
+          '• [Support](https://discord.gg/yourserver) | [Invite](https://discord.com/oauth2/authorize)',
+      )
       .setFooter({
-        text: 'Executed by: ' + interaction.user.tag,
+        text: `Req: By ${interaction.user.displayName}`,
         iconURL: interaction.user.displayAvatarURL(),
       });
-    const commandArray: string[] = [];
 
-    commands.forEach(async command => {
-      const commandText = '`/' + command.name + '`: ' + command.description;
-      commandArray.push(commandText);
+    // Build select menu for categories
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('help-category-select')
+      .setPlaceholder(interaction.user.displayName)
+      .addOptions(
+        CATEGORIES.map(cat => ({
+          label: cat.name,
+          description: cat.description,
+          emoji: cat.emoji,
+          value: cat.name.toLowerCase(),
+        })),
+      );
 
-      return commandArray;
-    });
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      selectMenu,
+    );
 
-    const formattedArray = commandArray.join('\n');
-    embed.setDescription(formattedArray);
-    embed.setColor(EmbedColors.green());
-    await interaction.editReply({
+    await interaction.reply({
       embeds: [embed],
+      components: [row],
+      flags: MessageFlags.Ephemeral,
     });
+
+    const TIMEOUT_MS = 60000; // 1 minute
+
+    // Register component with timeout
+    ComponentManager.getComponentManager().register([
+      {
+        customId: 'help-category-select',
+        type: ComponentEnum.MENU,
+        userCheck: [interaction.user.id],
+        timeout: TIMEOUT_MS,
+        onTimeout: async () => {
+          try {
+            const disabledMenu = StringSelectMenuBuilder.from(selectMenu)
+              .setDisabled(true)
+              .setPlaceholder('Hết thời gian');
+            const disabledRow =
+              new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+                disabledMenu,
+              );
+            await interaction.editReply({
+              components: [disabledRow],
+            });
+          } catch {
+            // Message may have been deleted
+          }
+        },
+        handler: async (menuInteraction: StringSelectMenuInteraction) => {
+          const selectedCategory = menuInteraction.values[0];
+          const category = CATEGORIES.find(
+            c => c.name.toLowerCase() === selectedCategory,
+          );
+
+          if (!category) return;
+
+          // Get commands for this category
+          const categoryCommands = slashCommands.filter(cmd =>
+            category.commands.includes(cmd.data.name),
+          );
+
+          const commandList =
+            categoryCommands.length > 0
+              ? categoryCommands
+                  .map(cmd => `\`/${cmd.data.name}\` - ${cmd.data.description}`)
+                  .join('\n')
+              : 'Không có lệnh nào trong danh mục này.';
+
+          const categoryEmbed = new EmbedBuilder()
+            .setColor(EmbedColors.blue())
+            .setDescription(
+              `**${category.emoji} ${category.name}**\n` +
+                `${category.description}\n\n` +
+                `**Commands:**\n${commandList}\n\n` +
+                '• Select a category from the dropdown below.\n' +
+                '• [Support](https://discord.gg/yourserver) | [Invite](https://discord.com/oauth2/authorize)',
+            )
+            .setFooter({
+              text: `Req: By ${interaction.user.displayName}`,
+              iconURL: interaction.user.displayAvatarURL(),
+            });
+
+          await menuInteraction.update({
+            embeds: [categoryEmbed],
+            components: [row],
+          });
+        },
+      },
+    ]);
   }
 }
