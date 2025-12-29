@@ -23,7 +23,6 @@
     "prepare": "yarn.cmd run compile",
     "pretest": "yarn.cmd run compile",
     "posttest": "yarn.cmd run lint",
-    "dev": "tsx ./src/index.ts",
     "start": "tsx --watch ./src/index"
   }
 }

@@ -9,6 +9,7 @@ import {
   PermissionFlagsBits,
   subtext,
   TextChannel,
+  time,
   userMention,
 } from 'discord.js';
 import {Command} from '../../Command';
@@ -23,7 +24,7 @@ export default class NukeCommand extends Command {
   constructor() {
     super('nuke', 'Tạo lại kênh');
 
-    // this.advancedOptions.cooldown = 30000;
+    this.advancedOptions.cooldown = 30000;
 
     this.data.addChannelOption(option =>
       option
@@ -70,6 +71,24 @@ export default class NukeCommand extends Command {
 
       await interaction.reply({
         components: [noPermissionContainer],
+        flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+      });
+
+      return;
+    }
+
+    const botMember = interaction.guild?.members.me;
+    if (!botMember?.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      const noBotPermContainer = new ContainerBuilder()
+        .setAccentColor(EmbedColors.red())
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(
+            `## ${failedEmoji} Lỗi: Bot không có quyền quản lý kênh!`,
+          ),
+        );
+
+      await interaction.reply({
+        components: [noBotPermContainer],
         flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
       });
 
@@ -147,7 +166,7 @@ export default class NukeCommand extends Command {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn có chắc chắn muốn tạo lại kênh này?`,
+          `## ${infoEmoji} Bạn có chắc chắn muốn tạo lại kênh ${channelMention(channel.id)}?`,
         ),
       )
       .addSeparatorComponents(seperator => seperator)
@@ -155,13 +174,13 @@ export default class NukeCommand extends Command {
         section
           .addTextDisplayComponents(textDisplay =>
             textDisplay.setContent(
-              '-# Nếu bạn đồng ý, vui lòng bấm vào nút này để thực hiện.',
+              subtext('Vui lòng bấm nút này để thực hiện.'),
             ),
           )
           .setButtonAccessory(button =>
             button
               .setCustomId('confirm')
-              .setLabel('Đồng ý')
+              .setLabel('✅')
               .setStyle(ButtonStyle.Danger),
           ),
       )
@@ -169,14 +188,12 @@ export default class NukeCommand extends Command {
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(
-              subtext('Nếu bạn không muốn nữa, bẩm nút này để huỷ bỏ.'),
-            ),
+            textDisplay.setContent(subtext('Vui lòng bẩm nút này để huỷ bỏ.')),
           )
           .setButtonAccessory(button =>
             button
               .setCustomId('reject')
-              .setLabel('Huỷ bỏ')
+              .setLabel('❌')
               .setStyle(ButtonStyle.Success),
           ),
       );
@@ -249,6 +266,8 @@ export default class NukeCommand extends Command {
             return;
           }
 
+          const now = Math.round(Date.now() / 1000);
+
           const logContainer = new ContainerBuilder()
             .setAccentColor(EmbedColors.green())
             .addTextDisplayComponents(textDisplay =>
@@ -269,6 +288,10 @@ export default class NukeCommand extends Command {
             )
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(`Lý do: ${reason}`),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(time(now)),
             );
 
           const logChannel = (await newChannel.guild.channels.fetch(
