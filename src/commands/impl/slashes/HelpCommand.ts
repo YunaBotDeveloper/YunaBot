@@ -134,6 +134,9 @@ export default class HelpCommand extends Command {
       flags: MessageFlags.IsComponentsV2,
     });
 
+    // Fetch application commands to get IDs
+    const applicationCommands = await client.application?.commands.fetch();
+
     const TIMEOUT_MS = 60000; // 1 minute
 
     // Register component with timeout
@@ -175,7 +178,15 @@ export default class HelpCommand extends Command {
           const commandList =
             categoryCommands.length > 0
               ? categoryCommands
-                  .map(cmd => `\`/${cmd.data.name}\` - ${cmd.data.description}`)
+                  .map(cmd => {
+                    const commandId = applicationCommands?.find(
+                      c => c.name === cmd.data.name,
+                    )?.id;
+                    const mention = commandId
+                      ? `</${cmd.data.name}:${commandId}>`
+                      : `\`/${cmd.data.name}\``;
+                    return `${mention} - ${cmd.data.description}`;
+                  })
                   .join('\n')
               : 'Không có lệnh nào trong danh mục này.';
 
@@ -210,7 +221,6 @@ export default class HelpCommand extends Command {
               ),
             )
             .addSeparatorComponents(seperator => seperator)
-            .addActionRowComponents(row => row.addComponents(selectMenu))
             .addActionRowComponents(row => row.addComponents(backButton));
 
           await menuInteraction.update({
