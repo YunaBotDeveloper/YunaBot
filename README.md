@@ -1,402 +1,198 @@
-# ManagerBot
+# ManagerBot — Advanced Developer Guide
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Discord.js](https://img.shields.io/badge/Discord.js-v14-5865F2.svg)](https://discord.js.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg)](https://nodejs.org/)
 
-A robust, enterprise-grade Discord bot built with TypeScript and Discord.js v14. ManagerBot features a scalable modular architecture with comprehensive support for modern Discord interactions, and database-backed functionality.
+ManagerBot is a production-oriented Discord framework written in TypeScript and built on discord.js v14. This README targets maintainers and integrators who need to extend, debug, and deploy ManagerBot in production environments.
+
+## Purpose & audience
+- **Audience:** library integrators, bot maintainers, contributors.
+- **Goal:** provide a compact, actionable developer reference for extending commands, components, events, and persistence with best-practice guidance.
+
+## Quick facts
+- Language: TypeScript
+- Runtime: Node.js v18+
+- Core libs: `discord.js`, `sequelize`, `yaml`
 
 ---
 
-## 🎯 Core Features
-
-### Command Systems
-- **Slash Commands** - Native Discord application command integration
-- **Prefix Commands** - Legacy command support with custom prefixes
-- **Command Cooldowns** - Intelligent rate limiting and spam protection
-
-### Component Management
-- **Interactive Components** - Button, modal, and select menu builders
-- **Component Manager** - Centralized handler for Discord UI components
-- **Component Timeouts** - Automatic expiration and cleanup of interactive components
-- **Event-Driven Architecture** - Modular event system with automatic registration
-
-### Database & Persistence
-- **Sequelize ORM** - Type-safe database operations
-- **SQLite Integration** - Lightweight embedded database
-- **Model Management** - Structured data models with migrations
-
-### Utilities
-- **Professional Logging** - Log4TS-powered structured logging
-- **Time Parsing** - Advanced duration and timestamp parsing
-- **Embed Colors** - Pre-defined Discord embed color constants
-- **ASCII Colors** - Terminal color formatting
+## Requirements
+- Node.js v18 or newer
+- Yarn (1.x) or npm
+- SQLite (development) or a Sequelize-compatible DB in production
 
 ---
 
-## 📋 System Requirements
-
-| Requirement | Version |
-|------------|---------|
-| **Node.js** | v18.x or higher |
-| **Package Manager** | Yarn 1.x |
-| **Database** | SQLite3 |
-| **Operating System** | Windows, macOS, Linux |
-
----
-
-## 🚀 Quick Start
-
-### 1. Installation
+## Installation (developer flow)
+Clone, install, build and run in watch mode:
 
 ```bash
-# Clone the repository
 git clone https://github.com/ngcongtunglam209/ManagerBot.git
 cd ManagerBot
-
-# Install dependencies
 yarn install
-
-# Build the project
 yarn compile
+yarn start      # watch mode (tsx)
 ```
 
-### 2. Configuration
+For a single-run development process use `yarn dev` if configured.
 
-Create a `config.yaml` file in the project root:
+---
+
+## Configuration
+Copy or create `config.yaml` at the repository root. Minimal example:
 
 ```yaml
-# Discord Bot Configuration
 bot:
-  # Your Discord bot token from https://discord.com/developers/applications
-  token: "your_discord_bot_token"
-  
-  # Command prefix for prefix-based commands (optional)
-  prefix: "!"
+  token: "YOUR_BOT_TOKEN"
+  prefix: "!"            # optional
 
-# Log Channel Configuration (optional)
+database:
+  dialect: "sqlite"
+  storage: "./data/database.sqlite"
+
 logChannel:
-  # Channel ID for nuke command logs
-  nuke: "your_log_channel_id"
+  nuke: "CHANNEL_ID"     # optional
 ```
 
-> **Note:** Never commit your `config.yaml` to version control. It's already in `.gitignore`.
-
-### 3. Deployment
-
-#### Development Mode
-```bash
-# Hot reload development
-yarn start
-
-# Single run development
-yarn dev
-```
-
-#### Production Mode
-```bash
-# Build and start
-yarn compile
-node build/src/index.js
-```
+Security: never commit `config.yaml` or secrets; use environment variables or secret managers for production.
 
 ---
 
-## 📁 Architecture Overview
+## Project layout (what to extend)
+- `src/index.ts` — application bootstrap (registers commands, events, components)
+- `src/classes/ExtendedClient.ts` — extended Discord client and helper utilities
+- `src/commands/` — command base classes and managers
+  - `impl/slashes` — slash command implementations
+  - `impl/prefixes` — prefix command implementations
+- `src/component/` — builders and centralized `ComponentManager`
+- `src/events/` — event base and implementations
+- `src/database/` — `SQLize.ts` + `models/`
+- `src/config/Config.ts` — YAML loader and config validation
 
-```
-ManagerBot/
-├── src/
-│   ├── index.ts                    # Application entry point
-│   │
-│   ├── api/                        # External API integrations
-│   │   └── discord/                # Discord-specific APIs
-│   │       └── ApplicationEmoji.ts # Emoji management
-│   │
-│   ├── classes/
-│   │   └── ExtendedClient.ts       # Enhanced Discord client
-│   │
-│   ├── commands/                   # Command system
-│   │   ├── Command.ts              # Slash command base
-│   │   ├── PrefixCommand.ts        # Prefix command base
-│   │   ├── CommandManager.ts       # Command registration
-│   │   ├── CooldownManager.ts      # Cooldown handler
-│   │   └── impl/
-│   │       ├── prefixes/           # Prefix command implementations
-│   │       │   └── HelpCommand.ts
-│   │       └── slashes/            # Slash command implementations
-│   │           └── HelpCommand.ts
-│   │
-│   ├── component/                  # UI Component system
-│   │   ├── api/
-│   │   │   └── ComponentBuilder.ts # Component interface
-│   │   ├── builders/               # Component builders
-│   │   │   ├── ButtonComponentBuilder.ts
-│   │   │   ├── ModalComponentBuilder.ts
-│   │   │   └── SelectMenuComponentBuilder.ts
-│   │   └── manager/
-│   │       └── ComponentManager.ts # Component handler
-│   │
-│   ├── config/
-│   │   └── Config.ts               # YAML configuration loader
-│   │
-│   ├── database/                   # Data persistence
-│   │   ├── SQLize.ts               # Database connection
-│   │   └── models/                 # Sequelize models
-│   │       └── index.ts
-│   │
-│   ├── enum/
-│   │   └── ComponentEnum.ts        # Component type definitions
-│   │
-│   ├── events/                     # Event system
-│   │   ├── Event.ts                # Event base class
-│   │   ├── EventManager.ts         # Event registration
-│   │   └── impl/                   # Event implementations
-│   │       ├── NewWelcomeEvent.ts
-│   │       ├── PrefixCommandHandler.ts
-│   │       ├── ReadyEvent.ts
-│   │       └── SlashCommandHandler.ts
-│   │
-│   ├── instances/
-│   │   └── Access.ts               # Singleton client access
-│   │
-│   ├── interfaces/                 # TypeScript contracts
-│   │   ├── IClient.ts
-│   │   ├── ICommand.ts
-│   │   ├── IComponent.ts
-│   │   ├── IEvent.ts
-│   │   └── IPrefixCommand.ts
-│   │
-│   ├── logger/
-│   │   └── Log4TS.ts               # Structured logging utility
-│   │
-│   └── util/                       # Utilities
-│       ├── ASCIIColors.ts          # Terminal colors
-│       ├── EmbedColors.ts          # Discord embed colors
-│       └── TimeParser.ts           # Duration parsing
-│
-├── build/                          # Compiled output
-├── config.yaml                     # Bot configuration
-├── package.json
-├── tsconfig.json
-└── README.md
-```
+Extend points:
+- Commands: extend `Command` (slash) or `PrefixCommand` and register via `CommandManager`.
+- Components: register interactive components with `ComponentManager` (supports user checks and timeouts).
+- Events: implement `Event` and let `EventManager` auto-register.
 
 ---
 
-## 🛠️ Development Scripts
+## Advanced usage & examples
 
-| Command | Description |
-|---------|-------------|
-| `yarn dev` | Run bot in development mode (single execution) |
-| `yarn start` | Run with file watching and auto-restart |
-| `yarn compile` | Build TypeScript to JavaScript |
-| `yarn lint` | Check code style with ESLint |
-| `yarn fix` | Auto-fix ESLint issues |
-| `yarn clean` | Remove build artifacts |
+Slash command (extend `Command`)
 
----
+```ts
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import Command from '../Command';
 
-## 📚 Creating Commands
-
-### Slash Command Implementation
-
-Create a new file in `src/commands/impl/slashes/`:
-
-```typescript
-import {ChatInputCommandInteraction, SlashCommandBuilder} from 'discord.js';
-import Command from '../../Command';
-
-export default class ExampleCommand extends Command {
+export default class EchoCommand extends Command {
   constructor() {
-    super(
-      new SlashCommandBuilder()
-        .setName('example')
-        .setDescription('An example command')
-        .toJSON(),
-    );
-
-    // Configure cooldown (milliseconds)
-    this.advancedOptions.cooldown = 5000;
+    super(new SlashCommandBuilder().setName('echo').setDescription('Echo text').toJSON());
+    this.advancedOptions.cooldown = 2000; // ms
   }
 
   async run(interaction: ChatInputCommandInteraction) {
-    await interaction.reply({
-      content: 'Example command executed!',
-      ephemeral: true,
-    });
+    await interaction.reply({ content: 'pong', ephemeral: false });
   }
 }
 ```
 
-### Prefix Command Implementation
+Prefix command (extend `PrefixCommand`)
 
-Create a new file in `src/commands/impl/prefixes/`:
+```ts
+import { Message } from 'discord.js';
+import PrefixCommand from '../PrefixCommand';
 
-```typescript
-import {Message} from 'discord.js';
-import {PrefixCommand} from '../../PrefixCommand';
-import ExtendedClient from '../../../classes/ExtendedClient';
-
-export default class ExamplePrefixCommand extends PrefixCommand {
+export default class PingCommand extends PrefixCommand {
   constructor() {
-    super(
-      'example',           // Command name
-      ['ex', 'demo'],      // Aliases
-      5000,                // Cooldown (ms)
-    );
+    super('ping', ['p'], 3000);
   }
 
-  async run(
-    args: string[],
-    context: {message: Message; client: ExtendedClient},
-  ) {
-    await context.message.reply('Example prefix command executed!');
+  async run(args: string[], { message }) {
+    await message.reply('pong');
   }
 }
 ```
 
-### Component with Timeout
+Register interactive components with a timeout and user-check:
 
-Register interactive components with automatic timeout:
-
-```typescript
+```ts
 import ComponentManager from '../component/manager/ComponentManager';
-import {ComponentEnum} from '../enum/ComponentEnum';
+import { ComponentEnum } from '../enum/ComponentEnum';
 
-// Register components with timeout
-ComponentManager.getComponentManager().register([
-  {
-    customId: 'confirm-button',
-    type: ComponentEnum.BUTTON,
-    userCheck: [interaction.user.id],
-    timeout: 30000, // 30 seconds
-    onTimeout: async () => {
-      await interaction.editReply({ content: 'This interaction has expired.' });
-    },
-    handler: async (buttonInteraction) => {
-      // Unregister components when handled
-      ComponentManager.getComponentManager().unregisterMany(['confirm-button', 'cancel-button']);
-      
-      await buttonInteraction.reply({ content: 'Confirmed!' });
-    },
-  },
-]);
+ComponentManager.getComponentManager().register({
+  customId: 'confirm-123',
+  type: ComponentEnum.BUTTON,
+  userCheck: ['allowed-user-id'],
+  timeout: 30_000,
+  handler: async (interaction) => { await interaction.reply('confirmed'); },
+  onTimeout: async () => { /* cleanup */ },
+});
 ```
 
 ---
 
-## 🔌 Technology Stack
-
-### Core Dependencies
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| **discord.js** | ^14.x | Discord API wrapper |
-| **typescript** | ^5.x | Type-safe JavaScript |
-| **sequelize** | ^6.x | ORM for database operations |
-| **sqlite3** | ^5.x | Embedded database engine |
-| **express** | ^5.x | Web server framework |
-| **axios** | ^1.x | HTTP client |
-
-### Verification & Security
-
-| Package | Purpose |
-|---------|---------|
-| **express-session** | Session management |
-| **express-rate-limit** | Rate limiting middleware |
-| **ejs** | Template rendering |
-| **qs** | Query string parsing |
-
-### Utilities
-
-| Package | Purpose |
-|---------|---------|  
-| **yaml** | YAML configuration parsing |
-| **canvas** | Image manipulation |
-| **discord-html-transcripts** | Chat log generation |
-| **tsx** | TypeScript execution |
-| **uuid** | Unique ID generation |
+## Database & migrations
+- Uses Sequelize. Models live under `src/database/models` and `SQLize.ts` handles connection.
+- For production use Postgres/MySQL; configure via `config.yaml` or environment variables.
+- Add migrations using your preferred migration workflow (not included). Keep models backward-compatible during deployments and perform rolling updates when needed.
 
 ---
 
-## 📝 Configuration Variables
+## Runtime & deployment notes
+- Build with `yarn compile` (TypeScript -> `build/src`), run the compiled build with Node.js for production.
+- Use process managers (systemd, PM2, or Docker) for reliable restarts and logging.
+- When deploying multiple instances, centralize stateful features (DB, caches) and avoid local-only storage for critical data.
 
-### Required
+Docker example (minimal):
 
-| Variable | Description |
-|----------|-------------|
-| `bot.token` | Your Discord bot token from the Developer Portal |
-
-### Optional
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `bot.prefix` | `undefined` | Command prefix for prefix-based commands |
-| `logChannel.nuke` | `undefined` | Channel ID for nuke command logging |
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these guidelines:
-
-### Development Workflow
-
-1. **Fork** the repository
-2. **Create** a feature branch
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. **Commit** your changes
-   ```bash
-   git commit -m "feat: add new feature"
-   ```
-4. **Push** to your branch
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-5. **Open** a Pull Request
-
-### Commit Convention
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-- `feat:` New features
-- `fix:` Bug fixes
-- `docs:` Documentation changes
-- `style:` Code style changes
-- `refactor:` Code refactoring
-- `test:` Test additions/changes
-- `chore:` Maintenance tasks
+```Dockerfile
+FROM node:18
+WORKDIR /app
+COPY package.json yarn.lock ./
+RUN yarn install --production
+COPY . .
+RUN yarn compile
+CMD ["node", "build/src/index.js"]
+```
 
 ---
 
-## 📄 License
-
-This project is proprietary and closed-source.  
-**Copyright © 2025 NStore. All rights reserved.**
-
----
-
-## 🔗 Resources
-
-- [Discord.js Documentation](https://discord.js.org/)
-- [Discord Developer Portal](https://discord.com/developers/docs)
-- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
-- [Sequelize Documentation](https://sequelize.org/docs/v6/)
+## Scripts (from package.json)
+- `yarn start` — watch-run (tsx)
+- `yarn compile` — `tsc` build
+- `yarn lint` / `yarn fix` — gts linting and fixes
+- `yarn clean` — remove build artifacts
 
 ---
 
-## 📞 Support
-
-For issues, questions, or support requests, please contact the development team.
+## Debugging & testing
+- Use the `ExtendedClient` logging and `Log4TS` to emit structured logs.
+- Attach the Node inspector (`node --inspect`) when running compiled code for breakpoint debugging.
+- Add unit tests around pure utilities; integration tests should run against a controlled DB instance.
 
 ---
 
-<div align="center">
+## Contributing & maintenance
+- Follow Conventional Commits and open PRs against `develop` or `main` depending on your workflow.
+- Keep changes small and add tests for logic changes.
+- For any breaking API change, update `CHANGELOG.md` and bump version according to SemVer.
 
-**ManagerBot v2**  
-*Professional Discord Bot Framework*
+---
+
+## Security & best practices
+- Rotate bot tokens and never store them in repo.
+- Use environment-based config per deployment environment.
+- Validate user inputs for components and commands; do not trust client-side IDs.
+
+---
+
+## Contact & support
+For internal support, reach out to the development team listed in your organization. For external usage examples and integration questions, consult the code under `src/`.
+
+---
+
+**ManagerBot — maintainers guide**
 
 Developed with ❤️ by **NStore**
 
