@@ -1,12 +1,18 @@
 import {
   ActionRowBuilder,
+  quote,
+  ButtonBuilder,
+  ButtonStyle,
   ChatInputCommandInteraction,
+  ContainerBuilder,
   EmbedBuilder,
   GuildMember,
+  inlineCode,
   MessageFlags,
   PermissionsBitField,
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
+  subtext,
 } from 'discord.js';
 import {Command} from '../../Command';
 import {EmbedColors} from '../../../util/EmbedColors';
@@ -15,7 +21,6 @@ import Config from '../../../config/Config';
 import ComponentManager from '../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../enum/ComponentEnum';
 
-// Define command categories with emojis
 interface CommandCategory {
   name: string;
   emoji: string;
@@ -25,18 +30,17 @@ interface CommandCategory {
 
 const CATEGORIES: CommandCategory[] = [
   {
-    name: 'Moderation',
+    name: 'Quản lý',
     emoji: '🛡️',
     description: 'Các lệnh quản lý server',
     commands: ['nuke'],
   },
   {
-    name: 'Information',
+    name: 'Thông tin',
     emoji: '📖',
     description: 'Các lệnh thông tin',
     commands: ['help'],
   },
-  // Add more categories as needed
 ];
 
 export default class HelpCommand extends Command {
@@ -50,20 +54,16 @@ export default class HelpCommand extends Command {
     const client = interaction.client as ExtendedClient;
     const prefix = Config.getInstance().prefix || '/';
 
-    // Get command counts
     const slashCommands = client.commandManager.getAllSlashCommand();
     const totalCommands = slashCommands.length;
 
-    // Calculate "For You" count - commands the user has permission to use
     const member = interaction.member as GuildMember | null;
     const memberPermissions = member?.permissions;
 
     const forYouCount = slashCommands.filter(cmd => {
       const requiredPermissions = cmd.data.default_member_permissions;
-      // If no permissions required, command is available to everyone
       if (!requiredPermissions) return true;
 
-      // Check if user has the required permissions
       if (memberPermissions) {
         const permBitField = new PermissionsBitField(
           // eslint-disable-next-line n/no-unsupported-features/es-builtins
@@ -75,26 +75,9 @@ export default class HelpCommand extends Command {
       return false;
     }).length;
 
-    // Build category list with proper formatting like the image
-    const categoryList = CATEGORIES.map(
-      cat => `${cat.emoji} » **${cat.name}**`,
+    const categoryList = CATEGORIES.map(cat =>
+      quote(`${cat.emoji} » **${cat.name}**`),
     ).join('\n');
-
-    const embed = new EmbedBuilder()
-      .setColor(EmbedColors.blue())
-      .setDescription(
-        `**Type** \`${prefix}<cmd> ?h\` **to get detailed info**\n` +
-          `**Total Cmds:** \`${totalCommands}\` | **For You:** \`${forYouCount}\`\n\n` +
-          '`<>` - Required Argument **|** `[]` - Optional Argument\n\n' +
-          '**Main Modules**\n' +
-          `${categoryList}\n\n` +
-          '• Select a category from the dropdown below.\n' +
-          '• [Support](https://discord.gg/yourserver) | [Invite](https://discord.com/oauth2/authorize)',
-      )
-      .setFooter({
-        text: `Req: By ${interaction.user.displayName}`,
-        iconURL: interaction.user.displayAvatarURL(),
-      });
 
     // Build select menu for categories
     const selectMenu = new StringSelectMenuBuilder()
@@ -109,14 +92,46 @@ export default class HelpCommand extends Command {
         })),
       );
 
+    const helpContainer = new ContainerBuilder()
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent('## YunaBot v2\n'),
+      )
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          quote(
+            `Bot có ${inlineCode(totalCommands.toString())} lệnh | Bạn có thể dùng ${inlineCode(forYouCount.toString())} lệnh`,
+          ),
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`Các tính năng của bot:\n ${categoryList}`),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          subtext(
+            '- Để xem lệnh có trong tính năng, vui lòng sử dụng hộp thoại phía dưới.',
+          ),
+        ),
+      )
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          subtext(
+            '- Để được hỗ trợ vui lòng bấm vào [đây](https://discord.gg/djs)',
+          ),
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addActionRowComponents(row => row.addComponents(selectMenu));
+
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       selectMenu,
     );
 
     await interaction.reply({
-      embeds: [embed],
-      components: [row],
-      flags: MessageFlags.Ephemeral,
+      components: [helpContainer],
+      flags: MessageFlags.IsComponentsV2,
     });
 
     const TIMEOUT_MS = 60000; // 1 minute
@@ -164,23 +179,58 @@ export default class HelpCommand extends Command {
                   .join('\n')
               : 'Không có lệnh nào trong danh mục này.';
 
-          const categoryEmbed = new EmbedBuilder()
-            .setColor(EmbedColors.blue())
-            .setDescription(
-              `**${category.emoji} ${category.name}**\n` +
-                `${category.description}\n\n` +
-                `**Commands:**\n${commandList}\n\n` +
-                '• Select a category from the dropdown below.\n' +
-                '• [Support](https://discord.gg/yourserver) | [Invite](https://discord.com/oauth2/authorize)',
+          const backButton = new ButtonBuilder()
+            .setCustomId('help-back-button')
+            .setLabel('Back')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('◀️');
+
+          const categoryContainer = new ContainerBuilder()
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`## ${category.emoji} ${category.name}\n`),
             )
-            .setFooter({
-              text: `Req: By ${interaction.user.displayName}`,
-              iconURL: interaction.user.displayAvatarURL(),
-            });
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(quote(category.description)),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`**Commands:**\n${commandList}`),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                subtext('• Select a category from the dropdown below.'),
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                subtext(
+                  '• [Support](https://discord.gg/yourserver) | [Invite](https://discord.com/oauth2/authorize)',
+                ),
+              ),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addActionRowComponents(row => row.addComponents(selectMenu))
+            .addActionRowComponents(row => row.addComponents(backButton));
 
           await menuInteraction.update({
-            embeds: [categoryEmbed],
-            components: [row],
+            components: [categoryContainer],
+            flags: MessageFlags.IsComponentsV2,
+          });
+        },
+      },
+      {
+        customId: 'help-back-button',
+        type: ComponentEnum.BUTTON,
+        userCheck: [interaction.user.id],
+        timeout: TIMEOUT_MS,
+        onTimeout: async () => {
+          // Handled by menu timeout
+        },
+        handler: async (buttonInteraction: any) => {
+          await buttonInteraction.update({
+            components: [helpContainer],
+            flags: MessageFlags.IsComponentsV2,
           });
         },
       },

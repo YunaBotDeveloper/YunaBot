@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {parse} from 'yaml';
+import Log4TS from '../logger/Log4TS';
 
 export interface BotConfig {
   bot?: {
@@ -15,6 +16,7 @@ export interface BotConfig {
 class Config {
   private static instance: Config;
   private config: BotConfig;
+  private logging = Log4TS.getLogger();
 
   private constructor() {
     const configPath = path.join(__dirname, '..', '..', 'config.yaml');
@@ -29,9 +31,10 @@ logChannel:
   nuke: "CHANNEL_ID_HERE"  # Optional
 `;
       fs.writeFileSync(exampleConfigPath, exampleConfig, 'utf8');
-      throw new Error(
+      this.logging.error(
         'config.yaml not found! An config has been created at config.yaml. Please fill it out before running the bot again.',
       );
+      throw new Error('config.yaml not found');
     }
 
     const fileContents = fs.readFileSync(configPath, 'utf8');
@@ -52,10 +55,12 @@ logChannel:
   nuke: "CHANNEL_ID_HERE"  # Optional
 `;
       fs.writeFileSync(exampleConfigPath, exampleConfig, 'utf8');
-      throw new Error(
+      this.logging.error(
         'Bot configuration is missing in config.yaml. An example config has been created at config.example.yaml',
       );
+      throw new Error('Bot configuration is missing in config.yaml');
     }
+
     if (!this.config.bot.token) {
       throw new Error('Bot token is required in config.yaml');
     }
