@@ -5,11 +5,11 @@ import {
   ButtonStyle,
   ChatInputCommandInteraction,
   ContainerBuilder,
-  EmbedBuilder,
   GuildMember,
   inlineCode,
   MessageFlags,
   PermissionsBitField,
+  PermissionFlagsBits,
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
   subtext,
@@ -27,21 +27,6 @@ interface CommandCategory {
   description: string;
   commands: string[];
 }
-
-const CATEGORIES: CommandCategory[] = [
-  {
-    name: 'Quản lý',
-    emoji: '🛡️',
-    description: 'Các lệnh quản lý server',
-    commands: ['nuke'],
-  },
-  {
-    name: 'Thông tin',
-    emoji: '📖',
-    description: 'Các lệnh thông tin',
-    commands: ['help'],
-  },
-];
 
 export default class HelpCommand extends Command {
   constructor() {
@@ -74,6 +59,69 @@ export default class HelpCommand extends Command {
 
       return false;
     }).length;
+
+    // Dynamically generate categories based on commands
+    const categoriesMap = new Map<string, CommandCategory>();
+
+    slashCommands.forEach(cmd => {
+      const permissions = cmd.data.default_member_permissions;
+      let categoryName: string;
+      let categoryEmoji: string;
+      let categoryDescription: string;
+
+      if (cmd.data.name === 'help') {
+        categoryName = 'Thông tin';
+        categoryEmoji = '📖';
+        categoryDescription = 'Các lệnh thông tin';
+      } else if (
+        permissions &&
+        // eslint-disable-next-line n/no-unsupported-features/es-builtins
+        new PermissionsBitField(BigInt(permissions)).has(
+          PermissionFlagsBits.ManageChannels,
+        )
+      ) {
+        categoryName = 'Quản lý kênh';
+        categoryEmoji = '🔧';
+        categoryDescription = 'Các lệnh quản lý kênh';
+      } else if (
+        permissions &&
+        // eslint-disable-next-line n/no-unsupported-features/es-builtins
+        new PermissionsBitField(BigInt(permissions)).has(
+          PermissionFlagsBits.ManageGuild,
+        )
+      ) {
+        categoryName = 'Quản lý server';
+        categoryEmoji = '🛡️';
+        categoryDescription = 'Các lệnh quản lý server';
+      } else if (
+        permissions &&
+        // eslint-disable-next-line n/no-unsupported-features/es-builtins
+        new PermissionsBitField(BigInt(permissions)).has(
+          PermissionFlagsBits.ModerateMembers,
+        )
+      ) {
+        categoryName = 'Moderation';
+        categoryEmoji = '👮';
+        categoryDescription = 'Các lệnh kiểm duyệt';
+      } else {
+        categoryName = 'Tiện ích';
+        categoryEmoji = '⚙️';
+        categoryDescription = 'Các lệnh tiện ích';
+      }
+
+      if (!categoriesMap.has(categoryName)) {
+        categoriesMap.set(categoryName, {
+          name: categoryName,
+          emoji: categoryEmoji,
+          description: categoryDescription,
+          commands: [],
+        });
+      }
+
+      categoriesMap.get(categoryName)!.commands.push(cmd.data.name);
+    });
+
+    const CATEGORIES = Array.from(categoriesMap.values());
 
     const categoryList = CATEGORIES.map(cat =>
       quote(`${cat.emoji} » **${cat.name}**`),
