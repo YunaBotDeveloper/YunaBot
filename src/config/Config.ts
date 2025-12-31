@@ -4,8 +4,8 @@ import {parse} from 'yaml';
 
 export interface BotConfig {
   bot?: {
-    token?: string;
-    prefix?: string;
+    token: string;
+    prefix: string;
   };
   logChannel?: {
     nuke?: string;
@@ -20,13 +20,49 @@ class Config {
     const configPath = path.join(__dirname, '..', '..', 'config.yaml');
 
     if (!fs.existsSync(configPath)) {
+      const exampleConfigPath = path.join(__dirname, '..', '..', 'config.yaml');
+      const exampleConfig = `bot:
+  token: "YOUR_BOT_TOKEN_HERE"
+  prefix: "!"
+
+logChannel:
+  nuke: "CHANNEL_ID_HERE"  # Optional
+`;
+      fs.writeFileSync(exampleConfigPath, exampleConfig, 'utf8');
       throw new Error(
-        'config.yaml not found! Please create one based on config.example.yaml',
+        'config.yaml not found! An config has been created at config.yaml. Please fill it out before running the bot again.',
       );
     }
 
     const fileContents = fs.readFileSync(configPath, 'utf8');
     this.config = parse(fileContents) as BotConfig;
+
+    if (!this.config.bot) {
+      const exampleConfigPath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'config.example.yaml',
+      );
+      const exampleConfig = `bot:
+  token: "YOUR_BOT_TOKEN_HERE"
+  prefix: "!"
+
+logChannel:
+  nuke: "CHANNEL_ID_HERE"  # Optional
+`;
+      fs.writeFileSync(exampleConfigPath, exampleConfig, 'utf8');
+      throw new Error(
+        'Bot configuration is missing in config.yaml. An example config has been created at config.example.yaml',
+      );
+    }
+    if (!this.config.bot.token) {
+      throw new Error('Bot token is required in config.yaml');
+    }
+
+    if (!this.config.bot.prefix) {
+      throw new Error('Bot prefix is required in config.yaml');
+    }
   }
 
   public static getInstance(): Config {
@@ -36,12 +72,12 @@ class Config {
     return Config.instance;
   }
 
-  public get token(): string | undefined {
-    return this.config?.bot?.token ?? undefined;
+  public get token(): string {
+    return this.config.bot!.token;
   }
 
-  public get prefix(): string | undefined {
-    return this.config?.bot?.prefix ?? undefined;
+  public get prefix(): string {
+    return this.config.bot!.prefix;
   }
 
   public get nukeLogChannel(): string | undefined {
