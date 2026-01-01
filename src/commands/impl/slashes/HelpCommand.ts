@@ -51,7 +51,6 @@ export default class HelpCommand extends Command {
 
       if (memberPermissions) {
         const permBitField = new PermissionsBitField(
-          // eslint-disable-next-line n/no-unsupported-features/es-builtins
           BigInt(requiredPermissions),
         );
         return memberPermissions.has(permBitField);
@@ -75,7 +74,6 @@ export default class HelpCommand extends Command {
         categoryDescription = 'Các lệnh thông tin';
       } else if (
         permissions &&
-        // eslint-disable-next-line n/no-unsupported-features/es-builtins
         new PermissionsBitField(BigInt(permissions)).has(
           PermissionFlagsBits.ManageChannels,
         )
@@ -85,7 +83,6 @@ export default class HelpCommand extends Command {
         categoryDescription = 'Các lệnh quản lý kênh';
       } else if (
         permissions &&
-        // eslint-disable-next-line n/no-unsupported-features/es-builtins
         new PermissionsBitField(BigInt(permissions)).has(
           PermissionFlagsBits.ManageGuild,
         )
@@ -95,7 +92,6 @@ export default class HelpCommand extends Command {
         categoryDescription = 'Các lệnh quản lý server';
       } else if (
         permissions &&
-        // eslint-disable-next-line n/no-unsupported-features/es-builtins
         new PermissionsBitField(BigInt(permissions)).has(
           PermissionFlagsBits.ModerateMembers,
         )
