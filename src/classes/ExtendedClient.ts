@@ -8,8 +8,6 @@ import {SQLize} from '../database/SQLize';
 import path = require('path');
 import ApplicationEmoji from '../api/discord/ApplicationEmoji';
 
-import {loadModels} from '../database/models/index';
-
 export default class ExtendedClient extends Client implements IClient {
   constructor() {
     super({

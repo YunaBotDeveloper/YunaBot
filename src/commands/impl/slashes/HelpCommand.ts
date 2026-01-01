@@ -15,7 +15,6 @@ import {
   subtext,
 } from 'discord.js';
 import {Command} from '../../Command';
-import {EmbedColors} from '../../../util/EmbedColors';
 import ExtendedClient from '../../../classes/ExtendedClient';
 import Config from '../../../config/Config';
 import ComponentManager from '../../../component/manager/ComponentManager';
@@ -37,7 +36,6 @@ export default class HelpCommand extends Command {
 
   async run(interaction: ChatInputCommandInteraction) {
     const client = interaction.client as ExtendedClient;
-    const prefix = Config.getInstance().prefix || '/';
 
     const slashCommands = client.commandManager.getAllSlashCommand();
     const totalCommands = slashCommands.length;
@@ -168,10 +166,6 @@ export default class HelpCommand extends Command {
       )
       .addSeparatorComponents(seperator => seperator)
       .addActionRowComponents(row => row.addComponents(selectMenu));
-
-    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-      selectMenu,
-    );
 
     await interaction.reply({
       components: [helpContainer],
