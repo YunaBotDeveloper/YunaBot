@@ -24,6 +24,7 @@ export default class ApplicationEmoji {
 
     const itemData = res.data.items;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const matchingEmoji = itemData.find((item: any) => item.name === name);
 
     if (!matchingEmoji) return;

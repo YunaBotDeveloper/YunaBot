@@ -19,5 +19,6 @@ export abstract class Command implements ICommand {
   }
 
   abstract run(interaction: ChatInputCommandInteraction): Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async autocomplete(interaction: AutocompleteInteraction): Promise<void> {}
 }

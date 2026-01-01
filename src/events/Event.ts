@@ -10,5 +10,6 @@ export default abstract class Event implements IEvent {
     this.once = once;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abstract run(client: ExtendedClient, ...args: any[]): Promise<void>;
 }

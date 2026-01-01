@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {ASCII_Colors} from '../util/ASCIIColors';
 
 export default class Log4TS {

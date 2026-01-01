@@ -13,10 +13,10 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
   subtext,
+  ButtonInteraction,
 } from 'discord.js';
 import {Command} from '../../Command';
 import ExtendedClient from '../../../classes/ExtendedClient';
-import Config from '../../../config/Config';
 import ComponentManager from '../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../enum/ComponentEnum';
 
@@ -275,7 +275,7 @@ export default class HelpCommand extends Command {
         onTimeout: async () => {
           // Handled by menu timeout
         },
-        handler: async (buttonInteraction: any) => {
+        handler: async (buttonInteraction: ButtonInteraction) => {
           await buttonInteraction.update({
             components: [helpContainer],
             flags: MessageFlags.IsComponentsV2,
