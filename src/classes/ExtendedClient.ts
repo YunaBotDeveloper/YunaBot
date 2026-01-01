@@ -37,7 +37,7 @@ export default class ExtendedClient extends Client implements IClient {
   );
 
   async initialize(): Promise<void> {
-    loadModels(this.database.getSequelize());
+    this.database.getSequelize();
     await this.database.getSync();
     await this.eventManager.loadEvents();
     await this.login(Config.getInstance().token);
