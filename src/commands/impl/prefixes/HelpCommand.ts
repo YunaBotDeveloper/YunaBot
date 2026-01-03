@@ -1,7 +1,7 @@
 import {PrefixCommand} from '../../PrefixCommand';
 import ExtendedClient from '../../../classes/ExtendedClient';
 import {EmbedBuilder, Message} from 'discord.js';
-import Config from '../../../config/Config';
+import PrefixManager from '../../PrefixManager';
 import {EmbedColors} from '../../../util/EmbedColors';
 
 export default class HelpCommand extends PrefixCommand {
@@ -13,6 +13,10 @@ export default class HelpCommand extends PrefixCommand {
     context: {message: Message; client: ExtendedClient},
   ): Promise<void> {
     const commands = context.client.commandManager.getAllPrefixCommand();
+    const prefixManager = PrefixManager.getInstance();
+    const prefix = context.message.guild
+      ? await prefixManager.getPrefix(context.message.guild.id)
+      : prefixManager.getDefaultPrefix();
 
     const embed = new EmbedBuilder().setTitle('Available Command:').setFooter({
       text: 'Executed by: ' + context.message.author.tag,
@@ -21,7 +25,7 @@ export default class HelpCommand extends PrefixCommand {
     let commandList = '';
     commands.forEach(cmd => {
       commandList +=
-        `\`${Config.getInstance().prefix}` +
+        `\`${prefix}` +
         cmd.name +
         '` - Alias: ' +
         (cmd.aliases.length > 0 ? cmd.aliases.join(' | ') + '\n' : 'none\n');

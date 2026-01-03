@@ -1,15 +1,23 @@
+/**
+ * Config - Singleton class for managing bot configuration
+ *
+ * Loads configuration from config.yaml file.
+ * Uses Singleton pattern to ensure only one instance exists.
+ *
+ * Configuration options:
+ * - bot.token: Discord bot token (required)
+ *
+ * Note: Prefix and log channels are now stored in the database per-server.
+ */
 import * as fs from 'fs';
 import * as path from 'path';
 import {parse} from 'yaml';
 import Log4TS from '../logger/Log4TS';
 
+/** Interface defining the structure of config.yaml */
 export interface BotConfig {
   bot?: {
     token: string;
-    prefix: string;
-  };
-  logChannel?: {
-    nuke?: string;
   };
 }
 
@@ -25,10 +33,6 @@ class Config {
       const exampleConfigPath = path.join(__dirname, '..', '..', 'config.yaml');
       const exampleConfig = `bot:
   token: "YOUR_BOT_TOKEN_HERE"
-  prefix: "!"
-
-logChannel:
-  nuke: "CHANNEL_ID_HERE"  # Optional
 `;
       fs.writeFileSync(exampleConfigPath, exampleConfig, 'utf8');
       this.logging.error(
@@ -49,10 +53,6 @@ logChannel:
       );
       const exampleConfig = `bot:
   token: "YOUR_BOT_TOKEN_HERE"
-  prefix: "!"
-
-logChannel:
-  nuke: "CHANNEL_ID_HERE"  # Optional
 `;
       fs.writeFileSync(exampleConfigPath, exampleConfig, 'utf8');
       this.logging.error(
@@ -64,12 +64,11 @@ logChannel:
     if (!this.config.bot.token) {
       throw new Error('Bot token is required in config.yaml');
     }
-
-    if (!this.config.bot.prefix) {
-      throw new Error('Bot prefix is required in config.yaml');
-    }
   }
 
+  /**
+   * Get the singleton instance of Config
+   */
   public static getInstance(): Config {
     if (!Config.instance) {
       Config.instance = new Config();
@@ -77,18 +76,16 @@ logChannel:
     return Config.instance;
   }
 
+  /**
+   * Get the bot token
+   */
   public get token(): string {
     return this.config.bot!.token;
   }
 
-  public get prefix(): string {
-    return this.config.bot!.prefix;
-  }
-
-  public get nukeLogChannel(): string | undefined {
-    return this.config?.logChannel?.nuke ?? undefined;
-  }
-
+  /**
+   * Get the full configuration object
+   */
   public getConfig(): BotConfig {
     return this.config;
   }

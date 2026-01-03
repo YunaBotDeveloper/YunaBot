@@ -1,8 +1,17 @@
+/**
+ * PrefixCommandHandler - Event handler for prefix commands
+ *
+ * Listens to MessageCreate events and processes prefix commands
+ * - Fetches the guild-specific prefix (or default for DMs)
+ * - Parses the command and arguments from the message
+ * - Handles cooldowns to prevent command spam
+ * - Executes the matched prefix command
+ */
 import {Events, Message, EmbedBuilder} from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
 import {CooldownManager} from '../../commands/CooldownManager';
-import Config from '../../config/Config';
+import PrefixManager from '../../commands/PrefixManager';
 import Log4TS from '../../logger/Log4TS';
 import {EmbedColors} from '../../util/EmbedColors';
 
@@ -12,15 +21,22 @@ export default class PrefixCommandHandler extends Event {
   constructor() {
     super(Events.MessageCreate);
   }
+
   async run(client: ExtendedClient, message: Message): Promise<void> {
-    const prefix = Config.getInstance().prefix;
-    if (!prefix || message.author.bot || !message.content.startsWith(prefix))
-      return;
+    if (message.author.bot) return;
+
+    const prefixManager = PrefixManager.getInstance();
+    const prefix = message.guild
+      ? await prefixManager.getPrefix(message.guild.id)
+      : prefixManager.getDefaultPrefix();
+
+    if (!message.content.startsWith(prefix)) return;
 
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift()?.toLowerCase();
 
     if (!commandName) return;
+
     const command = client.commandManager.getPrefixCommand(commandName);
     if (!command) return;
 

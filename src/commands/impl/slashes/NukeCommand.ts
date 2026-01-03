@@ -17,7 +17,6 @@ import {EmbedColors} from '../../../util/EmbedColors';
 import ExtendedClient from '../../../classes/ExtendedClient';
 import ComponentManager from '../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../enum/ComponentEnum';
-import Config from '../../../config/Config';
 import Log4TS from '../../../logger/Log4TS';
 
 export default class NukeCommand extends Command {
@@ -50,8 +49,7 @@ export default class NukeCommand extends Command {
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
     const logging = Log4TS.getLogger();
-    const logChannelId: string | undefined =
-      Config.getInstance().nukeLogChannel;
+    const logChannelId: string | undefined = undefined;
 
     const reason =
       interaction.options.getString('reason', false) ||
