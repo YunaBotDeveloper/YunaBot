@@ -128,6 +128,9 @@ export default class SlashCommandHandler extends Event {
         logging.error(
           `Error handling component "${interaction.customId}": ` + error,
         );
+        if (interaction.replied || interaction.deferred) {
+          return;
+        }
         const errEmbed = new EmbedBuilder()
           .setAuthor({
             name: interaction.user.displayName,

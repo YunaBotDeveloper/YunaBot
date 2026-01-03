@@ -18,6 +18,7 @@ import ExtendedClient from '../../../classes/ExtendedClient';
 import ComponentManager from '../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../enum/ComponentEnum';
 import Log4TS from '../../../logger/Log4TS';
+import NukeLog from '../../../database/models/NukeLog.model';
 
 export default class NukeCommand extends Command {
   constructor() {
@@ -44,6 +45,10 @@ export default class NukeCommand extends Command {
   }
 
   async run(interaction: ChatInputCommandInteraction) {
+    await interaction.deferReply({
+      flags: [MessageFlags.Ephemeral],
+    });
+
     const client = interaction.client as ExtendedClient;
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
@@ -68,9 +73,8 @@ export default class NukeCommand extends Command {
           ),
         );
 
-      await interaction.reply({
+      await interaction.editReply({
         components: [noBotPermContainer],
-        flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
       });
 
       return;
@@ -103,9 +107,8 @@ export default class NukeCommand extends Command {
             ),
           );
 
-        await interaction.reply({
+        await interaction.editReply({
           components: [invaildChannelContainer],
-          flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
         });
         return;
       }
@@ -123,9 +126,8 @@ export default class NukeCommand extends Command {
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(`## ${failedEmoji} Lỗi: Kênh không hợp lệ!`),
         );
-      await interaction.reply({
+      await interaction.editReply({
         components: [invaildChannelContainer],
-        flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
       });
       return;
     }
@@ -178,9 +180,10 @@ export default class NukeCommand extends Command {
               .setStyle(ButtonStyle.Success),
           ),
       );
-    const ogMsg = await interaction.reply({
+
+    await interaction.editReply({
       components: [confirmContainer],
-      flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
+      flags: [MessageFlags.IsComponentsV2],
     });
 
     const timeout = 10000;
@@ -214,7 +217,6 @@ export default class NukeCommand extends Command {
           ]);
 
           await interaction.deferUpdate();
-          await ogMsg.delete();
           await channel.delete(reason);
           const newChannel = await interaction.guild?.channels.create({
             name: channelName,
@@ -242,6 +244,17 @@ export default class NukeCommand extends Command {
             components: [confirmContainer],
             flags: MessageFlags.IsComponentsV2,
           });
+
+          const nukeLog = new NukeLog({
+            guildId: channel.guild.id,
+            id: `${channel.guild.id}-${Date.now()}`,
+            channelId: channel.id,
+            userId: interaction.user.id,
+            reason: reason,
+            time: Math.round(Date.now()),
+          });
+
+          await nukeLog.save();
 
           if (!logChannelId) {
             return;
@@ -300,13 +313,14 @@ export default class NukeCommand extends Command {
         customId: 'reject',
         timeout: timeout,
         onTimeout: onTimeout,
-        handler: async () => {
+        handler: async (interaction: ButtonInteraction) => {
           ComponentManager.getComponentManager().unregisterMany([
             'confirm',
             'reject',
           ]);
 
-          await ogMsg.delete();
+          await interaction.deferUpdate();
+          await interaction.deleteReply();
 
           return;
         },
