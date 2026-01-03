@@ -1,8 +1,6 @@
 /**
- * GuildPrefix Model
- * Database model for storing custom prefixes per server (guild)
- * - guildId: Server ID (primary key)
- * - prefix: Custom prefix for the server (default is "!")
+ * @fileoverview Sequelize model for cache guild prefix.
+ * @module database/models/prefix
  */
 import {
   Model,
@@ -13,6 +11,14 @@ import {
 } from 'sequelize';
 
 let sequelize: Sequelize | null = null;
+
+/**
+ * Sequelize model for storing nuke operation logs per server.
+ * Tracks when channels are nuked (deleted and recreated) with metadata.
+ *
+ * @class GuildPrefix
+ * @extends Model
+ */
 
 class GuildPrefix extends Model<
   InferAttributes<GuildPrefix>,
