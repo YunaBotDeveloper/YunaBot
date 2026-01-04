@@ -1,12 +1,3 @@
-/**
- * PrefixCommandHandler - Event handler for prefix commands
- *
- * Listens to MessageCreate events and processes prefix commands
- * - Fetches the guild-specific prefix (or default for DMs)
- * - Parses the command and arguments from the message
- * - Handles cooldowns to prevent command spam
- * - Executes the matched prefix command
- */
 import {Events, Message, EmbedBuilder} from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';

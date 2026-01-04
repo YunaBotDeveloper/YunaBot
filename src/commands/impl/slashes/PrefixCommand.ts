@@ -1,13 +1,4 @@
-/**
- * PrefixCommand - Slash command to manage server prefix
- *
- * Usage:
- * - /prefix                    : View current server prefix
- * - /prefix new_prefix:<text>  : Set a new prefix for the server
- * - /prefix reset:true         : Reset prefix to default (!)
- *
- * Required Permission: Manage Guild
- */
+
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,

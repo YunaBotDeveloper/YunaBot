@@ -1,11 +1,3 @@
-/**
- * CommandManager - Manages loading and registering slash and prefix commands
- *
- * Handles:
- * - Loading command files from the impl directory
- * - Registering slash commands with Discord API
- * - Retrieving commands by name or alias
- */
 import ExtendedClient from '../classes/ExtendedClient';
 import {Command} from './Command';
 import * as path from 'path';
@@ -16,21 +8,12 @@ import Log4TS from '../logger/Log4TS';
 import {PrefixCommand} from './PrefixCommand';
 
 export class CommandManager {
-  /** The Discord client instance */
   private client: ExtendedClient;
-  /** Array of loaded slash commands */
   private slashCommands: Command[];
-  /** Array of loaded prefix commands */
   private prefixCommands: PrefixCommand[];
-  /** REST client for Discord API */
   private rest: REST;
-  /** Logger instance */
   private logger: Log4TS;
 
-  /**
-   * Create a new CommandManager
-   * @param client - The ExtendedClient instance
-   */
   constructor(client: ExtendedClient) {
     this.client = client;
     this.slashCommands = [];
@@ -43,9 +26,6 @@ export class CommandManager {
     this.logger = Log4TS.getLogger();
   }
 
-  /**
-   * Load all commands from the impl directory and register slash commands with Discord
-   */
   public async loadCommands(): Promise<void> {
     const commandsDir = path.join(__dirname, 'impl');
     const subDirs = fs.readdirSync(commandsDir);
@@ -96,54 +76,28 @@ export class CommandManager {
     this.logger.success('Slash commands are now available on Discord API');
   }
 
-  /**
-   * Get a slash command by name
-   * @param name - The command name
-   * @returns The Command instance or undefined if not found
-   */
   public getSlashCommand(name: string): Command | undefined {
     return this.slashCommands.find(cmd => cmd.data.name === name);
   }
 
-  /**
-   * Get all loaded slash commands
-   * @returns Array of all slash commands
-   */
   public getAllSlashCommand(): Command[] {
     return this.slashCommands;
   }
 
-  /**
-   * Get the number of loaded slash commands
-   * @returns Number of slash commands
-   */
   public getSlashCommandSize(): number {
     return this.slashCommands.length;
   }
 
-  /**
-   * Get a prefix command by name or alias
-   * @param name - The command name or alias
-   * @returns The PrefixCommand instance or undefined if not found
-   */
   public getPrefixCommand(name: string): PrefixCommand | undefined {
     return this.prefixCommands.find(
       prefixcmd => prefixcmd.name === name || prefixcmd.aliases.includes(name),
     );
   }
 
-  /**
-   * Get all loaded prefix commands
-   * @returns Array of all prefix commands
-   */
   public getAllPrefixCommand(): PrefixCommand[] {
     return this.prefixCommands;
   }
 
-  /**
-   * Get the number of loaded prefix commands
-   * @returns Number of prefix commands
-   */
   public getPrefixCommandSize(): number {
     return this.prefixCommands.length;
   }
