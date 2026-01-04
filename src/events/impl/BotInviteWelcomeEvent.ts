@@ -31,9 +31,11 @@ export default class BotInviteWelcomeEvent extends Event {
         iconURL: member.user.avatarURL() || undefined,
       })
       .setThumbnail(guild.iconURL())
-      .setTitle('YunaBot đã được thêm vào server thành công!')
+      .setTitle(
+        `${client.user?.displayName} đã được thêm vào server thành công!`,
+      )
       .setDescription(
-        `Cảm ơn bạn đã thêm YunaBot vào ${guild.name}.\nChúc bạn sử dụng bot vui vẻ!\n\nĐể sử dụng được bot, bạn vui lòng bấm vào [đây](https://docs.nstore.lol) để xem HDSD.`,
+        `Cảm ơn bạn đã thêm ${client.user?.displayName} vào ${guild.name}.\nChúc bạn sử dụng bot vui vẻ!\n\nĐể sử dụng được bot, bạn vui lòng bấm vào [đây](https://docs.nstore.lol) để xem HDSD.`,
       )
       .setFooter({text: 'From Yuna With ❤️'})
       .setTimestamp()
