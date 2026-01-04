@@ -5,8 +5,6 @@ import {CommandManager} from '../commands/CommandManager';
 import Config from '../config/Config';
 import {IComponent} from '../interfaces/IComponent';
 import {SQLize} from '../database/SQLize';
-import {initGuildPrefixModel} from '../database/models/GuildPrefix.model';
-import {initNukeLogModel} from '../database/models/NukeLog.model';
 import path = require('path');
 import ApplicationEmoji from '../api/discord/ApplicationEmoji';
 
@@ -42,9 +40,7 @@ export default class ExtendedClient extends Client implements IClient {
   );
 
   async initialize(): Promise<void> {
-    this.database.getSequelize();
-    initGuildPrefixModel(this.database.getSequelize());
-    initNukeLogModel(this.database.getSequelize());
+    await this.database.loadModels();
     await this.database.getSync();
     await this.eventManager.loadEvents();
     await this.login(Config.getInstance().token);
