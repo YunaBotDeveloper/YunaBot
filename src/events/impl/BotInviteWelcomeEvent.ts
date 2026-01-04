@@ -35,7 +35,7 @@ export default class BotInviteWelcomeEvent extends Event {
       .setDescription(
         `Cảm ơn bạn đã thêm YunaBot vào ${guild.name}.\nChúc bạn sử dụng bot vui vẻ!\n\nĐể sử dụng được bot, bạn vui lòng bấm vào [đây](https://docs.nstore.lol) để xem HDSD.`,
       )
-      .setFooter({text: 'YunaBot with ❤️'})
+      .setFooter({text: 'From Yuna With ❤️'})
       .setTimestamp()
       .setColor(EmbedColors.random());
     try {
