@@ -37,21 +37,23 @@ export class SQLize {
 
   public async loadModels(): Promise<void> {
     const modelsDir = path.join(__dirname, 'models');
-    const files = fs.readdirSync(modelsDir).filter(file => 
-      file.endsWith('.model.ts') || file.endsWith('.model.js')
-    );
+    const files = fs
+      .readdirSync(modelsDir)
+      .filter(file => file.endsWith('.model.ts') || file.endsWith('.model.js'));
 
     for (const file of files) {
       const filePath = path.join(modelsDir, file);
       const imported = require(filePath);
-      
-      const initFuncName = Object.keys(imported).find(key => 
-        key.startsWith('init') && typeof imported[key] === 'function'
+
+      const initFuncName = Object.keys(imported).find(
+        key => key.startsWith('init') && typeof imported[key] === 'function',
       );
 
       if (initFuncName) {
         imported[initFuncName](this.sequelize);
-        const modelName = file.replace('.model.ts', '').replace('.model.js', '');
+        const modelName = file
+          .replace('.model.ts', '')
+          .replace('.model.js', '');
         this.logger.info(`Loaded model: ${modelName}`);
       }
     }
