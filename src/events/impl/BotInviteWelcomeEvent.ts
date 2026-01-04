@@ -1,6 +1,14 @@
 import ExtendedClient from '../../classes/ExtendedClient';
+import Log4TS from '../../logger/Log4TS';
+import {EmbedColors} from '../../util/EmbedColors';
 import Event from '../Event';
-import {AuditLogEvent, Events, Guild} from 'discord.js';
+import {
+  AuditLogEvent,
+  EmbedBuilder,
+  Events,
+  Guild,
+  RESTJSONErrorCodes,
+} from 'discord.js';
 
 export default class BotInviteWelcomeEvent extends Event {
   constructor() {
@@ -8,6 +16,7 @@ export default class BotInviteWelcomeEvent extends Event {
   }
 
   async run(client: ExtendedClient, guild: Guild) {
+    const logging = Log4TS.getLogger();
     const fetchedLog = await guild.fetchAuditLogs({
       limit: 1,
       type: AuditLogEvent.BotAdd,
@@ -16,9 +25,29 @@ export default class BotInviteWelcomeEvent extends Event {
     const executor = auditLog?.executor;
     if (!auditLog || !executor) return;
     const member = await guild.members.fetch(executor.id);
-    await member.send(
-      'cam on ban da moi bot cua chung toi, chuc ban 1 ngay vui ve!!!!!!!!!!!!!',
-    );
+    const welcomeEmbed = new EmbedBuilder()
+      .setAuthor({
+        name: member.user.username,
+        iconURL: member.user.avatarURL() || undefined,
+      })
+      .setThumbnail(guild.iconURL())
+      .setTitle('YunaBot đã được thêm vào server thành công!')
+      .setDescription(
+        `Cảm ơn bạn đã thêm YunaBot vào ${guild.name}.\nChúc bạn sử dụng bot vui vẻ!\n\nĐể sử dụng được bot, bạn vui lòng bấm vào [đây](https://docs.nstore.lol) để xem HDSD.`,
+      )
+      .setFooter({text: 'YunaBot with ❤️'})
+      .setTimestamp()
+      .setColor(EmbedColors.random());
+    try {
+      await member.send({embeds: [welcomeEmbed]});
+    } catch (error) {
+      if (error === RESTJSONErrorCodes.CannotSendMessagesToThisUser) {
+        return;
+      } else {
+        logging.error(error);
+        console.error(error);
+      }
+    }
     return;
   }
 }
