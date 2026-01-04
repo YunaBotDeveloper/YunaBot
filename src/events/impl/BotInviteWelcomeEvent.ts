@@ -13,13 +13,8 @@ export default class BotInviteWelcomeEvent extends Event {
       type: AuditLogEvent.BotAdd,
     });
     const auditLog = fetchedLog.entries.first();
-    if (!auditLog) {
-      return;
-    }
     const executor = auditLog?.executor;
-    if (!executor) {
-      return;
-    }
+    if (!auditLog || !executor) return;
     const member = await guild.members.fetch(executor.id);
     await member.send(
       'cam on ban da moi bot cua chung toi, chuc ban 1 ngay vui ve!!!!!!!!!!!!!',
