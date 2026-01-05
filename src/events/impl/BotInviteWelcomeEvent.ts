@@ -1,4 +1,6 @@
 import ExtendedClient from '../../classes/ExtendedClient';
+import GuildLog from '../../database/models/GuildLog.model';
+import GuildPrefix from '../../database/models/GuildPrefix.model';
 import Log4TS from '../../logger/Log4TS';
 import {EmbedColors} from '../../util/EmbedColors';
 import Event from '../Event';
@@ -10,13 +12,19 @@ import {
   RESTJSONErrorCodes,
 } from 'discord.js';
 
+const logger = Log4TS.getLogger();
+
 export default class BotInviteWelcomeEvent extends Event {
   constructor() {
     super(Events.GuildCreate);
   }
 
   async run(client: ExtendedClient, guild: Guild) {
-    const logging = Log4TS.getLogger();
+    const guildPrefix = new GuildPrefix({guildId: guild.id, prefix: '!'});
+    const guildLog = new GuildLog({guildId: guild.id, nukeLogId: ''});
+    await guildPrefix.save();
+    await guildLog.save();
+
     const fetchedLog = await guild.fetchAuditLogs({
       limit: 1,
       type: AuditLogEvent.BotAdd,
@@ -24,6 +32,7 @@ export default class BotInviteWelcomeEvent extends Event {
     const auditLog = fetchedLog.entries.first();
     const executor = auditLog?.executor;
     if (!auditLog || !executor) return;
+
     const member = await guild.members.fetch(executor.id);
     const welcomeEmbed = new EmbedBuilder()
       .setAuthor({
@@ -46,7 +55,7 @@ export default class BotInviteWelcomeEvent extends Event {
       if (error === RESTJSONErrorCodes.CannotSendMessagesToThisUser) {
         return;
       } else {
-        logging.error(error);
+        logger.error(error);
         console.error(error);
       }
     }
