@@ -1,5 +1,6 @@
 import ExtendedClient from '../classes/ExtendedClient';
 import {Command} from './Command';
+import {ContextMenuCommand} from './ContextMenuCommand';
 import * as path from 'path';
 import * as fs from 'fs';
 import {REST, Routes} from 'discord.js';
@@ -11,6 +12,7 @@ export class CommandManager {
   private client: ExtendedClient;
   private slashCommands: Command[];
   private prefixCommands: PrefixCommand[];
+  private contextMenuCommands: ContextMenuCommand[];
   private rest: REST;
   private logger: Log4TS;
 
@@ -18,6 +20,7 @@ export class CommandManager {
     this.client = client;
     this.slashCommands = [];
     this.prefixCommands = [];
+    this.contextMenuCommands = [];
     const token = Config.getInstance().token;
     if (!token) {
       throw new Error('Bot token is not configured in config.yaml');
@@ -56,11 +59,14 @@ export class CommandManager {
           } else if (commandInstance instanceof PrefixCommand) {
             this.prefixCommands.push(commandInstance);
             this.logger.info('Loaded prefix command: ' + file);
+          } else if (commandInstance instanceof ContextMenuCommand) {
+            this.contextMenuCommands.push(commandInstance);
+            this.logger.info('Loaded context menu command: ' + file);
           } else {
             this.logger.warning(
               'The command: ' +
                 file +
-                ' does not match any structures of Command or PrefixCommand as expected',
+                ' does not match any structures of Command, PrefixCommand or ContextMenuCommand as expected',
             );
           }
         } catch (e) {
@@ -69,11 +75,19 @@ export class CommandManager {
       }
     }
 
+    const allCommands = [
+      ...this.slashCommands.map(cmd => cmd.data.toJSON()),
+      ...this.contextMenuCommands.map(cmd => cmd.data.toJSON()),
+    ];
+
     await this.rest.put(
       Routes.applicationCommands(this.client.user?.id as string),
-      {body: this.slashCommands.map(cmd => cmd.data.toJSON())},
+      {body: allCommands},
     );
     this.logger.success('Slash commands are now available on Discord API');
+    this.logger.success(
+      'Context menu commands are now available on Discord API',
+    );
   }
 
   public getSlashCommand(name: string): Command | undefined {
@@ -100,5 +114,17 @@ export class CommandManager {
 
   public getPrefixCommandSize(): number {
     return this.prefixCommands.length;
+  }
+
+  public getContextMenuCommand(name: string): ContextMenuCommand | undefined {
+    return this.contextMenuCommands.find(cmd => cmd.data.name === name);
+  }
+
+  public getAllContextMenuCommand(): ContextMenuCommand[] {
+    return this.contextMenuCommands;
+  }
+
+  public getContextMenuCommandSize(): number {
+    return this.contextMenuCommands.length;
   }
 }

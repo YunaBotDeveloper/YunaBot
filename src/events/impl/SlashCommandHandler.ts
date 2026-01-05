@@ -5,6 +5,8 @@ import {
   Interaction,
   ModalSubmitInteraction,
   StringSelectMenuInteraction,
+  UserContextMenuCommandInteraction,
+  MessageContextMenuCommandInteraction,
 } from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
@@ -147,6 +149,60 @@ export default class SlashCommandHandler extends Event {
           embeds: [errEmbed],
           flags: 'Ephemeral',
         });
+      }
+    }
+
+    if (
+      interaction.isUserContextMenuCommand() ||
+      interaction.isMessageContextMenuCommand()
+    ) {
+      const commandName = interaction.commandName;
+      const command = client.commandManager.getContextMenuCommand(commandName);
+
+      if (!command) return;
+
+      const userId = interaction.user.id;
+      const cooldown = command.advancedOptions.cooldown || 0;
+
+      if (cooldownManager.isInCooldown(commandName, userId)) {
+        const expirationTimestamp = cooldownManager.getExpirationTimestamp(
+          commandName,
+          userId,
+        );
+        if (expirationTimestamp) {
+          const errEmbed = new EmbedBuilder()
+            .setAuthor({
+              name: interaction.user.displayName,
+              iconURL: interaction.user.displayAvatarURL(),
+            })
+            .setColor(EmbedColors.red())
+            .setTitle('❌ Error ❌')
+            .setDescription(
+              `Error while excuting command:\nYou must wait <t:${Math.floor(expirationTimestamp / 1000)}:R> to re-execute command!`,
+            )
+            .setFooter({
+              text: 'ManagerBot @ 0.0.1',
+            })
+            .setTimestamp();
+          await interaction.reply({
+            embeds: [errEmbed],
+            flags: 'Ephemeral',
+          });
+        }
+        return;
+      }
+
+      cooldownManager.setCooldown(commandName, userId, cooldown);
+
+      try {
+        await command.run(
+          interaction as
+            | UserContextMenuCommandInteraction
+            | MessageContextMenuCommandInteraction,
+        );
+      } catch (e) {
+        logging.error(e);
+        console.error(e);
       }
     }
 
