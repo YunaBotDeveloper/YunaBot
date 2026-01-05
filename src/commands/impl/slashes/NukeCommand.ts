@@ -17,8 +17,8 @@ import {EmbedColors} from '../../../util/EmbedColors';
 import ExtendedClient from '../../../classes/ExtendedClient';
 import ComponentManager from '../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../enum/ComponentEnum';
-import Log4TS from '../../../logger/Log4TS';
 import NukeLog from '../../../database/models/NukeLog.model';
+import GuildLog from '../../../database/models/GuildLog.model';
 
 export default class NukeCommand extends Command {
   constructor() {
@@ -45,6 +45,9 @@ export default class NukeCommand extends Command {
   }
 
   async run(interaction: ChatInputCommandInteraction) {
+    const guild = interaction.guild;
+    if (!guild) return;
+
     await interaction.deferReply({
       flags: [MessageFlags.Ephemeral],
     });
@@ -53,8 +56,7 @@ export default class NukeCommand extends Command {
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
-    const logging = Log4TS.getLogger();
-    const logChannelId: string | undefined = undefined;
+    let logChannelId: string | undefined = undefined;
 
     const reason =
       interaction.options.getString('reason', false) ||
@@ -63,7 +65,7 @@ export default class NukeCommand extends Command {
       return;
     }
 
-    const botMember = interaction.guild?.members.me;
+    const botMember = guild.members.me;
     if (!botMember?.permissions.has(PermissionFlagsBits.ManageChannels)) {
       const noBotPermContainer = new ContainerBuilder()
         .setAccentColor(EmbedColors.red())
@@ -80,8 +82,8 @@ export default class NukeCommand extends Command {
       return;
     }
 
-    const ruleChannelId = interaction.guild?.rulesChannelId;
-    const publicUpdateChannelId = interaction.guild?.publicUpdatesChannelId;
+    const ruleChannelId = guild.rulesChannelId;
+    const publicUpdateChannelId = guild.publicUpdatesChannelId;
 
     if (!ruleChannelId) {
       return;
@@ -218,7 +220,7 @@ export default class NukeCommand extends Command {
 
           await interaction.deferUpdate();
           await channel.delete(reason);
-          const newChannel = await interaction.guild?.channels.create({
+          const newChannel = await guild.channels.create({
             name: channelName,
             type: channelType,
             parent: channelParent,
@@ -256,6 +258,12 @@ export default class NukeCommand extends Command {
 
           await nukeLog.save();
 
+          const guildLog = await GuildLog.findOne({
+            where: {guildId: guild.id},
+          });
+
+          logChannelId = guildLog?.nukeLogId;
+
           if (!logChannelId) {
             return;
           }
@@ -290,18 +298,18 @@ export default class NukeCommand extends Command {
               ),
             );
 
-          const logChannel = (await newChannel.guild.channels.fetch(
+          const nukeLogChannel = (await newChannel.guild.channels.fetch(
             logChannelId,
           )) as TextChannel | null;
 
-          if (logChannel) {
-            await logChannel.send({
+          if (nukeLogChannel) {
+            await nukeLogChannel.send({
               components: [logContainer],
               flags: MessageFlags.IsComponentsV2,
               allowedMentions: {users: []},
             });
           } else {
-            logging.error('Nuke logging channel not found!');
+            return;
           }
 
           return;

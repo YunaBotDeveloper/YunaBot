@@ -20,6 +20,9 @@ export default class BotInviteWelcomeEvent extends Event {
   }
 
   async run(client: ExtendedClient, guild: Guild) {
+    logger.info(
+      `${guild.name} (ID: ${guild.id}) added ${client.user?.username}`,
+    );
     const guildPrefix = new GuildPrefix({guildId: guild.id, prefix: '!'});
     const guildLog = new GuildLog({guildId: guild.id, nukeLogId: ''});
     await guildPrefix.save();
