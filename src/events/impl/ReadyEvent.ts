@@ -8,7 +8,7 @@ export default class ReadyEvent extends Event {
   constructor() {
     super(Events.ClientReady, true);
   }
-  async run(client: ExtendedClient): Promise<void> {
+  async run(client: ExtendedClient) {
     logger.success(client.user?.username + ' is now ready');
   }
 }
