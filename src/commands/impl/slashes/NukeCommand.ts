@@ -183,7 +183,7 @@ export default class NukeCommand extends Command {
           ),
       );
 
-    await interaction.editReply({
+    const ogMsg = await interaction.editReply({
       components: [confirmContainer],
       flags: [MessageFlags.IsComponentsV2],
     });
@@ -219,6 +219,13 @@ export default class NukeCommand extends Command {
           ]);
 
           await interaction.deferUpdate();
+          const successContainer = new ContainerBuilder()
+            .setAccentColor(EmbedColors.green())
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`## ${successEmoji} Thao tác thành công!`),
+            );
+          await interaction.editReply({components: [successContainer]});
+
           await channel.delete(reason);
           const newChannel = await guild.channels.create({
             name: channelName,

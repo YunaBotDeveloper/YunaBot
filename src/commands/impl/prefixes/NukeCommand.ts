@@ -267,8 +267,13 @@ export default class NukeCommand extends PrefixCommand {
             'prefix_nuke_reject',
           ]);
 
-          if (confirmMessage.deletable) await confirmMessage.delete();
           await interaction.deferUpdate();
+          const successContainer = new ContainerBuilder()
+            .setAccentColor(EmbedColors.green())
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`## ${successEmoji} Thao tác thành công!`),
+            );
+          await interaction.editReply({components: [successContainer]});
           await channel.delete(reason);
           const newChannel = await guild.channels.create({
             name: channelName,
@@ -285,7 +290,7 @@ export default class NukeCommand extends PrefixCommand {
 
           await newChannel.setPosition(channelPos);
 
-          const successContainer = new ContainerBuilder()
+          const nukeSuccessContainer = new ContainerBuilder()
             .setAccentColor(EmbedColors.blue())
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
@@ -293,7 +298,7 @@ export default class NukeCommand extends PrefixCommand {
               ),
             );
           await newChannel.send({
-            components: [successContainer],
+            components: [nukeSuccessContainer],
             flags: MessageFlags.IsComponentsV2,
           });
 
