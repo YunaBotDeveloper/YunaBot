@@ -2,6 +2,7 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   PermissionFlagsBits,
+  TextInputBuilder,
 } from 'discord.js';
 import {Command} from '../../Command';
 import {EmbedColors} from '../../../util/EmbedColors';

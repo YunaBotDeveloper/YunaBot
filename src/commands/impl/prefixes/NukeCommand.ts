@@ -19,6 +19,7 @@ import ComponentManager from '../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../enum/ComponentEnum';
 import NukeLog from '../../../database/models/NukeLog.model';
 import GuildLog from '../../../database/models/GuildLog.model';
+import { nanoid } from 'nanoid';
 
 export default class NukeCommand extends PrefixCommand {
   constructor() {
@@ -304,7 +305,7 @@ export default class NukeCommand extends PrefixCommand {
 
           const nukeLog = new NukeLog({
             guildId: channel.guild.id,
-            id: `${channel.guild.id}-${Date.now()}`,
+            id: `#${nanoid(5)}`,
             channelId: channel.id,
             userId: interaction.user.id,
             reason: reason,
