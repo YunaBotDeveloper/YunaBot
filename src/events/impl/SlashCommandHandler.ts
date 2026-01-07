@@ -81,6 +81,7 @@ export default class SlashCommandHandler extends Event {
 
       if (
         component.userCheck &&
+        !component.userCheck.includes('*') &&
         !component.userCheck.includes(interaction.user.id)
       ) {
         const errEmbed = new EmbedBuilder()

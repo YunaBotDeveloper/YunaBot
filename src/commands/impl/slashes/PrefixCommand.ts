@@ -2,7 +2,6 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   PermissionFlagsBits,
-  TextInputBuilder,
 } from 'discord.js';
 import {Command} from '../../Command';
 import {EmbedColors} from '../../../util/EmbedColors';
@@ -27,7 +26,7 @@ export default class PrefixCommand extends Command {
           .setDescription('Reset the prefix to default (!)')
           .setRequired(false),
       )
-      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
   }
 
   async run(interaction: ChatInputCommandInteraction): Promise<void> {
