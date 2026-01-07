@@ -19,7 +19,6 @@ export class SQLize {
       dialect: 'sqlite',
       storage: this.dbPath,
       logging: this.logging,
-      host: 'localhost',
     });
   }
 
