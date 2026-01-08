@@ -18,7 +18,7 @@ class SicboSession extends Model<
   declare messageId: string;
   declare hostId: string;
   declare hostTag: string;
-  declare players: string; // JSON string of players map
+  declare players: string;
   declare startTime: number;
   declare duration: number;
   declare isRunning: boolean;
@@ -27,7 +27,7 @@ class SicboSession extends Model<
   declare dice1: number | null;
   declare dice2: number | null;
   declare dice3: number | null;
-  declare result: string | null; // 'tai' | 'xiu' | 'triple'
+  declare result: string | null;
 }
 
 export function initSicboSessionModel(sequelizeInstance: Sequelize): void {

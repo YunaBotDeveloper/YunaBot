@@ -19,7 +19,7 @@ import ComponentManager from '../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../enum/ComponentEnum';
 import NukeLog from '../../../database/models/NukeLog.model';
 import GuildLog from '../../../database/models/GuildLog.model';
-import { nanoid } from 'nanoid';
+import {nanoid} from 'nanoid';
 
 export default class NukeCommand extends PrefixCommand {
   constructor() {
@@ -318,11 +318,11 @@ export default class NukeCommand extends PrefixCommand {
             where: {guildId: guild.id},
           });
 
-          logChannelId = guildLog?.nukeLogId;
-
-          if (!logChannelId) {
+          if (!guildLog || !guildLog?.nukeLogId) {
             return;
           }
+
+          logChannelId = guildLog.nukeLogId;
 
           const now = Math.round(Date.now() / 1000);
 

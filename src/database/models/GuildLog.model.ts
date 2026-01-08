@@ -13,7 +13,7 @@ class GuildLog extends Model<
   InferCreationAttributes<GuildLog>
 > {
   declare guildId: string;
-  declare nukeLogId: string;
+  declare nukeLogId: string | null;
 }
 
 export function initGuildLogModel(sequelizeInstance: Sequelize): void {

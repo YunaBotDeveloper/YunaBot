@@ -16,7 +16,7 @@ class SicboHistory extends Model<
   declare id: CreationOptional<number>;
   declare guildId: string;
   declare sessionId: string;
-  declare result: string; // 'tai' | 'xiu' | 'triple'
+  declare result: string;
   declare dice1: number;
   declare dice2: number;
   declare dice3: number;

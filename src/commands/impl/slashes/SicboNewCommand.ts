@@ -768,7 +768,7 @@ export default class SicboNewCommand extends Command {
           ),
         );
 
-      await message.resource?.message.edit({components: [rollingContainer]});
+      await message.resource?.message!.edit({components: [rollingContainer]});
     }
 
     // Final result - use seed for deterministic dice
@@ -834,7 +834,7 @@ export default class SicboNewCommand extends Command {
         textDisplay.setContent(`🔒 **MD5:** \`${session.hash}\``),
       );
 
-    const guildId = interaction.guild?.id;
+    const guildId = interaction.guild!.id;
     await this.addToHistory(guildId, session.sessionId, {
       result: resultType,
       dice: [dice1, dice2, dice3],
@@ -865,7 +865,7 @@ export default class SicboNewCommand extends Command {
       total,
     );
 
-    await message.resource?.message.edit({components: [resultContainer]});
+    await message.resource?.message!.edit({components: [resultContainer]});
   }
 
   private getRandomDice(): number {
