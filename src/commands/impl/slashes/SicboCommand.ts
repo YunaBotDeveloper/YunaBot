@@ -6,13 +6,18 @@ import {
   ButtonStyle,
   ChatInputCommandInteraction,
   ContainerBuilder,
+  inlineCode,
   InteractionCallbackResponse,
   LabelBuilder,
+  Message,
   MessageFlags,
   ModalBuilder,
   ModalSubmitInteraction,
+  subtext,
+  TextChannel,
   TextInputBuilder,
   TextInputStyle,
+  time,
   userMention,
 } from 'discord.js';
 import {nanoid} from 'nanoid';
@@ -23,6 +28,7 @@ import {ComponentEnum} from '../../../enum/ComponentEnum';
 import {EmbedColors} from '../../../util/EmbedColors';
 import SicboHistory from '../../../database/models/SicboHistory.model';
 import Balance from '../../../database/models/Balance.model';
+import ExtendedClient from '../../../classes/ExtendedClient';
 
 type BetType = 'tai' | 'xiu' | 'boba';
 
@@ -67,19 +73,24 @@ export default class SicboNewCommand extends Command {
   private readonly maxHistory = sicboConfig.maxHistory;
 
   constructor() {
-    super('sicbonew', 'testing feature do not use');
+    super('sicbo', 'Tài Xỉu');
 
     this.advancedOptions.cooldown = 60000;
   }
 
   async run(interaction: ChatInputCommandInteraction) {
+    await interaction.deferReply({flags: [MessageFlags.Ephemeral]});
+
+    const client = interaction.client as ExtendedClient;
+    const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
+    const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
+
     const guild = interaction.guild;
     const channel = interaction.channel;
     const user = interaction.user;
 
     if (!guild || !channel) return;
 
-    // Check if there's already a running game in this guild
     const existingSession = await SicboSession.findOne({
       where: {
         guildId: guild.id,
@@ -88,10 +99,25 @@ export default class SicboNewCommand extends Command {
     });
 
     if (existingSession) {
-      await interaction.reply({
-        content:
-          '❌ Đã có một ván Tài Xỉu đang diễn ra trong server này! Vui lòng đợi ván hiện tại kết thúc.',
-        flags: MessageFlags.Ephemeral,
+      const existingSessionContainer = new ContainerBuilder()
+        .setAccentColor(EmbedColors.red())
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(`## ${failedEmoji} Lỗi`),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(
+            '**Đã có một ván Tài Xỉu đang diễn ra trong server này!**',
+          ),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(subtext(`${Math.round(Date.now() / 1000)}`)),
+        );
+
+      await interaction.editReply({
+        components: [existingSessionContainer],
+        flags: MessageFlags.IsComponentsV2,
       });
       return;
     }
@@ -106,7 +132,7 @@ export default class SicboNewCommand extends Command {
       players: new Map(),
       messageId: '',
       channelId: channel.id,
-      startTime: Math.round(Date.now()),
+      startTime: 0, // Will be set after message is sent
       duration: this.waitTime,
       isRunning: true,
       seed,
@@ -122,7 +148,7 @@ export default class SicboNewCommand extends Command {
       hostId: user.id,
       hostTag: user.tag,
       players: '{}',
-      startTime: session.startTime,
+      startTime: 0, // Will be updated after message is sent
       duration: session.duration,
       isRunning: true,
       seed,
@@ -143,12 +169,21 @@ export default class SicboNewCommand extends Command {
       xiuButtonId,
       bobaButtonId,
       guild.id,
+      client,
     );
 
     ComponentManager.getComponentManager().register([
       {
         customId: taiButtonId,
         handler: async (interaction: ButtonInteraction) => {
+          if (!session.isRunning) {
+            await interaction.reply({
+              content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+              ephemeral: true,
+            });
+            return;
+          }
+
           if (session.players.has(interaction.user.id)) {
             const currentBet = session.players.get(interaction.user.id)!;
             await interaction.reply({
@@ -185,6 +220,14 @@ export default class SicboNewCommand extends Command {
             {
               customId: 'taiBetModal',
               handler: async (interaction: ModalSubmitInteraction) => {
+                if (!session.isRunning) {
+                  await interaction.reply({
+                    content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                    ephemeral: true,
+                  });
+                  return;
+                }
+
                 const betAmountInput =
                   interaction.fields.getTextInputValue('taiBetInput');
 
@@ -257,6 +300,14 @@ export default class SicboNewCommand extends Command {
       {
         customId: xiuButtonId,
         handler: async (interaction: ButtonInteraction) => {
+          if (!session.isRunning) {
+            await interaction.reply({
+              content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+              ephemeral: true,
+            });
+            return;
+          }
+
           if (session.players.has(interaction.user.id)) {
             const currentBet = session.players.get(interaction.user.id)!;
             await interaction.reply({
@@ -293,6 +344,14 @@ export default class SicboNewCommand extends Command {
             {
               customId: 'xiuBetModal',
               handler: async (interaction: ModalSubmitInteraction) => {
+                if (!session.isRunning) {
+                  await interaction.reply({
+                    content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                    ephemeral: true,
+                  });
+                  return;
+                }
+
                 const betAmountInput =
                   interaction.fields.getTextInputValue('xiuBetInput');
 
@@ -365,6 +424,14 @@ export default class SicboNewCommand extends Command {
       {
         customId: bobaButtonId,
         handler: async (interaction: ButtonInteraction) => {
+          if (!session.isRunning) {
+            await interaction.reply({
+              content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+              ephemeral: true,
+            });
+            return;
+          }
+
           if (session.players.has(interaction.user.id)) {
             const currentBet = session.players.get(interaction.user.id)!;
             await interaction.reply({
@@ -401,6 +468,14 @@ export default class SicboNewCommand extends Command {
             {
               customId: 'bobaBetModal',
               handler: async (interaction: ModalSubmitInteraction) => {
+                if (!session.isRunning) {
+                  await interaction.reply({
+                    content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                    ephemeral: true,
+                  });
+                  return;
+                }
+
                 const betAmountInput =
                   interaction.fields.getTextInputValue('bobaBetInput');
 
@@ -472,15 +547,34 @@ export default class SicboNewCommand extends Command {
       },
     ]);
 
-    const reply = await interaction.reply({
-      components: [LobbyContainer],
+    const successContainer = new ContainerBuilder()
+      .setAccentColor(EmbedColors.green())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`## ${successEmoji} Tài Xỉu | Thành Công`),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent('**Tạo bàn cược mới thành công!**'),
+      );
+    await interaction.editReply({
+      components: [successContainer],
       flags: MessageFlags.IsComponentsV2,
-      withResponse: true,
     });
 
-    session.messageId = reply.resource?.message!.id || '';
+    if (!channel.isTextBased()) return;
+
+    const message = await (channel as TextChannel).send({
+      components: [LobbyContainer],
+      flags: MessageFlags.IsComponentsV2,
+      allowedMentions: {},
+    });
+
+    // Set startTime AFTER message is sent to ensure accurate countdown
+    session.startTime = Date.now();
+
+    session.messageId = message.id;
     await SicboSession.update(
-      {messageId: reply.resource?.message!.id},
+      {messageId: message.id, startTime: session.startTime},
       {where: {sessionId}},
     );
 
@@ -509,17 +603,20 @@ export default class SicboNewCommand extends Command {
         .setAccentColor(EmbedColors.red())
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            '## Không có người tham gia. Ván này đã bị huỷ.',
+            `${failedEmoji} ## Không có người tham gia. Ván này đã bị huỷ.`,
           ),
         );
 
-      await interaction.editReply({components: [noPlayerContainer]});
+      await interaction.editReply({
+        components: [noPlayerContainer],
+        allowedMentions: {},
+      });
 
       await SicboSession.destroy({where: {sessionId}});
       return;
     }
 
-    await this.runRollingAnimation(interaction, session, reply);
+    await this.runRollingAnimation(interaction, session, message);
   }
 
   private getPlayerList(session: GameSession): string {
@@ -557,7 +654,6 @@ export default class SicboNewCommand extends Command {
       const guildId = interaction.guild?.id;
       if (!guildId) return;
 
-      // Check if messageId exists
       if (!session.messageId) {
         console.error('Message ID not found in session');
         return;
@@ -573,6 +669,7 @@ export default class SicboNewCommand extends Command {
         xiuButtonId,
         bobaButtonId,
         guildId,
+        interaction.client as ExtendedClient,
       );
 
       const channel = await interaction.client.channels.fetch(
@@ -583,6 +680,7 @@ export default class SicboNewCommand extends Command {
         await message.edit({
           components: [LobbyContainer],
           flags: MessageFlags.IsComponentsV2,
+          allowedMentions: {},
         });
       }
     } catch (error) {
@@ -647,7 +745,10 @@ export default class SicboNewCommand extends Command {
     xiuButtonId: string,
     bobaButtonId: string,
     guildId: string,
+    client: ExtendedClient,
   ): Promise<ContainerBuilder> {
+    const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
+
     const remainingTime = Math.max(
       0,
       Math.ceil((session.duration - (Date.now() - session.startTime)) / 1000),
@@ -662,7 +763,7 @@ export default class SicboNewCommand extends Command {
     return new ContainerBuilder()
       .setAccentColor(EmbedColors.random())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent('## Tài Xỉu MD5'),
+        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu | Đặt Cược`),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
@@ -706,6 +807,14 @@ export default class SicboNewCommand extends Command {
             .setLabel('🌟 Bộ ba')
             .setStyle(ButtonStyle.Success),
         ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          subtext(
+            `Session ID: ${inlineCode(session.sessionId)} • ${time(Math.round(session.startTime / 1000))}`,
+          ),
+        ),
       );
   }
 
@@ -716,12 +825,16 @@ export default class SicboNewCommand extends Command {
   private async runRollingAnimation(
     interaction: ChatInputCommandInteraction,
     session: GameSession,
-    message: InteractionCallbackResponse,
+    message: Message,
   ): Promise<void> {
+    const client = interaction.client as ExtendedClient;
+    const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
+    const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
+
     const loadingContainer = new ContainerBuilder()
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent('## Đang lắc xúc xắc...'),
+        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu | Lắc`),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
@@ -754,7 +867,7 @@ export default class SicboNewCommand extends Command {
       const rollingContainer = new ContainerBuilder()
         .setAccentColor(EmbedColors.yellow())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent('## Đang lắc xúc xắc...'),
+          textDisplay.setContent(`## ${infoEmoji} Đang lắc xúc xắc...`),
         )
         .addSeparatorComponents(seperator => seperator)
         .addTextDisplayComponents(textDisplay =>
@@ -768,10 +881,9 @@ export default class SicboNewCommand extends Command {
           ),
         );
 
-      await message.resource?.message!.edit({components: [rollingContainer]});
+      await message.edit({components: [rollingContainer]});
     }
 
-    // Final result - use seed for deterministic dice
     const diceFromSeed = this.getDiceFromSeed(session.seed);
     const dice1 = diceFromSeed[0];
     const dice2 = diceFromSeed[1];
@@ -787,7 +899,6 @@ export default class SicboNewCommand extends Command {
         ? 'tai'
         : 'xiu';
 
-    // Calculate winners and losers
     const winners: PlayerBet[] = [];
     const losers: PlayerBet[] = [];
 
@@ -803,8 +914,12 @@ export default class SicboNewCommand extends Command {
     const resultContainer = new ContainerBuilder()
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu | Kết Quả`),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## Tài Xỉu - Kết Quả\n\`\`\`\n${this.diceEmojis[dice1 - 1]}  ${this.diceEmojis[dice2 - 1]}  ${this.diceEmojis[dice3 - 1]}\n\`\`\``,
+          `\`\`\`\n${this.diceEmojis[dice1 - 1]}  ${this.diceEmojis[dice2 - 1]}  ${this.diceEmojis[dice3 - 1]}\`\`\``,
         ),
       )
       .addSeparatorComponents(seperator => seperator)
@@ -814,7 +929,9 @@ export default class SicboNewCommand extends Command {
         ),
       )
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`Kết quả: ${this.getResultLabel(resultType)}**`),
+        textDisplay.setContent(
+          `**Kết quả: ${this.getResultLabel(resultType)}**`,
+        ),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
@@ -827,11 +944,12 @@ export default class SicboNewCommand extends Command {
           `💔 **Người thua (${losers.length}):**\n${losers.map(l => `${l.ordererMention} (${l.betLabel})`).join('\n') || '*Không có*'}`,
         ),
       )
+      .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`🔐 **Seed:** \`${session.seed}\``),
+        textDisplay.setContent(`> 🔐 **Seed:** \`${session.seed}\``),
       )
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`🔒 **MD5:** \`${session.hash}\``),
+        textDisplay.setContent(`> 🔒 **MD5:** \`${session.hash}\``),
       );
 
     const guildId = interaction.guild!.id;
@@ -853,7 +971,6 @@ export default class SicboNewCommand extends Command {
       {where: {sessionId: session.sessionId}},
     );
 
-    // Process payouts and send DMs
     await this.processPayouts(
       interaction,
       winners,
@@ -865,7 +982,10 @@ export default class SicboNewCommand extends Command {
       total,
     );
 
-    await message.resource?.message!.edit({components: [resultContainer]});
+    await message.edit({
+      components: [resultContainer],
+      allowedMentions: {},
+    });
   }
 
   private getRandomDice(): number {
@@ -908,17 +1028,6 @@ export default class SicboNewCommand extends Command {
       for (const record of oldest) {
         await record.destroy();
       }
-    }
-  }
-
-  private getBetInfo(betType: BetType): {label: string; multiplier: number} {
-    switch (betType) {
-      case 'tai':
-        return {label: '🔴 Tài', multiplier: 2};
-      case 'xiu':
-        return {label: '🔵 Xỉu', multiplier: 2};
-      case 'boba':
-        return {label: '🌟 BỘ BA', multiplier: 30};
     }
   }
 
@@ -973,7 +1082,6 @@ export default class SicboNewCommand extends Command {
           balance: userBalance.balance + winAmount,
         });
 
-        // Send DM to winner
         try {
           const user = await interaction.client.users.fetch(winner.orderId);
           await user.send({
@@ -996,7 +1104,6 @@ export default class SicboNewCommand extends Command {
       }
     }
 
-    // Process losers - send them notification (they already lost their bet amount)
     for (const loser of losers) {
       try {
         const user = await interaction.client.users.fetch(loser.orderId);
