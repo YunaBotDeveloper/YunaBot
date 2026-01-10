@@ -1,8 +1,8 @@
-import {PrefixCommand} from '../../PrefixCommand';
-import ExtendedClient from '../../../classes/ExtendedClient';
+import {PrefixCommand} from '../../../PrefixCommand';
+import ExtendedClient from '../../../../classes/ExtendedClient';
 import {EmbedBuilder, Message} from 'discord.js';
-import PrefixManager from '../../PrefixManager';
-import {EmbedColors} from '../../../util/EmbedColors';
+import PrefixManager from '../../../PrefixManager';
+import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class HelpCommand extends PrefixCommand {
   constructor() {

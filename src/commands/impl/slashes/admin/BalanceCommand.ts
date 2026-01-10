@@ -1,6 +1,6 @@
-import {Command} from '../../Command';
+import {Command} from '../../../Command';
 import {ChatInputCommandInteraction, PermissionFlagsBits} from 'discord.js';
-import Balance from '../../../database/models/Balance.model';
+import Balance from '../../../../database/models/Balance.model';
 
 export default class BalanceCommand extends Command {
   constructor() {

@@ -6,10 +6,10 @@ import {
   MessageFlags,
   PermissionFlagsBits,
 } from 'discord.js';
-import {Command} from '../../Command';
-import GuildLog from '../../../database/models/GuildLog.model';
-import ExtendedClient from '../../../classes/ExtendedClient';
-import {EmbedColors} from '../../../util/EmbedColors';
+import {Command} from '../../../Command';
+import GuildLog from '../../../../database/models/GuildLog.model';
+import ExtendedClient from '../../../../classes/ExtendedClient';
+import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class SetupCommand extends Command {
   constructor() {

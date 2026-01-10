@@ -9,16 +9,15 @@ import {
   inlineCode,
   MessageFlags,
   PermissionsBitField,
-  PermissionFlagsBits,
   StringSelectMenuBuilder,
   StringSelectMenuInteraction,
   subtext,
   ButtonInteraction,
 } from 'discord.js';
-import {Command} from '../../Command';
-import ExtendedClient from '../../../classes/ExtendedClient';
-import ComponentManager from '../../../component/manager/ComponentManager';
-import {ComponentEnum} from '../../../enum/ComponentEnum';
+import {Command} from '../../../Command';
+import ExtendedClient from '../../../../classes/ExtendedClient';
+import ComponentManager from '../../../../component/manager/ComponentManager';
+import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 interface CommandCategory {
   name: string;
@@ -57,65 +56,36 @@ export default class HelpCommand extends Command {
       return false;
     }).length;
 
-    // Dynamically generate categories based on commands
-    const categoriesMap = new Map<string, CommandCategory>();
+    // Category emoji and description mapping
+    const categoryMetadata: Record<
+      string,
+      {emoji: string; description: string}
+    > = {
+      games: {emoji: '🎮', description: 'Các lệnh trò chơi'},
+      util: {emoji: '⚙️', description: 'Các lệnh tiện ích'},
+      admin: {emoji: '🛡️', description: 'Các lệnh quản lý'},
+      info: {emoji: '📖', description: 'Các lệnh thông tin'},
+    };
 
-    slashCommands.forEach(cmd => {
-      const permissions = cmd.data.default_member_permissions;
-      let categoryName: string;
-      let categoryEmoji: string;
-      let categoryDescription: string;
+    // Get categories from CommandManager
+    const categories = client.commandManager.getAllCategories();
 
-      if (cmd.data.name === 'help') {
-        categoryName = 'Thông tin';
-        categoryEmoji = '📖';
-        categoryDescription = 'Các lệnh thông tin';
-      } else if (
-        permissions &&
-        new PermissionsBitField(BigInt(permissions)).has(
-          PermissionFlagsBits.ManageChannels,
-        )
-      ) {
-        categoryName = 'Quản lý kênh';
-        categoryEmoji = '🔧';
-        categoryDescription = 'Các lệnh quản lý kênh';
-      } else if (
-        permissions &&
-        new PermissionsBitField(BigInt(permissions)).has(
-          PermissionFlagsBits.ManageGuild,
-        )
-      ) {
-        categoryName = 'Quản lý server';
-        categoryEmoji = '🛡️';
-        categoryDescription = 'Các lệnh quản lý server';
-      } else if (
-        permissions &&
-        new PermissionsBitField(BigInt(permissions)).has(
-          PermissionFlagsBits.ModerateMembers,
-        )
-      ) {
-        categoryName = 'Moderation';
-        categoryEmoji = '👮';
-        categoryDescription = 'Các lệnh kiểm duyệt';
-      } else {
-        categoryName = 'Tiện ích';
-        categoryEmoji = '⚙️';
-        categoryDescription = 'Các lệnh tiện ích';
-      }
+    // Build categories array
+    const CATEGORIES: CommandCategory[] = categories.map(categoryName => {
+      const commands =
+        client.commandManager.getCommandsByCategory(categoryName);
+      const metadata = categoryMetadata[categoryName] || {
+        emoji: '📁',
+        description: `Các lệnh ${categoryName}`,
+      };
 
-      if (!categoriesMap.has(categoryName)) {
-        categoriesMap.set(categoryName, {
-          name: categoryName,
-          emoji: categoryEmoji,
-          description: categoryDescription,
-          commands: [],
-        });
-      }
-
-      categoriesMap.get(categoryName)!.commands.push(cmd.data.name);
+      return {
+        name: categoryName.charAt(0).toUpperCase() + categoryName.slice(1),
+        emoji: metadata.emoji,
+        description: metadata.description,
+        commands: commands.map(cmd => cmd.data.name),
+      };
     });
-
-    const CATEGORIES = Array.from(categoriesMap.values());
 
     const categoryList = CATEGORIES.map(cat =>
       quote(`${cat.emoji} » **${cat.name}**`),

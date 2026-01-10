@@ -1,5 +1,5 @@
 import {ChatInputCommandInteraction, EmbedBuilder} from 'discord.js';
-import {Command} from '../../Command';
+import {Command} from '../../../Command';
 
 export default class LoveCommand extends Command {
   constructor() {

@@ -35,42 +35,30 @@ export class CommandManager {
 
     for (const subDir of subDirs) {
       const subDirPath = path.join(commandsDir, subDir);
-      const files = fs.readdirSync(subDirPath);
-      for (const file of files) {
-        const filePath = path.join(subDirPath, file);
-        try {
-          const imported = require(filePath);
-          const commandClass = imported?.default ?? imported;
+      const stat = fs.statSync(subDirPath);
 
-          if (typeof commandClass !== 'function') {
-            this.logger.warning(
-              'Skipped loading command file: ' +
-                file +
-                ' because it does not export a constructor',
-            );
-            continue;
+      if (!stat.isDirectory()) continue;
+
+      // Check if this directory contains category folders or command files
+      const items = fs.readdirSync(subDirPath);
+
+      for (const item of items) {
+        const itemPath = path.join(subDirPath, item);
+        const itemStat = fs.statSync(itemPath);
+
+        if (itemStat.isDirectory()) {
+          // This is a category folder, load commands from it
+          const categoryName = item;
+          const categoryFiles = fs.readdirSync(itemPath);
+
+          for (const file of categoryFiles) {
+            if (!file.endsWith('.ts') && !file.endsWith('.js')) continue;
+
+            const filePath = path.join(itemPath, file);
+            this.loadCommandFile(filePath, file, categoryName);
           }
-
-          const commandInstance = new commandClass();
-
-          if (commandInstance instanceof Command) {
-            this.slashCommands.push(commandInstance);
-            this.logger.info('Loaded slash command: ' + file);
-          } else if (commandInstance instanceof PrefixCommand) {
-            this.prefixCommands.push(commandInstance);
-            this.logger.info('Loaded prefix command: ' + file);
-          } else if (commandInstance instanceof ContextMenuCommand) {
-            this.contextMenuCommands.push(commandInstance);
-            this.logger.info('Loaded context menu command: ' + file);
-          } else {
-            this.logger.warning(
-              'The command: ' +
-                file +
-                ' does not match any structures of Command, PrefixCommand or ContextMenuCommand as expected',
-            );
-          }
-        } catch (e) {
-          this.logger.error(e);
+        } else if (item.endsWith('.ts') || item.endsWith('.js')) {
+          this.loadCommandFile(itemPath, item, undefined);
         }
       }
     }
@@ -88,6 +76,50 @@ export class CommandManager {
     this.logger.success(
       'Context menu commands are now available on Discord API',
     );
+  }
+
+  private loadCommandFile(
+    filePath: string,
+    fileName: string,
+    category?: string,
+  ): void {
+    try {
+      const imported = require(filePath);
+      const commandClass = imported?.default ?? imported;
+
+      if (typeof commandClass !== 'function') {
+        this.logger.warning(
+          'Skipped loading command file: ' +
+            fileName +
+            ' because it does not export a constructor',
+        );
+        return;
+      }
+
+      const commandInstance = new commandClass();
+
+      if (commandInstance instanceof Command) {
+        commandInstance.category = category;
+        this.slashCommands.push(commandInstance);
+        this.logger.info(
+          `Loaded slash command: ${fileName}${category ? ` (category: ${category})` : ''}`,
+        );
+      } else if (commandInstance instanceof PrefixCommand) {
+        this.prefixCommands.push(commandInstance);
+        this.logger.info('Loaded prefix command: ' + fileName);
+      } else if (commandInstance instanceof ContextMenuCommand) {
+        this.contextMenuCommands.push(commandInstance);
+        this.logger.info('Loaded context menu command: ' + fileName);
+      } else {
+        this.logger.warning(
+          'The command: ' +
+            fileName +
+            ' does not match any structures of Command, PrefixCommand or ContextMenuCommand as expected',
+        );
+      }
+    } catch (e) {
+      this.logger.error(e);
+    }
   }
 
   public getSlashCommand(name: string): Command | undefined {
@@ -126,5 +158,19 @@ export class CommandManager {
 
   public getContextMenuCommandSize(): number {
     return this.contextMenuCommands.length;
+  }
+
+  public getCommandsByCategory(category: string): Command[] {
+    return this.slashCommands.filter(cmd => cmd.category === category);
+  }
+
+  public getAllCategories(): string[] {
+    const categories = new Set<string>();
+    this.slashCommands.forEach(cmd => {
+      if (cmd.category) {
+        categories.add(cmd.category);
+      }
+    });
+    return Array.from(categories).sort();
   }
 }

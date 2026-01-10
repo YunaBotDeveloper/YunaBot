@@ -10,11 +10,11 @@ import {
   ModalSubmitInteraction,
   StringSelectMenuInteraction,
 } from 'discord.js';
-import {Command} from '../../Command';
-import Log4TS from '../../../logger/Log4TS';
+import {Command} from '../../../Command';
+import Log4TS from '../../../../logger/Log4TS';
 import {nanoid} from 'nanoid';
-import ButtonComponentBuilder from '../../../component/builders/ButtonComponentBuilder';
-import ComponentManager from '../../../component/manager/ComponentManager';
+import ButtonComponentBuilder from '../../../../component/builders/ButtonComponentBuilder';
+import ComponentManager from '../../../../component/manager/ComponentManager';
 
 interface RandomSession {
   membersArray: GuildMember[];

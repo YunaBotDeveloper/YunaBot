@@ -3,9 +3,9 @@ import {
   EmbedBuilder,
   PermissionFlagsBits,
 } from 'discord.js';
-import {Command} from '../../Command';
-import {EmbedColors} from '../../../util/EmbedColors';
-import PrefixManager from '../../PrefixManager';
+import {Command} from '../../../Command';
+import {EmbedColors} from '../../../../util/EmbedColors';
+import PrefixManager from '../../../PrefixManager';
 
 export default class PrefixCommand extends Command {
   constructor() {

@@ -1,10 +1,12 @@
+import {PrefixCommand} from '../../../PrefixCommand';
+import ExtendedClient from '../../../../classes/ExtendedClient';
 import {
   ButtonInteraction,
   ButtonStyle,
   channelMention,
   ChannelType,
-  ChatInputCommandInteraction,
   ContainerBuilder,
+  Message,
   MessageFlags,
   PermissionFlagsBits,
   subtext,
@@ -12,57 +14,111 @@ import {
   time,
   userMention,
 } from 'discord.js';
-import {Command} from '../../Command';
-import {EmbedColors} from '../../../util/EmbedColors';
-import ExtendedClient from '../../../classes/ExtendedClient';
-import ComponentManager from '../../../component/manager/ComponentManager';
-import {ComponentEnum} from '../../../enum/ComponentEnum';
-import NukeLog from '../../../database/models/NukeLog.model';
-import GuildLog from '../../../database/models/GuildLog.model';
+import {EmbedColors} from '../../../../util/EmbedColors';
+import ComponentManager from '../../../../component/manager/ComponentManager';
+import {ComponentEnum} from '../../../../enum/ComponentEnum';
+import NukeLog from '../../../../database/models/NukeLog.model';
+import GuildLog from '../../../../database/models/GuildLog.model';
 import {nanoid} from 'nanoid';
 
-export default class NukeCommand extends Command {
+export default class NukeCommand extends PrefixCommand {
   constructor() {
-    super('nuke', 'Tạo lại kênh');
-
-    this.advancedOptions.cooldown = 30000;
-
-    this.data.setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels);
-
-    this.data.addChannelOption(option =>
-      option
-        .setName('channel')
-        .setDescription('kênh chỉ định')
-        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-        .setRequired(false),
-    );
-
-    this.data.addStringOption(option =>
-      option
-        .setName('reason')
-        .setDescription('lý do tạo lại kênh')
-        .setRequired(false),
-    );
+    super('nuke', [], 1);
   }
 
-  async run(interaction: ChatInputCommandInteraction) {
-    const guild = interaction.guild;
+  async run(
+    args: string[],
+    context: {message: Message; client: ExtendedClient},
+  ) {
+    const {message, client} = context;
+    const guild = message.guild;
     if (!guild) return;
 
-    await interaction.deferReply({
-      flags: [MessageFlags.Ephemeral],
-    });
-
-    const client = interaction.client as ExtendedClient;
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
     let logChannelId: string | undefined = undefined;
 
+    const member = message.member;
+    if (!member?.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      const noPermContainer = new ContainerBuilder()
+        .setAccentColor(EmbedColors.red())
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(
+            `## ${failedEmoji} Lỗi: Bạn không có quyền quản lý kênh!`,
+          ),
+        );
+
+      await message.reply({
+        components: [noPermContainer],
+        flags: MessageFlags.IsComponentsV2,
+      });
+      return;
+    }
+
+    let channelInput = args[0];
+    let targetChannel: TextChannel | null = null;
+    let isChannelSpecified = false;
+
+    if (channelInput) {
+      const mentionMatch = channelInput.match(/^<#(\d+)>$/);
+      if (mentionMatch) {
+        channelInput = mentionMatch[1];
+        isChannelSpecified = true;
+      } else if (/^\d+$/.test(channelInput)) {
+        isChannelSpecified = true;
+      }
+
+      if (isChannelSpecified) {
+        const fetchedChannel = await guild.channels
+          .fetch(channelInput)
+          .catch(() => null);
+
+        if (!fetchedChannel) {
+          const invalidChannelContainer = new ContainerBuilder()
+            .setAccentColor(EmbedColors.red())
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `## ${failedEmoji} Lỗi: Không tìm thấy kênh!`,
+              ),
+            );
+
+          await message.reply({
+            components: [invalidChannelContainer],
+            flags: MessageFlags.IsComponentsV2,
+          });
+          return;
+        }
+
+        if (
+          fetchedChannel.type !== ChannelType.GuildText &&
+          fetchedChannel.type !== ChannelType.GuildAnnouncement
+        ) {
+          const invalidTypeContainer = new ContainerBuilder()
+            .setAccentColor(EmbedColors.red())
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `## ${failedEmoji} Lỗi: Kênh không hợp lệ! Chỉ hỗ trợ kênh văn bản hoặc kênh thông báo.`,
+              ),
+            );
+
+          await message.reply({
+            components: [invalidTypeContainer],
+            flags: MessageFlags.IsComponentsV2,
+          });
+          return;
+        }
+
+        targetChannel = fetchedChannel as TextChannel;
+      }
+    }
+
+    const channel = targetChannel || (message.channel as TextChannel);
     const reason =
-      interaction.options.getString('reason', false) ||
-      `Tạo lại kênh | Người thực hiện: ${interaction.user.displayName} (${interaction.user.id})`;
-    if (interaction.user.bot) {
+      args.slice(isChannelSpecified ? 1 : 0).join(' ') ||
+      `Tạo lại kênh | Người thực hiện: ${message.author.displayName} (${message.author.id})`;
+
+    if (message.author.bot) {
       return;
     }
 
@@ -76,8 +132,9 @@ export default class NukeCommand extends Command {
           ),
         );
 
-      await interaction.editReply({
+      await message.reply({
         components: [noBotPermContainer],
+        flags: MessageFlags.IsComponentsV2,
       });
 
       return;
@@ -87,16 +144,6 @@ export default class NukeCommand extends Command {
     const publicUpdateChannelId = guild.publicUpdatesChannelId;
 
     if (!ruleChannelId) {
-      return;
-    }
-
-    const channel =
-      interaction.options.getChannel('channel', false, [
-        ChannelType.GuildAnnouncement,
-        ChannelType.GuildText,
-      ]) || interaction.channel;
-
-    if (!channel) {
       return;
     }
 
@@ -110,7 +157,7 @@ export default class NukeCommand extends Command {
             ),
           );
 
-        await interaction.editReply({
+        await message.reply({
           components: [invaildChannelContainer],
           flags: MessageFlags.IsComponentsV2,
         });
@@ -120,8 +167,8 @@ export default class NukeCommand extends Command {
 
     if (
       !(
-        channel?.type === ChannelType.GuildAnnouncement ||
-        channel?.type === ChannelType.GuildText
+        channel?.type === ChannelType.GuildText ||
+        channel?.type === ChannelType.GuildAnnouncement
       ) ||
       channel.id === ruleChannelId
     ) {
@@ -130,7 +177,7 @@ export default class NukeCommand extends Command {
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(`## ${failedEmoji} Lỗi: Kênh không hợp lệ!`),
         );
-      await interaction.editReply({
+      await message.reply({
         components: [invaildChannelContainer],
         flags: MessageFlags.IsComponentsV2,
       });
@@ -167,7 +214,7 @@ export default class NukeCommand extends Command {
           )
           .setButtonAccessory(button =>
             button
-              .setCustomId('confirm')
+              .setCustomId('prefix_nuke_confirm')
               .setLabel('✅')
               .setStyle(ButtonStyle.Danger),
           ),
@@ -180,15 +227,15 @@ export default class NukeCommand extends Command {
           )
           .setButtonAccessory(button =>
             button
-              .setCustomId('reject')
+              .setCustomId('prefix_nuke_reject')
               .setLabel('❌')
               .setStyle(ButtonStyle.Success),
           ),
       );
 
-    await interaction.editReply({
+    const confirmMessage = await message.reply({
       components: [confirmContainer],
-      flags: [MessageFlags.IsComponentsV2],
+      flags: MessageFlags.IsComponentsV2,
     });
 
     const timeout = 10000;
@@ -202,7 +249,7 @@ export default class NukeCommand extends Command {
               `## ${failedEmoji} Đã hết thời gian! Vui lòng thử lại.`,
             ),
           );
-        await interaction.editReply({
+        await confirmMessage.edit({
           components: [timeoutContainer],
         });
       } catch {
@@ -212,13 +259,13 @@ export default class NukeCommand extends Command {
 
     ComponentManager.getComponentManager().register([
       {
-        customId: 'confirm',
+        customId: 'prefix_nuke_confirm',
         timeout: timeout,
         onTimeout: onTimeout,
         handler: async (interaction: ButtonInteraction): Promise<void> => {
           ComponentManager.getComponentManager().unregisterMany([
-            'confirm',
-            'reject',
+            'prefix_nuke_confirm',
+            'prefix_nuke_reject',
           ]);
 
           await interaction.deferUpdate();
@@ -228,7 +275,6 @@ export default class NukeCommand extends Command {
               textDisplay.setContent(`## ${successEmoji} Thao tác thành công!`),
             );
           await interaction.editReply({components: [successContainer]});
-
           await channel.delete(reason);
           const newChannel = await guild.channels.create({
             name: channelName,
@@ -245,7 +291,7 @@ export default class NukeCommand extends Command {
 
           await newChannel.setPosition(channelPos);
 
-          const confirmContainer = new ContainerBuilder()
+          const nukeSuccessContainer = new ContainerBuilder()
             .setAccentColor(EmbedColors.blue())
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
@@ -253,7 +299,7 @@ export default class NukeCommand extends Command {
               ),
             );
           await newChannel.send({
-            components: [confirmContainer],
+            components: [nukeSuccessContainer],
             flags: MessageFlags.IsComponentsV2,
           });
 
@@ -272,11 +318,11 @@ export default class NukeCommand extends Command {
             where: {guildId: guild.id},
           });
 
-          if (!guildLog || !guildLog.nukeLogId) {
+          if (!guildLog || !guildLog?.nukeLogId) {
             return;
           }
 
-          logChannelId = guildLog?.nukeLogId;
+          logChannelId = guildLog.nukeLogId;
 
           const now = Math.round(Date.now() / 1000);
 
@@ -325,25 +371,25 @@ export default class NukeCommand extends Command {
           return;
         },
         type: ComponentEnum.BUTTON,
-        userCheck: [interaction.user.id],
+        userCheck: [message.author.id],
       },
       {
-        customId: 'reject',
+        customId: 'prefix_nuke_reject',
         timeout: timeout,
         onTimeout: onTimeout,
         handler: async (interaction: ButtonInteraction) => {
           ComponentManager.getComponentManager().unregisterMany([
-            'confirm',
-            'reject',
+            'prefix_nuke_confirm',
+            'prefix_nuke_reject',
           ]);
 
           await interaction.deferUpdate();
-          await interaction.deleteReply();
+          await confirmMessage.delete();
 
           return;
         },
         type: ComponentEnum.BUTTON,
-        userCheck: [interaction.user.id],
+        userCheck: [message.author.id],
       },
     ]);
   }

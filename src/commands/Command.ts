@@ -10,6 +10,7 @@ export abstract class Command implements ICommand {
   public advancedOptions: {
     cooldown?: number;
   };
+  public category?: string;
 
   constructor(name: string, description: string) {
     this.data = new SlashCommandBuilder()

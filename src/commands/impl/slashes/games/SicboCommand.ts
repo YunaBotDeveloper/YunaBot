@@ -1,5 +1,5 @@
-import {Command} from '../../Command';
-import Config from '../../../config/Config';
+import {Command} from '../../../Command';
+import Config from '../../../../config/Config';
 import {
   ButtonBuilder,
   ButtonInteraction,
@@ -7,7 +7,6 @@ import {
   ChatInputCommandInteraction,
   ContainerBuilder,
   inlineCode,
-  InteractionCallbackResponse,
   LabelBuilder,
   Message,
   MessageFlags,
@@ -22,15 +21,15 @@ import {
 } from 'discord.js';
 import {nanoid} from 'nanoid';
 import * as crypto from 'crypto';
-import SicboSession from '../../../database/models/SicboSession.model';
-import ComponentManager from '../../../component/manager/ComponentManager';
-import {ComponentEnum} from '../../../enum/ComponentEnum';
-import {EmbedColors} from '../../../util/EmbedColors';
-import SicboHistory from '../../../database/models/SicboHistory.model';
-import Balance from '../../../database/models/Balance.model';
-import ExtendedClient from '../../../classes/ExtendedClient';
+import SicboSession from '../../../../database/models/SicboSession.model';
+import ComponentManager from '../../../../component/manager/ComponentManager';
+import {ComponentEnum} from '../../../../enum/ComponentEnum';
+import {EmbedColors} from '../../../../util/EmbedColors';
+import SicboHistory from '../../../../database/models/SicboHistory.model';
+import Balance from '../../../../database/models/Balance.model';
+import ExtendedClient from '../../../../classes/ExtendedClient';
 
-type BetType = 'tai' | 'xiu' | 'boba';
+type BetType = 'tai' | 'xiu';
 
 interface PlayerBet {
   orderId: string;
@@ -76,6 +75,10 @@ export default class SicboNewCommand extends Command {
     super('sicbo', 'Tài Xỉu');
 
     this.advancedOptions.cooldown = 60000;
+  }
+
+  private formatNumber(num: number): string {
+    return num.toLocaleString('en-US');
   }
 
   async run(interaction: ChatInputCommandInteraction) {
@@ -161,13 +164,11 @@ export default class SicboNewCommand extends Command {
 
     const taiButtonId = `sicbo_tai_${sessionId}`;
     const xiuButtonId = `sicbo_xiu_${sessionId}`;
-    const bobaButtonId = `sicbo_boba_${sessionId}`;
 
     const LobbyContainer = await this.createLobbyContainer(
       session,
       taiButtonId,
       xiuButtonId,
-      bobaButtonId,
       guild.id,
       client,
     );
@@ -206,7 +207,9 @@ export default class SicboNewCommand extends Command {
 
           const taiLabel = new LabelBuilder()
             .setLabel('Nhập số tiền bạn muốn cược.')
-            .setDescription(`Số tiền hiện tại của bạn: ${userBalance.balance}`)
+            .setDescription(
+              `Số tiền hiện tại của bạn: ${this.formatNumber(userBalance.balance)}`,
+            )
             .setTextInputComponent(taiBetInput);
 
           const taiBetModal = new ModalBuilder()
@@ -249,7 +252,7 @@ export default class SicboNewCommand extends Command {
 
                 if (!userBalance || userBalance.balance < betAmount) {
                   await interaction.reply({
-                    content: `❌ Số dư không đủ! Số dư hiện tại: **${userBalance?.balance || 0}**, Số tiền cược: **${betAmount}**`,
+                    content: `❌ Số dư không đủ! Số dư hiện tại: **${this.formatNumber(userBalance?.balance || 0)}**, Số tiền cược: **${this.formatNumber(betAmount)}**`,
                     ephemeral: true,
                   });
                   return;
@@ -282,7 +285,7 @@ export default class SicboNewCommand extends Command {
                 );
 
                 await interaction.reply({
-                  content: `✅ Đặt cược **Tài** thành công!\nSố tiền: **${betAmount}**\nSố dư còn lại: **${userBalance.balance}**`,
+                  content: `✅ Đặt cược **Tài** thành công!\nSố tiền: **${this.formatNumber(betAmount)}**\nSố dư còn lại: **${this.formatNumber(userBalance.balance)}**`,
                   flags: MessageFlags.Ephemeral,
                 });
 
@@ -330,7 +333,9 @@ export default class SicboNewCommand extends Command {
 
           const xiuLabel = new LabelBuilder()
             .setLabel('Nhập số tiền bạn muốn cược.')
-            .setDescription(`Số tiền hiện tại của bạn: ${userBalance.balance}`)
+            .setDescription(
+              `Số tiền hiện tại của bạn: ${this.formatNumber(userBalance.balance)}`,
+            )
             .setTextInputComponent(xiuBetInput);
 
           const xiuBetModal = new ModalBuilder()
@@ -373,7 +378,7 @@ export default class SicboNewCommand extends Command {
 
                 if (!userBalance || userBalance.balance < betAmount) {
                   await interaction.reply({
-                    content: `❌ Số dư không đủ! Số dư hiện tại: **${userBalance?.balance || 0}**, Số tiền cược: **${betAmount}**`,
+                    content: `❌ Số dư không đủ! Số dư hiện tại: **${this.formatNumber(userBalance?.balance || 0)}**, Số tiền cược: **${this.formatNumber(betAmount)}**`,
                     ephemeral: true,
                   });
                   return;
@@ -406,131 +411,7 @@ export default class SicboNewCommand extends Command {
                 );
 
                 await interaction.reply({
-                  content: `✅ Đặt cược **Xỉu** thành công!\nSố tiền: **${betAmount}**\nSố dư còn lại: **${userBalance.balance}**`,
-                  flags: MessageFlags.Ephemeral,
-                });
-
-                await this.updateLobbyContainer(interaction, session);
-              },
-              type: ComponentEnum.MODAL,
-            },
-          ]);
-        },
-        timeout: this.waitTime + 5000,
-        onTimeout: async () => {},
-        type: ComponentEnum.BUTTON,
-        userCheck: ['*'],
-      },
-      {
-        customId: bobaButtonId,
-        handler: async (interaction: ButtonInteraction) => {
-          if (!session.isRunning) {
-            await interaction.reply({
-              content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
-              ephemeral: true,
-            });
-            return;
-          }
-
-          if (session.players.has(interaction.user.id)) {
-            const currentBet = session.players.get(interaction.user.id)!;
-            await interaction.reply({
-              content: `❌ Bạn đã đặt **${currentBet.betLabel}** rồi! Không thể đổi cược!`,
-              ephemeral: true,
-            });
-            return;
-          }
-
-          const userId = interaction.user.id;
-          const [userBalance] = await Balance.findOrCreate({
-            where: {userId},
-            defaults: {userId, balance: 0},
-          });
-
-          const bobaBetInput = new TextInputBuilder()
-            .setCustomId('bobaBetInput')
-            .setStyle(TextInputStyle.Short)
-            .setPlaceholder('VD: 100, 200, 1000');
-
-          const bobaLabel = new LabelBuilder()
-            .setLabel('Nhập số tiền bạn muốn cược.')
-            .setDescription(`Số tiền hiện tại của bạn: ${userBalance.balance}`)
-            .setTextInputComponent(bobaBetInput);
-
-          const bobaBetModal = new ModalBuilder()
-            .setCustomId('bobaBetModal')
-            .setTitle('Bộ Ba: Đặt tiền cược')
-            .addLabelComponents(bobaLabel);
-
-          await interaction.showModal(bobaBetModal);
-
-          ComponentManager.getComponentManager().register([
-            {
-              customId: 'bobaBetModal',
-              handler: async (interaction: ModalSubmitInteraction) => {
-                if (!session.isRunning) {
-                  await interaction.reply({
-                    content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
-                    ephemeral: true,
-                  });
-                  return;
-                }
-
-                const betAmountInput =
-                  interaction.fields.getTextInputValue('bobaBetInput');
-
-                const betAmount = parseFloat(betAmountInput);
-
-                if (isNaN(betAmount) || betAmount <= 0) {
-                  await interaction.reply({
-                    content:
-                      '❌ Số tiền không hợp lệ! Vui lòng nhập một số dương.',
-                    ephemeral: true,
-                  });
-                  return;
-                }
-
-                const userId = interaction.user.id;
-                const userBalance = await Balance.findOne({
-                  where: {userId},
-                });
-
-                if (!userBalance || userBalance.balance < betAmount) {
-                  await interaction.reply({
-                    content: `❌ Số dư không đủ! Số dư hiện tại: **${userBalance?.balance || 0}**, Số tiền cược: **${betAmount}**`,
-                    ephemeral: true,
-                  });
-                  return;
-                }
-
-                await userBalance.update({
-                  balance: userBalance.balance - betAmount,
-                });
-
-                const playerBet: PlayerBet = {
-                  orderId: interaction.user.id,
-                  ordererTag: interaction.user.tag,
-                  ordererMention: userMention(interaction.user.id),
-                  ordererAvatar: interaction.user.displayAvatarURL(),
-                  betType: 'boba',
-                  betLabel: 'Bộ Ba',
-                  betAmount: betAmount,
-                  multiplier: 30,
-                };
-
-                session.players.set(userId, playerBet);
-
-                await SicboSession.update(
-                  {
-                    players: JSON.stringify(
-                      Object.fromEntries(session.players),
-                    ),
-                  },
-                  {where: {sessionId}},
-                );
-
-                await interaction.reply({
-                  content: `✅ Đặt cược **Bộ Ba** thành công!\nSố tiền: **${betAmount}**\nSố dư còn lại: **${userBalance.balance}**`,
+                  content: `✅ Đặt cược **Xỉu** thành công!\nSố tiền: **${this.formatNumber(betAmount)}**\nSố dư còn lại: **${this.formatNumber(userBalance.balance)}**`,
                   flags: MessageFlags.Ephemeral,
                 });
 
@@ -593,7 +474,6 @@ export default class SicboNewCommand extends Command {
     ComponentManager.getComponentManager().unregisterMany([
       taiButtonId,
       xiuButtonId,
-      bobaButtonId,
     ]);
 
     await SicboSession.update({isRunning: false}, {where: {sessionId}});
@@ -625,7 +505,6 @@ export default class SicboNewCommand extends Command {
     const grouped = {
       tai: [] as string[],
       xiu: [] as string[],
-      boba: [] as string[],
     };
 
     session.players.forEach(player => {
@@ -638,9 +517,6 @@ export default class SicboNewCommand extends Command {
     }
     if (grouped.xiu.length > 0) {
       lines.push(`Xỉu: ${grouped.xiu.join(', ')}`);
-    }
-    if (grouped.boba.length > 0) {
-      lines.push(`Bộ ba: ${grouped.boba.join(', ')}`);
     }
 
     return lines.join('\n');
@@ -661,13 +537,11 @@ export default class SicboNewCommand extends Command {
 
       const taiButtonId = `sicbo_tai_${session.sessionId}`;
       const xiuButtonId = `sicbo_xiu_${session.sessionId}`;
-      const bobaButtonId = `sicbo_boba_${session.sessionId}`;
 
       const LobbyContainer = await this.createLobbyContainer(
         session,
         taiButtonId,
         xiuButtonId,
-        bobaButtonId,
         guildId,
         interaction.client as ExtendedClient,
       );
@@ -743,7 +617,6 @@ export default class SicboNewCommand extends Command {
     session: GameSession,
     taiButtonId: string,
     xiuButtonId: string,
-    bobaButtonId: string,
     guildId: string,
     client: ExtendedClient,
   ): Promise<ContainerBuilder> {
@@ -773,7 +646,7 @@ export default class SicboNewCommand extends Command {
       )
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          '**Tỉ lệ thắng:**\n> 🔴 **Tài:** `x2`\n> 🔵 **Xỉu:** `x2`\n> 🌟 **Bộ Ba:** `x30`\n',
+          '**Tỉ lệ thắng:**\n> 🔴 **Tài:** `x2`\n> 🔵 **Xỉu:** `x2`\n> ⚠️ **Thuế:** `5%`\n',
         ),
       )
       .addTextDisplayComponents(textDisplay =>
@@ -802,10 +675,6 @@ export default class SicboNewCommand extends Command {
             .setCustomId(xiuButtonId)
             .setLabel('🔵 Xỉu')
             .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(bobaButtonId)
-            .setLabel('🌟 Bộ ba')
-            .setStyle(ButtonStyle.Success),
         ),
       )
       .addSeparatorComponents(seperator => seperator)
@@ -828,7 +697,6 @@ export default class SicboNewCommand extends Command {
     message: Message,
   ): Promise<void> {
     const client = interaction.client as ExtendedClient;
-    const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
 
     const loadingContainer = new ContainerBuilder()
@@ -893,11 +761,7 @@ export default class SicboNewCommand extends Command {
     const isTai = total >= 11 && total <= 17 && !isBoBa;
     const isXiu = total >= 4 && total <= 10 && !isBoBa;
 
-    const resultType: 'tai' | 'xiu' | 'boba' = isBoBa
-      ? 'boba'
-      : isTai
-        ? 'tai'
-        : 'xiu';
+    const resultType: 'tai' | 'xiu' = isTai ? 'tai' : 'xiu';
 
     const winners: PlayerBet[] = [];
     const losers: PlayerBet[] = [];
@@ -1031,14 +895,12 @@ export default class SicboNewCommand extends Command {
     }
   }
 
-  private getResultLabel(resultType: 'tai' | 'xiu' | 'boba'): string {
+  private getResultLabel(resultType: 'tai' | 'xiu'): string {
     switch (resultType) {
       case 'tai':
         return '🔴 TÀI';
       case 'xiu':
         return '🔵 XỈU';
-      case 'boba':
-        return '🌟 BỘ BA';
     }
   }
 
@@ -1048,7 +910,6 @@ export default class SicboNewCommand extends Command {
     isTai: boolean,
     isXiu: boolean,
   ): boolean {
-    if (betType === 'boba') return isBoBa;
     if (isBoBa) return false; // Triple beats both tai and xiu
     if (betType === 'tai') return isTai;
     if (betType === 'xiu') return isXiu;
@@ -1070,7 +931,9 @@ export default class SicboNewCommand extends Command {
 
     // Process winners - give them their winnings
     for (const winner of winners) {
-      const winAmount = winner.betAmount * winner.multiplier;
+      const grossWinAmount = winner.betAmount * winner.multiplier;
+      const taxAmount = Math.floor(grossWinAmount * 0.05); // 5% tax
+      const netWinAmount = grossWinAmount - taxAmount;
 
       // Update balance
       const userBalance = await Balance.findOne({
@@ -1079,7 +942,7 @@ export default class SicboNewCommand extends Command {
 
       if (userBalance) {
         await userBalance.update({
-          balance: userBalance.balance + winAmount,
+          balance: userBalance.balance + netWinAmount,
         });
 
         try {
@@ -1092,8 +955,10 @@ export default class SicboNewCommand extends Command {
               `**Cược của bạn:** ${winner.betLabel}\n` +
               `**Số tiền cược:** ${winner.betAmount}\n` +
               `**Tỷ lệ:** x${winner.multiplier}\n` +
-              `**Tiền thắng:** ${winAmount}\n\n` +
-              `💰 **Số dư mới:** ${userBalance.balance + winAmount}`,
+              `**Tiền thắng (trước thuế):** ${grossWinAmount}\n` +
+              `**Thuế (5%):** -${taxAmount}\n` +
+              `**Tiền thắng (sau thuế):** ${netWinAmount}\n\n` +
+              `💰 **Số dư mới:** ${userBalance.balance + netWinAmount}`,
           });
         } catch (error) {
           console.error(
