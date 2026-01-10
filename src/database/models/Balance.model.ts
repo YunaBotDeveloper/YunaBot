@@ -28,6 +28,7 @@ export function initBalanceModel(sequelizeInstance: Sequelize): void {
       balance: {
         type: DataTypes.NUMBER,
         allowNull: false,
+        defaultValue: 1000,
       },
     },
     {

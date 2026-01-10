@@ -1,0 +1,29 @@
+{
+  "dependencies": {
+    "axios": "^1.13.2",
+    "bufferutil": "^4.1.0",
+    "discord.js": "^14.25.1",
+    "gts": "^7.0.0",
+    "nanoid": "^5.1.6",
+    "sequelize": "^6.37.5",
+    "sqlite3": "^5.1.7",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "gts": "^7.0.0",
+    "typescript": "^5.6.3"
+  },
+  "scripts": {
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "prepare": "yarn.cmd run compile",
+    "pretest": "yarn.cmd run compile",
+    "posttest": "yarn.cmd run lint",
+    "start": "tsx --watch ./src/index"
+  }
+}

@@ -1,5 +1,6 @@
 import {ChatInputCommandInteraction, EmbedBuilder} from 'discord.js';
 import {Command} from '../../../Command';
+import {sleep} from '../../../../util/Sleep';
 
 export default class LoveCommand extends Command {
   constructor() {
@@ -61,7 +62,7 @@ export default class LoveCommand extends Command {
     const stepDelay = 500;
 
     for (let i = 1; i <= totalSteps; i++) {
-      await this.sleep(stepDelay);
+      await sleep(stepDelay);
 
       const progress = i * 10;
       const frameIndex = i % loadingFrames.length;
@@ -119,9 +120,5 @@ export default class LoveCommand extends Command {
       .setTimestamp();
 
     await message.edit({embeds: [resultEmbed]});
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

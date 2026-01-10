@@ -197,7 +197,7 @@ export default class SicboNewCommand extends Command {
           const userId = interaction.user.id;
           const [userBalance] = await Balance.findOrCreate({
             where: {userId},
-            defaults: {userId, balance: 0},
+            defaults: {userId, balance: 1000},
           });
 
           const taiBetInput = new TextInputBuilder()
@@ -323,7 +323,7 @@ export default class SicboNewCommand extends Command {
           const userId = interaction.user.id;
           const [userBalance] = await Balance.findOrCreate({
             where: {userId},
-            defaults: {userId, balance: 0},
+            defaults: {userId, balance: 1000},
           });
 
           const xiuBetInput = new TextInputBuilder()
@@ -576,7 +576,6 @@ export default class SicboNewCommand extends Command {
     const reversedHistory = history.reverse();
 
     const symbols = reversedHistory.map((h: SicboHistory) => {
-      if (h.result === 'boba') return '🌟';
       if (h.result === 'tai') return '🔴';
       return '🔵';
     });
@@ -606,11 +605,8 @@ export default class SicboNewCommand extends Command {
     const xiuCount = history.filter(
       (h: SicboHistory) => h.result === 'xiu',
     ).length;
-    const tripleCount = history.filter(
-      (h: SicboHistory) => h.result === 'triple',
-    ).length;
 
-    return `${history.length} ván | 🔴 ${taiCount} - 🔵 ${xiuCount} - 🌟 ${tripleCount}`;
+    return `${history.length} ván | 🔴 ${taiCount} - 🔵 ${xiuCount}`;
   }
 
   private async createLobbyContainer(
@@ -757,9 +753,8 @@ export default class SicboNewCommand extends Command {
     const dice2 = diceFromSeed[1];
     const dice3 = diceFromSeed[2];
     const total = dice1 + dice2 + dice3;
-    const isBoBa = dice1 === dice2 && dice2 === dice3;
-    const isTai = total >= 11 && total <= 17 && !isBoBa;
-    const isXiu = total >= 4 && total <= 10 && !isBoBa;
+    const isTai = total >= 11 && total <= 17;
+    const isXiu = total >= 4 && total <= 10;
 
     const resultType: 'tai' | 'xiu' = isTai ? 'tai' : 'xiu';
 
@@ -767,7 +762,7 @@ export default class SicboNewCommand extends Command {
     const losers: PlayerBet[] = [];
 
     session.players.forEach(player => {
-      const won = this.checkPlayerWin(player.betType, isBoBa, isTai, isXiu);
+      const won = this.checkPlayerWin(player.betType, isTai, isXiu);
       if (won) {
         winners.push(player);
       } else {
@@ -788,9 +783,7 @@ export default class SicboNewCommand extends Command {
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `**Tổng: ${total}** ${isBoBa ? '🌟 BA SỐ GIỐNG NHAU! 🌟' : ''}`,
-        ),
+        textDisplay.setContent(`**Tổng: ${total}**`),
       )
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
@@ -906,11 +899,9 @@ export default class SicboNewCommand extends Command {
 
   private checkPlayerWin(
     betType: BetType,
-    isBoBa: boolean,
     isTai: boolean,
     isXiu: boolean,
   ): boolean {
-    if (isBoBa) return false; // Triple beats both tai and xiu
     if (betType === 'tai') return isTai;
     if (betType === 'xiu') return isXiu;
     return false;
