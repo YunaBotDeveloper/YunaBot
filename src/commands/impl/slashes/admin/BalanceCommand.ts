@@ -21,6 +21,14 @@ export default class BalanceCommand extends Command {
     return num.toLocaleString('en-US');
   }
 
+  private getCreditScoreRating(creditScore: number): string {
+    if (creditScore >= 750) return '⭐ Xuất sắc';
+    if (creditScore >= 650) return '🟢 Tốt';
+    if (creditScore >= 550) return '🟡 Trung bình';
+    if (creditScore >= 450) return '🟠 Kém';
+    return '🔴 Rất kém';
+  }
+
   async run(interaction: ChatInputCommandInteraction) {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const userId = targetUser.id;
@@ -38,11 +46,18 @@ export default class BalanceCommand extends Command {
           ? `Tạo tài khoản mới cho ${targetUser}!`
           : `Số dư của ${targetUser}`,
       )
-      .addFields({
-        name: '💵 Số dư hiện tại',
-        value: `\`${this.formatNumber(balance.balance)}\``,
-        inline: false,
-      })
+      .addFields(
+        {
+          name: '💵 Số dư hiện tại',
+          value: `\`${this.formatNumber(balance.balance)}\``,
+          inline: true,
+        },
+        {
+          name: '💳 Điểm tín dụng',
+          value: `\`${balance.creditScore || 500}\` ${this.getCreditScoreRating(balance.creditScore || 500)}`,
+          inline: true,
+        },
+      )
       .setThumbnail(targetUser.displayAvatarURL())
       .setFooter({
         text: `Yêu cầu bởi ${interaction.user.tag}`,

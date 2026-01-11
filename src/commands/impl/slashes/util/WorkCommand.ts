@@ -1,6 +1,7 @@
 import {ChatInputCommandInteraction, EmbedBuilder} from 'discord.js';
 import {Command} from '../../../Command';
 import Balance from '../../../../database/models/Balance.model';
+import WorkLog from '../../../../database/models/WorkLog.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class WorkCommand extends Command {
@@ -82,11 +83,24 @@ export default class WorkCommand extends Command {
       // Deduct fee from balance
       const [userBalance] = await Balance.findOrCreate({
         where: {userId},
-        defaults: {userId, balance: 1000},
+        defaults: {userId, balance: 1000, creditScore: 500},
       });
 
       const newBalance = Math.max(0, userBalance.balance - failureFee);
       await userBalance.update({balance: newBalance});
+
+      // Save to work log
+      await WorkLog.create({
+        userId,
+        jobName: job.name,
+        jobEmoji: job.emoji,
+        earnings: 0,
+        tax: 0,
+        netEarnings: 0,
+        failureFee,
+        isSuccess: false,
+        workedAt: now,
+      });
 
       const failureMessages = [
         'Bạn đã làm hỏng công việc và bị sa thải!',
@@ -153,13 +167,26 @@ export default class WorkCommand extends Command {
     // Update balance
     const [userBalance] = await Balance.findOrCreate({
       where: {userId},
-      defaults: {userId, balance: 1000},
+      defaults: {userId, balance: 1000, creditScore: 500},
     });
 
     const oldBalance = userBalance.balance;
     const newBalance = oldBalance + netEarnings;
 
     await userBalance.update({balance: newBalance});
+
+    // Save to work log
+    await WorkLog.create({
+      userId,
+      jobName: job.name,
+      jobEmoji: job.emoji,
+      earnings,
+      tax,
+      netEarnings,
+      failureFee: 0,
+      isSuccess: true,
+      workedAt: now,
+    });
 
     // Success messages
     const workMessages = [

@@ -197,7 +197,7 @@ export default class SicboNewCommand extends Command {
           const userId = interaction.user.id;
           const [userBalance] = await Balance.findOrCreate({
             where: {userId},
-            defaults: {userId, balance: 1000},
+            defaults: {userId, balance: 1000, creditScore: 500},
           });
 
           const taiBetInput = new TextInputBuilder()
@@ -323,7 +323,7 @@ export default class SicboNewCommand extends Command {
           const userId = interaction.user.id;
           const [userBalance] = await Balance.findOrCreate({
             where: {userId},
-            defaults: {userId, balance: 1000},
+            defaults: {userId, balance: 1000, creditScore: 500},
           });
 
           const xiuBetInput = new TextInputBuilder()
@@ -936,6 +936,9 @@ export default class SicboNewCommand extends Command {
           balance: userBalance.balance + netWinAmount,
         });
 
+        // Reload to get the updated balance
+        await userBalance.reload();
+
         try {
           const user = await interaction.client.users.fetch(winner.orderId);
           await user.send({
@@ -944,12 +947,12 @@ export default class SicboNewCommand extends Command {
               `**Kết quả:** ${diceDisplay}\n` +
               `**Tổng:** ${total} - ${resultLabel}\n\n` +
               `**Cược của bạn:** ${winner.betLabel}\n` +
-              `**Số tiền cược:** ${winner.betAmount}\n` +
+              `**Số tiền cược:** ${this.formatNumber(winner.betAmount)}\n` +
               `**Tỷ lệ:** x${winner.multiplier}\n` +
-              `**Tiền thắng (trước thuế):** ${grossWinAmount}\n` +
-              `**Thuế (5%):** -${taxAmount}\n` +
-              `**Tiền thắng (sau thuế):** ${netWinAmount}\n\n` +
-              `💰 **Số dư mới:** ${userBalance.balance + netWinAmount}`,
+              `**Tiền thắng (trước thuế):** ${this.formatNumber(grossWinAmount)}\n` +
+              `**Thuế (5%):** -${this.formatNumber(taxAmount)}\n` +
+              `**Tiền thắng (sau thuế):** ${this.formatNumber(netWinAmount)}\n\n` +
+              `💰 **Số dư mới:** ${this.formatNumber(userBalance.balance)}`,
           });
         } catch (error) {
           console.error(

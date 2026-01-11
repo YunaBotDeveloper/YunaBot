@@ -1,23 +1,37 @@
 import {ChatInputCommandInteraction, EmbedBuilder} from 'discord.js';
 import {Command} from '../../../Command';
 import Balance from '../../../../database/models/Balance.model';
+import LoanLog from '../../../../database/models/LoanLog.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
-import {Sequelize} from 'sequelize';
-
-interface LoanData {
-  userId: string;
-  amount: number;
-  interestRate: number;
-  dueDate: number;
-  takenAt: number;
-}
 
 export default class LoanCommand extends Command {
-  private activeLoans: Map<string, LoanData> = new Map();
   private readonly maxLoanAmount = 10000;
   private readonly minLoanAmount = 100;
-  private readonly interestRate = 0.1; // 10% interest
+  private readonly baseInterestRate = 0.1; // 10% base interest
   private readonly loanDuration = 86400000; // 24 hours in milliseconds
+
+  // Credit score ranges: 300-850 (like real credit scores)
+  // 750-850: Excellent (5% interest)
+  // 650-749: Good (7.5% interest)
+  // 550-649: Fair (10% interest)
+  // 450-549: Poor (12.5% interest)
+  // 300-449: Very Poor (15% interest)
+
+  private getInterestRateFromCreditScore(creditScore: number): number {
+    if (creditScore >= 750) return 0.05; // 5%
+    if (creditScore >= 650) return 0.075; // 7.5%
+    if (creditScore >= 550) return 0.1; // 10%
+    if (creditScore >= 450) return 0.125; // 12.5%
+    return 0.15; // 15%
+  }
+
+  private getCreditScoreRating(creditScore: number): string {
+    if (creditScore >= 750) return 'Xuất sắc';
+    if (creditScore >= 650) return 'Tốt';
+    if (creditScore >= 550) return 'Trung bình';
+    if (creditScore >= 450) return 'Kém';
+    return 'Rất kém';
+  }
 
   constructor() {
     super('loan', 'Vay tiền từ ngân hàng');
@@ -70,10 +84,15 @@ export default class LoanCommand extends Command {
     const userId = interaction.user.id;
     const amount = interaction.options.getNumber('amount', true);
 
-    // Check if user already has a loan
-    if (this.activeLoans.has(userId)) {
-      const loan = this.activeLoans.get(userId)!;
-      const totalOwed = Math.floor(loan.amount * (1 + loan.interestRate));
+    // Check if user already has an active loan
+    const activeLoan = await LoanLog.findOne({
+      where: {userId, isPaid: false},
+    });
+
+    if (activeLoan) {
+      const totalOwed = Math.floor(
+        activeLoan.amount * (1 + activeLoan.interestRate),
+      );
 
       const embed = new EmbedBuilder()
         .setColor(EmbedColors.red())
@@ -84,12 +103,12 @@ export default class LoanCommand extends Command {
         .addFields(
           {
             name: '💰 Số tiền vay',
-            value: `\`${this.formatNumber(loan.amount)}\``,
+            value: `\`${this.formatNumber(activeLoan.amount)}\``,
             inline: true,
           },
           {
             name: '📊 Lãi suất',
-            value: `\`${loan.interestRate * 100}%\``,
+            value: `\`${activeLoan.interestRate * 100}%\``,
             inline: true,
           },
           {
@@ -113,25 +132,33 @@ export default class LoanCommand extends Command {
       return;
     }
 
+    // Get user balance and credit score
+    const [userBalance] = await Balance.findOrCreate({
+      where: {userId},
+      defaults: {userId, balance: 1000, creditScore: 500},
+    });
+
+    const creditScore = userBalance.creditScore || 500;
+    const interestRate = this.getInterestRateFromCreditScore(creditScore);
+
     // Create loan
     const now = Date.now();
     const dueDate = now + this.loanDuration;
-    const totalOwed = Math.floor(amount * (1 + this.interestRate));
+    const totalOwed = Math.floor(amount * (1 + interestRate));
 
-    this.activeLoans.set(userId, {
+    // Save loan to database
+    await LoanLog.create({
       userId,
       amount,
-      interestRate: this.interestRate,
-      dueDate,
+      interestRate,
+      totalOwed,
       takenAt: now,
+      dueDate,
+      repaidAt: null,
+      isPaid: false,
     });
 
     // Add money to user balance
-    const [userBalance] = await Balance.findOrCreate({
-      where: {userId},
-      defaults: {userId, balance: 1000},
-    });
-
     await userBalance.update({
       balance: userBalance.balance + amount,
     });
@@ -148,7 +175,12 @@ export default class LoanCommand extends Command {
         },
         {
           name: '📊 Lãi suất',
-          value: `\`${this.interestRate * 100}%\``,
+          value: `\`${(interestRate * 100).toFixed(1)}%\``,
+          inline: true,
+        },
+        {
+          name: '💳 Điểm tín dụng',
+          value: `\`${creditScore}\` (${this.getCreditScoreRating(creditScore)})`,
           inline: true,
         },
         {
@@ -179,8 +211,12 @@ export default class LoanCommand extends Command {
   private async handleRepay(interaction: ChatInputCommandInteraction) {
     const userId = interaction.user.id;
 
-    // Check if user has a loan
-    if (!this.activeLoans.has(userId)) {
+    // Check if user has an active loan
+    const loan = await LoanLog.findOne({
+      where: {userId, isPaid: false},
+    });
+
+    if (!loan) {
       await interaction.reply({
         content: '❌ Bạn không có khoản vay nào!',
         ephemeral: true,
@@ -188,7 +224,6 @@ export default class LoanCommand extends Command {
       return;
     }
 
-    const loan = this.activeLoans.get(userId)!;
     const now = Date.now();
     const isOverdue = now > loan.dueDate;
 
@@ -235,12 +270,36 @@ export default class LoanCommand extends Command {
       return;
     }
 
-    // Deduct from balance and remove loan
+    // Deduct from balance
     await userBalance.update({
       balance: userBalance.balance - totalOwed,
     });
 
-    this.activeLoans.delete(userId);
+    // Update credit score based on payment behavior
+    const currentCreditScore = userBalance.creditScore || 500;
+    let newCreditScore = currentCreditScore;
+
+    if (isOverdue) {
+      // Late payment: decrease credit score by 20-40 points
+      const daysOverdue = Math.ceil((now - loan.dueDate) / 86400000);
+      const decrease = Math.min(40, 20 + daysOverdue * 5);
+      newCreditScore = Math.max(300, currentCreditScore - decrease);
+    } else {
+      // On-time payment: increase credit score by 10-20 points
+      const increase = Math.floor(Math.random() * 11) + 10; // 10-20
+      newCreditScore = Math.min(850, currentCreditScore + increase);
+    }
+
+    await userBalance.update({
+      creditScore: newCreditScore,
+    });
+
+    // Update loan as paid
+    await loan.update({
+      isPaid: true,
+      repaidAt: now,
+      totalOwed,
+    });
 
     const embed = new EmbedBuilder()
       .setColor(EmbedColors.green())
@@ -279,8 +338,12 @@ export default class LoanCommand extends Command {
   private async handleInfo(interaction: ChatInputCommandInteraction) {
     const userId = interaction.user.id;
 
-    // Check if user has a loan
-    if (!this.activeLoans.has(userId)) {
+    // Check if user has an active loan
+    const loan = await LoanLog.findOne({
+      where: {userId, isPaid: false},
+    });
+
+    if (!loan) {
       await interaction.reply({
         content: '✅ Bạn không có khoản vay nào!',
         ephemeral: true,
@@ -288,7 +351,6 @@ export default class LoanCommand extends Command {
       return;
     }
 
-    const loan = this.activeLoans.get(userId)!;
     const now = Date.now();
     const isOverdue = now > loan.dueDate;
 

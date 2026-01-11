@@ -14,6 +14,7 @@ class Balance extends Model<
 > {
   declare userId: string;
   declare balance: number;
+  declare creditScore?: number;
 }
 
 export function initBalanceModel(sequelizeInstance: Sequelize): void {
@@ -29,6 +30,11 @@ export function initBalanceModel(sequelizeInstance: Sequelize): void {
         type: DataTypes.NUMBER,
         allowNull: false,
         defaultValue: 1000,
+      },
+      creditScore: {
+        type: DataTypes.NUMBER,
+        allowNull: false,
+        defaultValue: 500, // Neutral score (300-850 range)
       },
     },
     {
