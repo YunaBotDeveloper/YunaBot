@@ -131,6 +131,7 @@ export default class SlashCommandHandler extends Event {
         logging.error(
           `Error handling component "${interaction.customId}": ` + error,
         );
+        console.error(error);
         if (interaction.replied || interaction.deferred) {
           return;
         }

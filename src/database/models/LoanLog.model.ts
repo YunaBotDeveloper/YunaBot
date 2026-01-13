@@ -12,6 +12,7 @@ class LoanLog extends Model<
   InferAttributes<LoanLog>,
   InferCreationAttributes<LoanLog>
 > {
+  declare loanId: string;
   declare userId: string;
   declare amount: number;
   declare interestRate: number;
@@ -26,6 +27,11 @@ export function initLoanLogModel(sequelizeInstance: Sequelize): void {
   sequelize = sequelizeInstance;
   LoanLog.init(
     {
+      loanId: {
+        type: DataTypes.STRING,
+        primaryKey: true,
+        allowNull: false,
+      },
       userId: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -64,7 +70,7 @@ export function initLoanLogModel(sequelizeInstance: Sequelize): void {
     {
       sequelize,
       tableName: 'LoanLog',
-      timestamps: true,
+      timestamps: false,
     },
   );
 }

@@ -2,6 +2,7 @@ import {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
   SlashCommandBuilder,
+  InteractionContextType,
 } from 'discord.js';
 import {ICommand} from '../interfaces/ICommand';
 
@@ -15,7 +16,9 @@ export abstract class Command implements ICommand {
   constructor(name: string, description: string) {
     this.data = new SlashCommandBuilder()
       .setName(name)
-      .setDescription(description);
+      .setDescription(description)
+      .setContexts(InteractionContextType.Guild);
+
     this.advancedOptions = {};
   }
 

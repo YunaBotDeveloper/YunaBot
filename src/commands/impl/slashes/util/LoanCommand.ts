@@ -5,7 +5,7 @@ import LoanLog from '../../../../database/models/LoanLog.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class LoanCommand extends Command {
-  private readonly maxLoanAmount = 10000;
+  private readonly maxLoanAmount = 50000; // Maximum for excellent credit
   private readonly minLoanAmount = 100;
   private readonly baseInterestRate = 0.1; // 10% base interest
   private readonly loanDuration = 86400000; // 24 hours in milliseconds
@@ -33,6 +33,14 @@ export default class LoanCommand extends Command {
     return 'Rất kém';
   }
 
+  private getMaxLoanAmountFromCreditScore(creditScore: number): number {
+    if (creditScore >= 750) return 50000; // Excellent
+    if (creditScore >= 650) return 30000; // Good
+    if (creditScore >= 550) return 15000; // Fair
+    if (creditScore >= 450) return 7500; // Poor
+    return 5000; // Very Poor
+  }
+
   constructor() {
     super('loan', 'Vay tiền từ ngân hàng');
 
@@ -46,10 +54,10 @@ export default class LoanCommand extends Command {
           .addNumberOption(option =>
             option
               .setName('amount')
-              .setDescription('Số tiền muốn vay (100-10,000)')
+              .setDescription('Số tiền muốn vay (100-50,000)')
               .setRequired(true)
               .setMinValue(100)
-              .setMaxValue(10000),
+              .setMaxValue(50000),
           ),
       )
       .addSubcommand(subcommand =>
@@ -123,22 +131,46 @@ export default class LoanCommand extends Command {
       return;
     }
 
-    // Validate amount
-    if (amount < this.minLoanAmount || amount > this.maxLoanAmount) {
-      await interaction.reply({
-        content: `❌ Số tiền vay phải từ **${this.formatNumber(this.minLoanAmount)}** đến **${this.formatNumber(this.maxLoanAmount)}**!`,
-        ephemeral: true,
-      });
-      return;
-    }
-
-    // Get user balance and credit score
+    // Get user balance and credit score FIRST to determine their loan limit
     const [userBalance] = await Balance.findOrCreate({
       where: {userId},
       defaults: {userId, balance: 1000, creditScore: 500},
     });
 
     const creditScore = userBalance.creditScore || 500;
+    const personalMaxLoan = this.getMaxLoanAmountFromCreditScore(creditScore);
+    const creditRating = this.getCreditScoreRating(creditScore);
+
+    // Validate amount against personalized limit
+    if (amount < this.minLoanAmount || amount > personalMaxLoan) {
+      const embed = new EmbedBuilder()
+        .setColor(EmbedColors.red())
+        .setTitle('❌ Số tiền không hợp lệ')
+        .setDescription(
+          `Số tiền vay phải từ **${this.formatNumber(this.minLoanAmount)}** đến **${this.formatNumber(personalMaxLoan)}**`,
+        )
+        .addFields(
+          {
+            name: '💳 Điểm tín dụng của bạn',
+            value: `\`${creditScore}\` (${creditRating})`,
+            inline: true,
+          },
+          {
+            name: '💰 Hạn mức vay tối đa',
+            value: `\`${this.formatNumber(personalMaxLoan)}\``,
+            inline: true,
+          },
+        )
+        .setFooter({
+          text: 'Trả nợ đúng hạn để tăng điểm tín dụng và hạn mức vay!',
+        })
+        .setTimestamp();
+
+      await interaction.reply({embeds: [embed], ephemeral: true});
+      return;
+    }
+
+    // Calculate interest rate based on credit score (already fetched above)
     const interestRate = this.getInterestRateFromCreditScore(creditScore);
 
     // Create loan
@@ -184,7 +216,12 @@ export default class LoanCommand extends Command {
           inline: true,
         },
         {
-          name: '💸 Tổng phải trả',
+          name: '� Hạn mức vay tối đa',
+          value: `\`${this.formatNumber(personalMaxLoan)}\``,
+          inline: true,
+        },
+        {
+          name: '�💸 Tổng phải trả',
           value: `\`${this.formatNumber(totalOwed)}\``,
           inline: true,
         },

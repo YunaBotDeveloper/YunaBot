@@ -1,6 +1,7 @@
 import {
   ApplicationCommandType,
   EmbedBuilder,
+  MessageFlags,
   UserContextMenuCommandInteraction,
 } from 'discord.js';
 import {ContextMenuCommand} from '../../ContextMenuCommand';
@@ -49,7 +50,7 @@ export default class GetUserInfoMenu extends ContextMenuCommand {
 
     await interaction.reply({
       embeds: [embed],
-      flags: 'Ephemeral',
+      flags: MessageFlags.Ephemeral,
     });
   }
 }

@@ -105,7 +105,7 @@ export function initSicboSessionModel(sequelizeInstance: Sequelize): void {
     {
       sequelize,
       tableName: 'SicboSession',
-      timestamps: true,
+      timestamps: false,
     },
   );
 }

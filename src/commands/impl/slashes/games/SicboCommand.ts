@@ -135,7 +135,7 @@ export default class SicboNewCommand extends Command {
       players: new Map(),
       messageId: '',
       channelId: channel.id,
-      startTime: 0, // Will be set after message is sent
+      startTime: 0,
       duration: this.waitTime,
       isRunning: true,
       seed,
@@ -151,7 +151,7 @@ export default class SicboNewCommand extends Command {
       hostId: user.id,
       hostTag: user.tag,
       players: '{}',
-      startTime: 0, // Will be updated after message is sent
+      startTime: 0,
       duration: session.duration,
       isRunning: true,
       seed,
@@ -672,6 +672,19 @@ export default class SicboNewCommand extends Command {
             .setLabel('🔵 Xỉu')
             .setStyle(ButtonStyle.Primary),
         ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext('Kiểm tra số dư của bạn')),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setCustomId('sicboBalance')
+              .setStyle(ButtonStyle.Success)
+              .setLabel('💵 Số dư'),
+          ),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>

@@ -11,11 +11,22 @@ export interface SicboConfig {
   maxHistory: number;
 }
 
+export interface LoanConfig {
+  maxLoan: number;
+  minLoan: number;
+  baseInterest: number;
+}
+
+export interface BankConfig {
+  loan: LoanConfig;
+}
+
 export interface BotConfig {
   bot: {
     token: string;
   };
   sicbo: SicboConfig;
+  bank: BankConfig;
 }
 
 class Config {
@@ -60,6 +71,14 @@ class Config {
     return this.config.sicbo;
   }
 
+  public get bank(): BankConfig {
+    return this.config.bank;
+  }
+
+  public get loan(): LoanConfig {
+    return this.config.bank.loan;
+  }
+
   public getConfig(): BotConfig {
     return this.config;
   }
@@ -74,11 +93,23 @@ class Config {
     if (!this.config.sicbo) {
       throw new Error('Missing "sicbo" section in config.yaml');
     }
+    if (!this.config.bank) {
+      throw new Error('Missing "bank" section in config.yaml');
+    }
+    if (!this.config.bank.loan) {
+      throw new Error('Missing "bank.loan" section in config.yaml');
+    }
   }
 
   private createExampleConfig(targetPath: string): void {
     const exampleConfig = `bot:
   token: "YOUR_BOT_TOKEN_HERE"
+
+bank:
+  loan:
+    maxLoan: 50000
+    minLoan: 1
+    baseInterest: 0.1
 `;
     // If config.yaml doesn't exist, we might as well write the example directly to it
     // or write to config.example.yaml if preferred.
