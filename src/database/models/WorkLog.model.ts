@@ -71,7 +71,7 @@ export function initWorkLogModel(sequelizeInstance: Sequelize): void {
     {
       sequelize,
       tableName: 'WorkLog',
-      timestamps: false,
+      timestamps: true,
     },
   );
 }

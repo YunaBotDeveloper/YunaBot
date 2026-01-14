@@ -2,6 +2,7 @@ import {Command} from '../../../Command';
 import {ChatInputCommandInteraction, EmbedBuilder} from 'discord.js';
 import Balance from '../../../../database/models/Balance.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
+import {numberFormat} from '../../../../util/NumberFormat';
 
 export default class BalanceCommand extends Command {
   constructor() {
@@ -17,7 +18,7 @@ export default class BalanceCommand extends Command {
     );
   }
 
-  private formatNumber(num: number): string {
+  private numberFormat(num: number): string {
     return num.toLocaleString('en-US');
   }
 
@@ -49,7 +50,7 @@ export default class BalanceCommand extends Command {
       .addFields(
         {
           name: '💵 Số dư hiện tại',
-          value: `\`${this.formatNumber(balance.balance)}\``,
+          value: `\`${numberFormat(balance.balance)}\``,
           inline: true,
         },
         {

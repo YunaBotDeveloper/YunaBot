@@ -3,6 +3,7 @@ import {Command} from '../../../Command';
 import Balance from '../../../../database/models/Balance.model';
 import LoanLog from '../../../../database/models/LoanLog.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
+import {numberFormat} from '../../../../util/NumberFormat';
 
 export default class LoanCommand extends Command {
   private readonly maxLoanAmount = 50000; // Maximum for excellent credit
@@ -68,8 +69,8 @@ export default class LoanCommand extends Command {
       );
   }
 
-  private formatNumber(num: number): string {
-    return num.toLocaleString('en-US');
+  private numberFormat(num: number): string {
+    return numberFormat(num);
   }
 
   async run(interaction: ChatInputCommandInteraction) {
@@ -111,7 +112,7 @@ export default class LoanCommand extends Command {
         .addFields(
           {
             name: '💰 Số tiền vay',
-            value: `\`${this.formatNumber(activeLoan.amount)}\``,
+            value: `\`${this.numberFormat(activeLoan.amount)}\``,
             inline: true,
           },
           {
@@ -121,7 +122,7 @@ export default class LoanCommand extends Command {
           },
           {
             name: '💸 Tổng phải trả',
-            value: `\`${this.formatNumber(totalOwed)}\``,
+            value: `\`${this.numberFormat(totalOwed)}\``,
             inline: true,
           },
         )
@@ -147,7 +148,7 @@ export default class LoanCommand extends Command {
         .setColor(EmbedColors.red())
         .setTitle('❌ Số tiền không hợp lệ')
         .setDescription(
-          `Số tiền vay phải từ **${this.formatNumber(this.minLoanAmount)}** đến **${this.formatNumber(personalMaxLoan)}**`,
+          `Số tiền vay phải từ **${this.numberFormat(this.minLoanAmount)}** đến **${this.numberFormat(personalMaxLoan)}**`,
         )
         .addFields(
           {
@@ -157,7 +158,7 @@ export default class LoanCommand extends Command {
           },
           {
             name: '💰 Hạn mức vay tối đa',
-            value: `\`${this.formatNumber(personalMaxLoan)}\``,
+            value: `\`${this.numberFormat(personalMaxLoan)}\``,
             inline: true,
           },
         )
@@ -178,8 +179,13 @@ export default class LoanCommand extends Command {
     const dueDate = now + this.loanDuration;
     const totalOwed = Math.floor(amount * (1 + interestRate));
 
+    // Generate unique loan ID
+    const {nanoid} = await import('nanoid');
+    const loanId = nanoid(10);
+
     // Save loan to database
     await LoanLog.create({
+      loanId,
       userId,
       amount,
       interestRate,
@@ -202,7 +208,7 @@ export default class LoanCommand extends Command {
       .addFields(
         {
           name: '💰 Số tiền vay',
-          value: `\`${this.formatNumber(amount)}\``,
+          value: `\`${this.numberFormat(amount)}\``,
           inline: true,
         },
         {
@@ -217,17 +223,17 @@ export default class LoanCommand extends Command {
         },
         {
           name: '� Hạn mức vay tối đa',
-          value: `\`${this.formatNumber(personalMaxLoan)}\``,
+          value: `\`${this.numberFormat(personalMaxLoan)}\``,
           inline: true,
         },
         {
           name: '�💸 Tổng phải trả',
-          value: `\`${this.formatNumber(totalOwed)}\``,
+          value: `\`${this.numberFormat(totalOwed)}\``,
           inline: true,
         },
         {
           name: '💵 Số dư mới',
-          value: `\`${this.formatNumber(userBalance.balance)}\``,
+          value: `\`${this.numberFormat(userBalance.balance)}\``,
           inline: true,
         },
         {
@@ -287,17 +293,17 @@ export default class LoanCommand extends Command {
         .addFields(
           {
             name: '💸 Tổng phải trả',
-            value: `\`${this.formatNumber(totalOwed)}\``,
+            value: `\`${this.numberFormat(totalOwed)}\``,
             inline: true,
           },
           {
             name: '💵 Số dư hiện tại',
-            value: `\`${this.formatNumber(userBalance?.balance || 0)}\``,
+            value: `\`${this.numberFormat(userBalance?.balance || 0)}\``,
             inline: true,
           },
           {
             name: '❌ Thiếu',
-            value: `\`${this.formatNumber(totalOwed - (userBalance?.balance || 0))}\``,
+            value: `\`${this.numberFormat(totalOwed - (userBalance?.balance || 0))}\``,
             inline: true,
           },
         )
@@ -349,17 +355,17 @@ export default class LoanCommand extends Command {
       .addFields(
         {
           name: '💰 Số tiền vay gốc',
-          value: `\`${this.formatNumber(loan.amount)}\``,
+          value: `\`${this.numberFormat(loan.amount)}\``,
           inline: true,
         },
         {
           name: '💸 Đã trả',
-          value: `\`${this.formatNumber(totalOwed)}\``,
+          value: `\`${this.numberFormat(totalOwed)}\``,
           inline: true,
         },
         {
           name: '💵 Số dư còn lại',
-          value: `\`${this.formatNumber(userBalance.balance)}\``,
+          value: `\`${this.numberFormat(userBalance.balance)}\``,
           inline: true,
         },
       )
@@ -413,7 +419,7 @@ export default class LoanCommand extends Command {
       .addFields(
         {
           name: '💰 Số tiền vay gốc',
-          value: `\`${this.formatNumber(loan.amount)}\``,
+          value: `\`${this.numberFormat(loan.amount)}\``,
           inline: true,
         },
         {
@@ -423,7 +429,7 @@ export default class LoanCommand extends Command {
         },
         {
           name: '💸 Tổng phải trả',
-          value: `\`${this.formatNumber(totalOwed)}\``,
+          value: `\`${this.numberFormat(totalOwed)}\``,
           inline: true,
         },
         {
@@ -446,7 +452,7 @@ export default class LoanCommand extends Command {
     if (penalty > 0) {
       embed.addFields({
         name: '🚨 Phí phạt quá hạn',
-        value: `\`${this.formatNumber(penalty)}\` (5% mỗi ngày)`,
+        value: `\`${this.numberFormat(penalty)}\` (5% mỗi ngày)`,
         inline: false,
       });
     }

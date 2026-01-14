@@ -3,6 +3,7 @@ import {Command} from '../../../Command';
 import Balance from '../../../../database/models/Balance.model';
 import WorkLog from '../../../../database/models/WorkLog.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
+import {numberFormat} from '../../../../util/NumberFormat';
 
 export default class WorkCommand extends Command {
   private readonly jobs = [
@@ -27,7 +28,7 @@ export default class WorkCommand extends Command {
     this.advancedOptions.cooldown = 5000;
   }
 
-  private formatNumber(num: number): string {
+  private numberFormat(num: number): string {
     return num.toLocaleString('en-US');
   }
 
@@ -128,12 +129,12 @@ export default class WorkCommand extends Command {
           },
           {
             name: '🚨 Phí thất bại',
-            value: `\`-${this.formatNumber(failureFee)}\``,
+            value: `\`-${numberFormat(failureFee)}\``,
             inline: true,
           },
           {
             name: '💵 Số dư mới',
-            value: `\`${this.formatNumber(newBalance)}\``,
+            value: `\`${numberFormat(newBalance)}\``,
             inline: true,
           },
           {
@@ -207,27 +208,27 @@ export default class WorkCommand extends Command {
       .addFields(
         {
           name: '💰 Thu nhập',
-          value: `\`${this.formatNumber(earnings)}\``,
+          value: `\`${numberFormat(earnings)}\``,
           inline: true,
         },
         {
           name: '📊 Thuế (5%)',
-          value: `\`-${this.formatNumber(tax)}\``,
+          value: `\`-${numberFormat(tax)}\``,
           inline: true,
         },
         {
           name: '✅ Thực nhận',
-          value: `\`${this.formatNumber(netEarnings)}\``,
+          value: `\`${numberFormat(netEarnings)}\``,
           inline: true,
         },
         {
           name: '💵 Số dư cũ',
-          value: `\`${this.formatNumber(oldBalance)}\``,
+          value: `\`${numberFormat(oldBalance)}\``,
           inline: true,
         },
         {
           name: '💵 Số dư mới',
-          value: `\`${this.formatNumber(newBalance)}\``,
+          value: `\`${numberFormat(newBalance)}\``,
           inline: true,
         },
         {

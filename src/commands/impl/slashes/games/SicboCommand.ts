@@ -1,7 +1,6 @@
 import {Command} from '../../../Command';
 import Config from '../../../../config/Config';
 import {
-  ButtonBuilder,
   ButtonInteraction,
   ButtonStyle,
   ChatInputCommandInteraction,
@@ -28,6 +27,7 @@ import {EmbedColors} from '../../../../util/EmbedColors';
 import SicboHistory from '../../../../database/models/SicboHistory.model';
 import Balance from '../../../../database/models/Balance.model';
 import ExtendedClient from '../../../../classes/ExtendedClient';
+import {numberFormat} from '../../../../util/NumberFormat';
 
 type BetType = 'tai' | 'xiu';
 
@@ -77,10 +77,6 @@ export default class SicboNewCommand extends Command {
     this.advancedOptions.cooldown = 60000;
   }
 
-  private formatNumber(num: number): string {
-    return num.toLocaleString('en-US');
-  }
-
   async run(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({flags: [MessageFlags.Ephemeral]});
 
@@ -105,17 +101,9 @@ export default class SicboNewCommand extends Command {
       const existingSessionContainer = new ContainerBuilder()
         .setAccentColor(EmbedColors.red())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(`## ${failedEmoji} Lỗi`),
-        )
-        .addSeparatorComponents(seperator => seperator)
-        .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            '**Đã có một ván Tài Xỉu đang diễn ra trong server này!**',
+            `## ${failedEmoji} Đã có một ván Tài Xỉu đang diễn ra trong server này!`,
           ),
-        )
-        .addSeparatorComponents(seperator => seperator)
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(subtext(`${Math.round(Date.now() / 1000)}`)),
         );
 
       await interaction.editReply({
@@ -130,12 +118,14 @@ export default class SicboNewCommand extends Command {
     const seed = `${nanoid(32)}`;
     const hash = crypto.createHash('md5').update(seed).digest('hex');
 
+    const startTime = Date.now();
+
     const session: GameSession = {
       sessionId,
       players: new Map(),
       messageId: '',
       channelId: channel.id,
-      startTime: 0,
+      startTime,
       duration: this.waitTime,
       isRunning: true,
       seed,
@@ -151,7 +141,7 @@ export default class SicboNewCommand extends Command {
       hostId: user.id,
       hostTag: user.tag,
       players: '{}',
-      startTime: 0,
+      startTime,
       duration: session.duration,
       isRunning: true,
       seed,
@@ -208,7 +198,7 @@ export default class SicboNewCommand extends Command {
           const taiLabel = new LabelBuilder()
             .setLabel('Nhập số tiền bạn muốn cược.')
             .setDescription(
-              `Số tiền hiện tại của bạn: ${this.formatNumber(userBalance.balance)}`,
+              `Số tiền hiện tại của bạn: ${numberFormat(userBalance.balance)}`,
             )
             .setTextInputComponent(taiBetInput);
 
@@ -252,7 +242,7 @@ export default class SicboNewCommand extends Command {
 
                 if (!userBalance || userBalance.balance < betAmount) {
                   await interaction.reply({
-                    content: `❌ Số dư không đủ! Số dư hiện tại: **${this.formatNumber(userBalance?.balance || 0)}**, Số tiền cược: **${this.formatNumber(betAmount)}**`,
+                    content: `❌ Số dư không đủ! Số dư hiện tại: **${numberFormat(userBalance?.balance || 0)}**, Số tiền cược: **${numberFormat(betAmount)}**`,
                     ephemeral: true,
                   });
                   return;
@@ -285,7 +275,7 @@ export default class SicboNewCommand extends Command {
                 );
 
                 await interaction.reply({
-                  content: `✅ Đặt cược **Tài** thành công!\nSố tiền: **${this.formatNumber(betAmount)}**\nSố dư còn lại: **${this.formatNumber(userBalance.balance)}**`,
+                  content: `✅ Đặt cược **Tài** thành công!\nSố tiền: **${numberFormat(betAmount)}**\nSố dư còn lại: **${numberFormat(userBalance.balance)}**`,
                   flags: MessageFlags.Ephemeral,
                 });
 
@@ -334,7 +324,7 @@ export default class SicboNewCommand extends Command {
           const xiuLabel = new LabelBuilder()
             .setLabel('Nhập số tiền bạn muốn cược.')
             .setDescription(
-              `Số tiền hiện tại của bạn: ${this.formatNumber(userBalance.balance)}`,
+              `Số tiền hiện tại của bạn: ${numberFormat(userBalance.balance)}`,
             )
             .setTextInputComponent(xiuBetInput);
 
@@ -378,7 +368,7 @@ export default class SicboNewCommand extends Command {
 
                 if (!userBalance || userBalance.balance < betAmount) {
                   await interaction.reply({
-                    content: `❌ Số dư không đủ! Số dư hiện tại: **${this.formatNumber(userBalance?.balance || 0)}**, Số tiền cược: **${this.formatNumber(betAmount)}**`,
+                    content: `❌ Số dư không đủ! Số dư hiện tại: **${numberFormat(userBalance?.balance || 0)}**, Số tiền cược: **${numberFormat(betAmount)}**`,
                     ephemeral: true,
                   });
                   return;
@@ -411,7 +401,7 @@ export default class SicboNewCommand extends Command {
                 );
 
                 await interaction.reply({
-                  content: `✅ Đặt cược **Xỉu** thành công!\nSố tiền: **${this.formatNumber(betAmount)}**\nSố dư còn lại: **${this.formatNumber(userBalance.balance)}**`,
+                  content: `✅ Đặt cược **Xỉu** thành công!\nSố tiền: **${numberFormat(betAmount)}**\nSố dư còn lại: **${numberFormat(userBalance.balance)}**`,
                   flags: MessageFlags.Ephemeral,
                 });
 
@@ -450,14 +440,8 @@ export default class SicboNewCommand extends Command {
       allowedMentions: {},
     });
 
-    // Set startTime AFTER message is sent to ensure accurate countdown
-    session.startTime = Date.now();
-
     session.messageId = message.id;
-    await SicboSession.update(
-      {messageId: message.id, startTime: session.startTime},
-      {where: {sessionId}},
-    );
+    await SicboSession.update({messageId: message.id}, {where: {sessionId}});
 
     const updateInterval = setInterval(async () => {
       if (!session.isRunning) {
@@ -640,38 +624,49 @@ export default class SicboNewCommand extends Command {
           `⏳ **Thời gian đặt cược: ${remainingTime}s** ⏳`,
         ),
       )
-      .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          '**Tỉ lệ thắng:**\n> 🔴 **Tài:** `x2`\n> 🔵 **Xỉu:** `x2`\n> ⚠️ **Thuế:** `5%`\n',
-        ),
-      )
+      .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(`🔐 **MD5 Hash:** \`${session.hash}\``),
       )
+      .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(`📊 **Bảng cầu (${historyStats}):**`),
       )
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(historyBoard),
       )
+      .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`**Người chời (${session.players.size}):**`),
+        textDisplay.setContent(`**Người chơi (${session.players.size}):**`),
       )
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(playerList || '*Chưa có ai tham gia*'),
       )
       .addSeparatorComponents(seperator => seperator)
-      .addActionRowComponents<ButtonBuilder>(row =>
-        row.addComponents(
-          new ButtonBuilder()
-            .setCustomId(taiButtonId)
-            .setLabel('🔴 Tài')
-            .setStyle(ButtonStyle.Danger),
-          new ButtonBuilder()
-            .setCustomId(xiuButtonId)
-            .setLabel('🔵 Xỉu')
-            .setStyle(ButtonStyle.Primary),
-        ),
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext('Bấm vào đây để cược Tài')),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setCustomId(taiButtonId)
+              .setLabel('🔴 Tài')
+              .setStyle(ButtonStyle.Danger),
+          ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext('Bấm vào đây để cược Xỉu')),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setCustomId(xiuButtonId)
+              .setLabel('🔵 Xỉu')
+              .setStyle(ButtonStyle.Primary),
+          ),
       )
       .addSeparatorComponents(seperator => seperator)
       .addSectionComponents(section =>
@@ -960,12 +955,12 @@ export default class SicboNewCommand extends Command {
               `**Kết quả:** ${diceDisplay}\n` +
               `**Tổng:** ${total} - ${resultLabel}\n\n` +
               `**Cược của bạn:** ${winner.betLabel}\n` +
-              `**Số tiền cược:** ${this.formatNumber(winner.betAmount)}\n` +
+              `**Số tiền cược:** ${numberFormat(winner.betAmount)}\n` +
               `**Tỷ lệ:** x${winner.multiplier}\n` +
-              `**Tiền thắng (trước thuế):** ${this.formatNumber(grossWinAmount)}\n` +
-              `**Thuế (5%):** -${this.formatNumber(taxAmount)}\n` +
-              `**Tiền thắng (sau thuế):** ${this.formatNumber(netWinAmount)}\n\n` +
-              `💰 **Số dư mới:** ${this.formatNumber(userBalance.balance)}`,
+              `**Tiền thắng (trước thuế):** ${numberFormat(grossWinAmount)}\n` +
+              `**Thuế (5%):** -${numberFormat(taxAmount)}\n` +
+              `**Tiền thắng (sau thuế):** ${numberFormat(netWinAmount)}\n\n` +
+              `💰 **Số dư mới:** ${numberFormat(userBalance.balance)}`,
           });
         } catch (error) {
           console.error(
