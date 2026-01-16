@@ -1,11 +1,14 @@
 import {Command} from '../../../Command';
 import Config from '../../../../config/Config';
 import {
+  bold,
   ButtonInteraction,
   ButtonStyle,
   ChatInputCommandInteraction,
+  codeBlock,
   ContainerBuilder,
   inlineCode,
+  italic,
   LabelBuilder,
   Message,
   MessageFlags,
@@ -29,6 +32,7 @@ import SicboHistory from '../../../../database/models/SicboHistory.model';
 import GameBalance from '../../../../database/models/GameBalance.model';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {numberFormat} from '../../../../util/NumberFormat';
+import {sleep} from '../../../../util/Sleep';
 
 type BetType = 'tai' | 'xiu';
 
@@ -66,8 +70,6 @@ const config = Config.getInstance();
 const sicboConfig = config.sicbo;
 
 export default class SicboNewCommand extends Command {
-  private readonly diceEmojis = sicboConfig.diceEmojis;
-  private readonly rollingFrame = sicboConfig.rollingFrame;
   private readonly waitTime = sicboConfig.waitTime;
   private readonly updateInterval = sicboConfig.updateInterval;
   private readonly maxHistory = sicboConfig.maxHistory;
@@ -129,7 +131,7 @@ export default class SicboNewCommand extends Command {
     const seed = `${nanoid(32)}`;
     const hash = crypto.createHash('md5').update(seed).digest('hex');
 
-    const startTime = Date.now();
+    const startTime = Math.round(Date.now() / 1000);
 
     const session: GameSession = {
       sessionId,
@@ -217,7 +219,7 @@ export default class SicboNewCommand extends Command {
 
           const taiBetModal = new ModalBuilder()
             .setCustomId('taiBetModal')
-            .setTitle('Tài: Đặt tiền cược')
+            .setTitle('Đặt tiền cược')
             .addLabelComponents(
               new LabelBuilder()
                 .setLabel('Nhập số tiền bạn muốn cược')
@@ -390,15 +392,15 @@ export default class SicboNewCommand extends Command {
           });
 
           const xiuBetModal = new ModalBuilder()
-            .setCustomId('taiBetModal')
-            .setTitle('Tài: Đặt tiền cược')
+            .setCustomId('xiuBetModal')
+            .setTitle('Đặt tiền cược')
             .addLabelComponents(
               new LabelBuilder()
                 .setLabel('Nhập số tiền bạn muốn cược')
                 .setDescription(`Số dư: ${numberFormat(userBalance.balance)}`)
                 .setTextInputComponent(
                   new TextInputBuilder()
-                    .setCustomId('taiBetInput')
+                    .setCustomId('xiuBetInput')
                     .setStyle(TextInputStyle.Short)
                     .setPlaceholder('VD: 100, 1000, ...'),
                 ),
@@ -528,11 +530,9 @@ export default class SicboNewCommand extends Command {
     const successContainer = new ContainerBuilder()
       .setAccentColor(EmbedColors.green())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## ${successEmoji} Tài Xỉu | Thành Công`),
-      )
-      .addSeparatorComponents(seperator => seperator)
-      .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent('**Tạo bàn cược mới thành công!**'),
+        textDisplay.setContent(
+          `## ${successEmoji} Tạo bàn cược mới thành công!`,
+        ),
       );
     await interaction.editReply({
       components: [successContainer],
@@ -558,7 +558,7 @@ export default class SicboNewCommand extends Command {
       await this.updateLobbyContainer(interaction, session);
     }, this.updateInterval);
 
-    await this.sleep(this.waitTime);
+    await sleep(this.waitTime);
     session.isRunning = false;
     clearInterval(updateInterval);
 
@@ -661,7 +661,7 @@ export default class SicboNewCommand extends Command {
     });
 
     if (history.length === 0) {
-      return '*Chưa có lịch sử*';
+      return italic('Chưa có lịch sử');
     }
 
     const reversedHistory = history.reverse();
@@ -711,7 +711,9 @@ export default class SicboNewCommand extends Command {
 
     const remainingTime = Math.max(
       0,
-      Math.ceil((session.duration - (Date.now() - session.startTime)) / 1000),
+      Math.ceil(
+        session.duration / 1000 - (Date.now() / 1000 - session.startTime),
+      ),
     );
 
     const playerList = this.getPlayerList(session);
@@ -723,31 +725,33 @@ export default class SicboNewCommand extends Command {
     return new ContainerBuilder()
       .setAccentColor(EmbedColors.random())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu | Đặt Cược`),
+        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu`),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `⏳ **Thời gian đặt cược: ${remainingTime}s** ⏳`,
+          bold(`⏳ Thời gian đặt cược: ${remainingTime}s ⏳`),
         ),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`🔐 **MD5 Hash:** \`${session.hash}\``),
+        textDisplay.setContent(
+          bold(`🔐 MD5 Hash: ${inlineCode(session.hash)}`),
+        ),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`📊 **Bảng cầu (${historyStats}):**`),
+        textDisplay.setContent(bold(`📊 Bảng cầu (${historyStats}):`)),
       )
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(historyBoard),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`**Người chơi (${session.players.size}):**`),
+        textDisplay.setContent(bold(`Người chơi (${session.players.size}):`)),
       )
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(playerList || '*Chưa có ai tham gia*'),
+        textDisplay.setContent(playerList || italic('Chưa có ai tham gia')),
       )
       .addSeparatorComponents(seperator => seperator)
       .addSectionComponents(section =>
@@ -776,30 +780,13 @@ export default class SicboNewCommand extends Command {
           ),
       )
       .addSeparatorComponents(seperator => seperator)
-      .addSectionComponents(section =>
-        section
-          .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Kiểm tra số dư của bạn')),
-          )
-          .setButtonAccessory(button =>
-            button
-              .setCustomId('sicboBalance')
-              .setStyle(ButtonStyle.Success)
-              .setLabel('💵 Số dư'),
-          ),
-      )
-      .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           subtext(
-            `Session ID: ${inlineCode(session.sessionId)} • ${time(Math.round(session.startTime / 1000))}`,
+            `Session ID: ${inlineCode(session.sessionId)} • ${time(session.startTime)}`,
           ),
         ),
       );
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private async runRollingAnimation(
@@ -809,59 +796,17 @@ export default class SicboNewCommand extends Command {
   ): Promise<void> {
     const client = interaction.client as ExtendedClient;
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
+    const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
 
     const loadingContainer = new ContainerBuilder()
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu | Lắc`),
-      )
-      .addSeparatorComponents(seperator => seperator)
-      .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `**Người chơi:** \`\`${session.players.size}\`\``,
-        ),
-      )
-      .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `${this.rollingFrame[0]} **Đang lắc xúc xắc...** ${this.rollingFrame[0]}\n\`\`\`\n🎲  🎲  🎲\n\`\`\``,
-        ),
+        textDisplay.setContent(`## ${loadingEmoji} Đang lắc...`),
       );
 
     await message.edit({components: [loadingContainer]});
 
-    const totalFrames = 10;
-    const frameDelay = 300;
-
-    for (let i = 0; i < totalFrames; i++) {
-      await this.sleep(frameDelay);
-
-      const randomDice = [
-        this.getRandomDice(),
-        this.getRandomDice(),
-        this.getRandomDice(),
-      ];
-
-      const frameEmoji = this.rollingFrame[i % this.rollingFrame.length];
-
-      const rollingContainer = new ContainerBuilder()
-        .setAccentColor(EmbedColors.yellow())
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(`## ${infoEmoji} Đang lắc xúc xắc...`),
-        )
-        .addSeparatorComponents(seperator => seperator)
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Người chơi:** \`\`${session.players.size}\`\``,
-          ),
-        )
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `${frameEmoji} **Đang lắc xúc xắc...** ${frameEmoji}\n\`\`\`${randomDice.map(d => this.diceEmojis[d - 1]).join('  ')}\n\`\`\``,
-          ),
-        );
-
-      await message.edit({components: [rollingContainer]});
-    }
+    await sleep(this.updateInterval);
 
     const diceFromSeed = this.getDiceFromSeed(session.seed);
     const dice1 = diceFromSeed[0];
@@ -888,43 +833,47 @@ export default class SicboNewCommand extends Command {
     const resultContainer = new ContainerBuilder()
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu | Kết Quả`),
+        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu`),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(codeBlock(`${dice1}  ${dice2}  ${dice3}`)),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `\`\`\`\n${this.diceEmojis[dice1 - 1]}  ${this.diceEmojis[dice2 - 1]}  ${this.diceEmojis[dice3 - 1]}\`\`\``,
-        ),
-      )
-      .addSeparatorComponents(seperator => seperator)
-      .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`**Tổng: ${total}**`),
-      )
-      .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `**Kết quả: ${this.getResultLabel(resultType)}**`,
+          bold(`Kết quả: ${this.getResultLabel(resultType)}`),
         ),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `🎉 **Người thắng (${winners.length}):**\n${winners.map(w => `${w.ordererMention} (${w.betLabel} - x${w.multiplier})`).join('\n') || '*Không có*'}`,
-        ),
-      )
-      .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `💔 **Người thua (${losers.length}):**\n${losers.map(l => `${l.ordererMention} (${l.betLabel})`).join('\n') || '*Không có*'}`,
+          `${bold('🔐 Seed:')} ${inlineCode(session.seed)}`,
         ),
       )
       .addSeparatorComponents(seperator => seperator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          quote(`🔐 **Seed:** ${inlineCode(session.seed)}`),
+          `${bold('🔒 MD5:')} ${inlineCode(session.hash)}`,
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `${bold(`🎉 Người thắng (${winners.length}):`)}\n${winners.map(w => quote(`${w.ordererMention}`)).join('\n') || quote(italic('Không có'))}`,
         ),
       )
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          quote(`🔒 **MD5:** ${inlineCode(session.hash)}`),
+          `${bold(`💔 Người thua (${losers.length}):`)}\n${losers.map(l => quote(`${l.ordererMention}`)).join('\n') || quote(italic('Không có'))}`,
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          subtext(
+            `Session ID: ${inlineCode(session.sessionId)} • ${time(session.startTime)}`,
+          ),
         ),
       );
 
@@ -933,7 +882,7 @@ export default class SicboNewCommand extends Command {
       result: resultType,
       dice: [dice1, dice2, dice3],
       total,
-      timestamp: Date.now(),
+      timestamp: Math.round(Date.now() / 1000),
     });
 
     await SicboSession.update(
@@ -947,25 +896,12 @@ export default class SicboNewCommand extends Command {
       {where: {sessionId: session.sessionId}},
     );
 
-    await this.processPayouts(
-      interaction,
-      winners,
-      losers,
-      resultType,
-      dice1,
-      dice2,
-      dice3,
-      total,
-    );
+    await this.processPayouts(interaction, client, winners, losers, resultType);
 
     await message.edit({
       components: [resultContainer],
       allowedMentions: {},
     });
-  }
-
-  private getRandomDice(): number {
-    return Math.floor(Math.random() * 6) + 1;
   }
 
   private getDiceFromSeed(seed: string): [number, number, number] {
@@ -1028,24 +964,20 @@ export default class SicboNewCommand extends Command {
 
   private async processPayouts(
     interaction: ChatInputCommandInteraction,
+    client: ExtendedClient,
     winners: PlayerBet[],
     losers: PlayerBet[],
     resultType: BetType,
-    dice1: number,
-    dice2: number,
-    dice3: number,
-    total: number,
   ): Promise<void> {
-    const diceDisplay = `${this.diceEmojis[dice1 - 1]} ${this.diceEmojis[dice2 - 1]} ${this.diceEmojis[dice3 - 1]}`;
+    const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
+
     const resultLabel = this.getResultLabel(resultType);
 
-    // Process winners - give them their winnings
     for (const winner of winners) {
       const grossWinAmount = winner.betAmount * winner.multiplier;
-      const taxAmount = Math.floor(grossWinAmount * 0.05); // 5% tax
+      const taxAmount = Math.floor(grossWinAmount * 0.05);
       const netWinAmount = grossWinAmount - taxAmount;
 
-      // Update balance
       const userBalance = await GameBalance.findOne({
         where: {userId: winner.orderId},
       });
@@ -1055,29 +987,57 @@ export default class SicboNewCommand extends Command {
           balance: userBalance.balance + netWinAmount,
         });
 
-        // Reload to get the updated balance
         await userBalance.reload();
 
         try {
           const user = await interaction.client.users.fetch(winner.orderId);
+          const winContainer = new ContainerBuilder()
+            .setAccentColor(EmbedColors.green())
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`## ${infoEmoji} Kết Quả`),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(bold('🎉 Chúc mừng! Bạn đã thắng cược!')),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`${bold('Kết quả: ' + resultLabel)}`),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `${bold('💵 Số tiền cược:')} ${numberFormat(winner.betAmount)}`,
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `${bold('💵 Tiền thắng (trước thuế):')} ${numberFormat(grossWinAmount)}`,
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `${bold('💸 Thuế (5%):')} -${numberFormat(taxAmount)}`,
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `${bold('💵 Tiền thắng (sau thuế):')} ${numberFormat(netWinAmount)}`,
+              ),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `💰 ${bold('Số dư mới:')} ${numberFormat(userBalance.balance)}`,
+              ),
+            );
+
           await user.send({
-            content:
-              '🎉 **CHÚC MỪNG! BẠN ĐÃ THẮNG!** 🎉\n\n' +
-              `**Kết quả:** ${diceDisplay}\n` +
-              `**Tổng:** ${total} - ${resultLabel}\n\n` +
-              `**Cược của bạn:** ${winner.betLabel}\n` +
-              `**Số tiền cược:** ${numberFormat(winner.betAmount)}\n` +
-              `**Tỷ lệ:** x${winner.multiplier}\n` +
-              `**Tiền thắng (trước thuế):** ${numberFormat(grossWinAmount)}\n` +
-              `**Thuế (5%):** -${numberFormat(taxAmount)}\n` +
-              `**Tiền thắng (sau thuế):** ${numberFormat(netWinAmount)}\n\n` +
-              `💰 **Số dư mới:** ${numberFormat(userBalance.balance)}`,
+            components: [winContainer],
+            flags: MessageFlags.IsComponentsV2,
           });
-        } catch (error) {
-          console.error(
-            'Failed to send DM to winner ' + winner.orderId + ':',
-            error,
-          );
+        } catch {
+          //
         }
       }
     }
@@ -1089,22 +1049,38 @@ export default class SicboNewCommand extends Command {
           where: {userId: loser.orderId},
         });
 
+        const loseContainer = new ContainerBuilder()
+          .setAccentColor(EmbedColors.red())
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(`## ${infoEmoji} Kết Quả`),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(bold('💔 Rất tiếc! Bạn đã thua!')),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(`${bold('Kết quả: ' + resultLabel)}`),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(
+              `${bold('Số tiền cược:')} ${numberFormat(loser.betAmount)}`,
+            ),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(
+              `${bold('💰 Số dư hiện tại:')} ${numberFormat(userBalance?.balance || 0)}`,
+            ),
+          );
+
         await user.send({
-          content:
-            '💔 **RẤT TIẾC! BẠN ĐÃ THUA!** 💔\n\n' +
-            `**Kết quả:** ${diceDisplay}\n` +
-            `**Tổng:** ${total} - ${resultLabel}\n\n` +
-            `**Cược của bạn:** ${loser.betLabel}\n` +
-            `**Số tiền cược:** ${loser.betAmount}\n` +
-            `**Số tiền mất:** ${loser.betAmount}\n\n` +
-            `💰 **Số dư hiện tại:** ${userBalance?.balance || 0}\n\n` +
-            'Chúc bạn may mắn lần sau! 🍀',
+          components: [loseContainer],
+          flags: MessageFlags.IsComponentsV2,
         });
-      } catch (error) {
-        console.error(
-          'Failed to send DM to loser ' + loser.orderId + ':',
-          error,
-        );
+      } catch {
+        //
       }
     }
   }
