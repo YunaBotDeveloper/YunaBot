@@ -29,6 +29,7 @@ export default class ApplicationEmoji {
 
     if (!matchingEmoji) return;
 
-    return '<:' + matchingEmoji.name + ':' + matchingEmoji.id + '>';
+    const prefix = matchingEmoji.animated ? '<a:' : '<:';
+    return prefix + matchingEmoji.name + ':' + matchingEmoji.id + '>';
   }
 }
