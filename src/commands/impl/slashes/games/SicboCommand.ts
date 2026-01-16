@@ -1065,7 +1065,7 @@ export default class SicboNewCommand extends Command {
           .addSeparatorComponents(seperator => seperator)
           .addTextDisplayComponents(textDisplay =>
             textDisplay.setContent(
-              `${bold('Số tiền cược:')} ${numberFormat(loser.betAmount)}`,
+              `${bold('💸 Số tiền mất:')} ${numberFormat(loser.betAmount)}`,
             ),
           )
           .addSeparatorComponents(seperator => seperator)
