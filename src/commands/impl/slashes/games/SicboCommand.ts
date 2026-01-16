@@ -1,6 +1,7 @@
 import {Command} from '../../../Command';
 import Config from '../../../../config/Config';
 import {
+  blockQuote,
   ButtonInteraction,
   ButtonStyle,
   ChatInputCommandInteraction,
@@ -11,6 +12,7 @@ import {
   MessageFlags,
   ModalBuilder,
   ModalSubmitInteraction,
+  quote,
   subtext,
   TextChannel,
   TextInputBuilder,
@@ -78,11 +80,21 @@ export default class SicboNewCommand extends Command {
   }
 
   async run(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({flags: [MessageFlags.Ephemeral]});
-
     const client = interaction.client as ExtendedClient;
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
+    const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
+
+    const loadingContainer = new ContainerBuilder()
+      .setAccentColor(EmbedColors.yellow())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`## ${loadingEmoji} Đang xử lý...`),
+      );
+
+    await interaction.reply({
+      components: [loadingContainer],
+      flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+    });
 
     const guild = interaction.guild;
     const channel = interaction.channel;
@@ -168,18 +180,32 @@ export default class SicboNewCommand extends Command {
         customId: taiButtonId,
         handler: async (interaction: ButtonInteraction) => {
           if (!session.isRunning) {
+            const endedContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                ),
+              );
             await interaction.reply({
-              content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
-              ephemeral: true,
+              components: [endedContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
             });
             return;
           }
 
           if (session.players.has(interaction.user.id)) {
             const currentBet = session.players.get(interaction.user.id)!;
+            const alreadyBetContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `## ${failedEmoji} Bạn đã đặt ${inlineCode(currentBet.betLabel)} rồi!`,
+                ),
+              );
             await interaction.reply({
-              content: `❌ Bạn đã đặt **${currentBet.betLabel}** rồi! Không thể đổi cược!`,
-              ephemeral: true,
+              components: [alreadyBetContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
             });
             return;
           }
@@ -190,22 +216,20 @@ export default class SicboNewCommand extends Command {
             defaults: {userId, balance: 1000, creditScore: 500},
           });
 
-          const taiBetInput = new TextInputBuilder()
-            .setCustomId('taiBetInput')
-            .setStyle(TextInputStyle.Short)
-            .setPlaceholder('VD: 100, 200, 1000');
-
-          const taiLabel = new LabelBuilder()
-            .setLabel('Nhập số tiền bạn muốn cược.')
-            .setDescription(
-              `Số tiền hiện tại của bạn: ${numberFormat(userBalance.balance)}`,
-            )
-            .setTextInputComponent(taiBetInput);
-
           const taiBetModal = new ModalBuilder()
             .setCustomId('taiBetModal')
             .setTitle('Tài: Đặt tiền cược')
-            .addLabelComponents(taiLabel);
+            .addLabelComponents(
+              new LabelBuilder()
+                .setLabel('Nhập số tiền bạn muốn cược')
+                .setDescription(`Số dư: ${numberFormat(userBalance.balance)}`)
+                .setTextInputComponent(
+                  new TextInputBuilder()
+                    .setCustomId('taiBetInput')
+                    .setStyle(TextInputStyle.Short)
+                    .setPlaceholder('VD: 100, 1000, ...'),
+                ),
+            );
 
           await interaction.showModal(taiBetModal);
 
@@ -214,9 +238,19 @@ export default class SicboNewCommand extends Command {
               customId: 'taiBetModal',
               handler: async (interaction: ModalSubmitInteraction) => {
                 if (!session.isRunning) {
+                  const endedContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                      ),
+                    );
                   await interaction.reply({
-                    content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
-                    ephemeral: true,
+                    components: [endedContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
                   });
                   return;
                 }
@@ -227,10 +261,19 @@ export default class SicboNewCommand extends Command {
                 const betAmount = parseFloat(betAmountInput);
 
                 if (isNaN(betAmount) || betAmount <= 0) {
+                  const invaildBetAmountContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Số tiền không hợp lệ!`,
+                      ),
+                    );
                   await interaction.reply({
-                    content:
-                      '❌ Số tiền không hợp lệ! Vui lòng nhập một số dương.',
-                    ephemeral: true,
+                    components: [invaildBetAmountContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
                   });
                   return;
                 }
@@ -241,9 +284,19 @@ export default class SicboNewCommand extends Command {
                 });
 
                 if (!userBalance || userBalance.balance < betAmount) {
+                  const insufficientBalanceContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Số dư của bạn không đủ!`,
+                      ),
+                    );
                   await interaction.reply({
-                    content: `❌ Số dư không đủ! Số dư hiện tại: **${numberFormat(userBalance?.balance || 0)}**, Số tiền cược: **${numberFormat(betAmount)}**`,
-                    ephemeral: true,
+                    components: [insufficientBalanceContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
                   });
                   return;
                 }
@@ -274,9 +327,16 @@ export default class SicboNewCommand extends Command {
                   {where: {sessionId}},
                 );
 
+                const betCompletedContainer = new ContainerBuilder()
+                  .setAccentColor(EmbedColors.green())
+                  .addTextDisplayComponents(textDisplay =>
+                    textDisplay.setContent(
+                      `## ${successEmoji} Bạn đã đặt cược vào ${inlineCode('Tài')} thành công!`,
+                    ),
+                  );
                 await interaction.reply({
-                  content: `✅ Đặt cược **Tài** thành công!\nSố tiền: **${numberFormat(betAmount)}**\nSố dư còn lại: **${numberFormat(userBalance.balance)}**`,
-                  flags: MessageFlags.Ephemeral,
+                  components: [betCompletedContainer],
+                  flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
                 });
 
                 await this.updateLobbyContainer(interaction, session);
@@ -294,18 +354,32 @@ export default class SicboNewCommand extends Command {
         customId: xiuButtonId,
         handler: async (interaction: ButtonInteraction) => {
           if (!session.isRunning) {
+            const endedContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                ),
+              );
             await interaction.reply({
-              content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
-              ephemeral: true,
+              components: [endedContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
             });
             return;
           }
 
           if (session.players.has(interaction.user.id)) {
             const currentBet = session.players.get(interaction.user.id)!;
+            const alreadyBetContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `## ${failedEmoji} Bạn đã đặt ${inlineCode(currentBet.betLabel)} rồi!`,
+                ),
+              );
             await interaction.reply({
-              content: `❌ Bạn đã đặt **${currentBet.betLabel}** rồi! Không thể đổi cược!`,
-              ephemeral: true,
+              components: [alreadyBetContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
             });
             return;
           }
@@ -316,22 +390,20 @@ export default class SicboNewCommand extends Command {
             defaults: {userId, balance: 1000, creditScore: 500},
           });
 
-          const xiuBetInput = new TextInputBuilder()
-            .setCustomId('xiuBetInput')
-            .setStyle(TextInputStyle.Short)
-            .setPlaceholder('VD: 100, 200, 1000');
-
-          const xiuLabel = new LabelBuilder()
-            .setLabel('Nhập số tiền bạn muốn cược.')
-            .setDescription(
-              `Số tiền hiện tại của bạn: ${numberFormat(userBalance.balance)}`,
-            )
-            .setTextInputComponent(xiuBetInput);
-
           const xiuBetModal = new ModalBuilder()
-            .setCustomId('xiuBetModal')
-            .setTitle('Xỉu: Đặt tiền cược')
-            .addLabelComponents(xiuLabel);
+            .setCustomId('taiBetModal')
+            .setTitle('Tài: Đặt tiền cược')
+            .addLabelComponents(
+              new LabelBuilder()
+                .setLabel('Nhập số tiền bạn muốn cược')
+                .setDescription(`Số dư: ${numberFormat(userBalance.balance)}`)
+                .setTextInputComponent(
+                  new TextInputBuilder()
+                    .setCustomId('taiBetInput')
+                    .setStyle(TextInputStyle.Short)
+                    .setPlaceholder('VD: 100, 1000, ...'),
+                ),
+            );
 
           await interaction.showModal(xiuBetModal);
 
@@ -340,9 +412,19 @@ export default class SicboNewCommand extends Command {
               customId: 'xiuBetModal',
               handler: async (interaction: ModalSubmitInteraction) => {
                 if (!session.isRunning) {
+                  const endedContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                      ),
+                    );
                   await interaction.reply({
-                    content: `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
-                    ephemeral: true,
+                    components: [endedContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
                   });
                   return;
                 }
@@ -353,10 +435,19 @@ export default class SicboNewCommand extends Command {
                 const betAmount = parseFloat(betAmountInput);
 
                 if (isNaN(betAmount) || betAmount <= 0) {
+                  const invaildBetAmountContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Số tiền không hợp lệ!`,
+                      ),
+                    );
                   await interaction.reply({
-                    content:
-                      '❌ Số tiền không hợp lệ! Vui lòng nhập một số dương.',
-                    ephemeral: true,
+                    components: [invaildBetAmountContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
                   });
                   return;
                 }
@@ -367,9 +458,19 @@ export default class SicboNewCommand extends Command {
                 });
 
                 if (!userBalance || userBalance.balance < betAmount) {
+                  const insufficientBalanceContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Số dư của bạn không đủ!`,
+                      ),
+                    );
                   await interaction.reply({
-                    content: `❌ Số dư không đủ! Số dư hiện tại: **${numberFormat(userBalance?.balance || 0)}**, Số tiền cược: **${numberFormat(betAmount)}**`,
-                    ephemeral: true,
+                    components: [insufficientBalanceContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
                   });
                   return;
                 }
@@ -400,9 +501,16 @@ export default class SicboNewCommand extends Command {
                   {where: {sessionId}},
                 );
 
+                const betCompletedContainer = new ContainerBuilder()
+                  .setAccentColor(EmbedColors.green())
+                  .addTextDisplayComponents(textDisplay =>
+                    textDisplay.setContent(
+                      `## ${successEmoji} Bạn đã đặt cược vào ${inlineCode('Xỉu')} thành công!`,
+                    ),
+                  );
                 await interaction.reply({
-                  content: `✅ Đặt cược **Xỉu** thành công!\nSố tiền: **${numberFormat(betAmount)}**\nSố dư còn lại: **${numberFormat(userBalance.balance)}**`,
-                  flags: MessageFlags.Ephemeral,
+                  components: [betCompletedContainer],
+                  flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
                 });
 
                 await this.updateLobbyContainer(interaction, session);
@@ -467,11 +575,11 @@ export default class SicboNewCommand extends Command {
         .setAccentColor(EmbedColors.red())
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `${failedEmoji} ## Không có người tham gia. Ván này đã bị huỷ.`,
+            `## ${failedEmoji} Không có người tham gia. Ván này đã bị huỷ.`,
           ),
         );
 
-      await interaction.editReply({
+      await message.edit({
         components: [noPlayerContainer],
         allowedMentions: {},
       });
@@ -720,7 +828,7 @@ export default class SicboNewCommand extends Command {
         ),
       );
 
-    await interaction.editReply({components: [loadingContainer]});
+    await message.edit({components: [loadingContainer]});
 
     const totalFrames = 10;
     const frameDelay = 300;
