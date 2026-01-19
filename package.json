@@ -12,9 +12,8 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@types/node": "^22.7.5",
-    "gts": "^7.0.0",
-    "typescript": "^5.6.3"
+    "@types/node": "^25.0.9",
+    "gts": "^7.0.0"
   },
   "scripts": {
     "lint": "gts lint",
