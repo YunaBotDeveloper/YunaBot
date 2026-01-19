@@ -1,4 +1,3 @@
-import ExtendedClient from '../../classes/ExtendedClient';
 import Log4TS from '../../logger/Log4TS';
 import Event from '../Event';
 import {Events} from 'discord.js';
@@ -11,7 +10,7 @@ export default class SicboClearEvent extends Event {
     super(Events.ClientReady, true);
   }
 
-  async run(client: ExtendedClient) {
+  async run() {
     try {
       const runningSessions = await SicboSession.findAll({
         where: {

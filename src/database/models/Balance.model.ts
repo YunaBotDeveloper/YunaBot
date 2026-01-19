@@ -34,7 +34,7 @@ export function initBalanceModel(sequelizeInstance: Sequelize): void {
       creditScore: {
         type: DataTypes.NUMBER,
         allowNull: false,
-        defaultValue: 500, // Neutral score (300-850 range)
+        defaultValue: 500,
       },
     },
     {
