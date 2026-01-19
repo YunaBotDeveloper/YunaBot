@@ -1,0 +1,13 @@
+bot:
+  token: "YOUR_TOKEN_HERE"
+
+bank:
+  loan:
+    maxLoan: 50000
+    minLoan: 1
+    baseInterest: 0.1
+
+sicbo:
+  waitTime: 30000
+  updateInterval: 5000
+  maxHistory: 10
