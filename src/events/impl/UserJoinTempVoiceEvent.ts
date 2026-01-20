@@ -19,7 +19,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
   ModalSubmitInteraction,
-  ButtonInteraction,
+  RoleSelectMenuBuilder,
 } from 'discord.js';
 import TempVoiceChannel from '../../database/models/TempVoiceChannel.model';
 import {EmbedColors} from '../../util/EmbedColors';
@@ -135,6 +135,11 @@ export default class UserJoinTempVoiceEvent extends Event {
                   .setLabel('Giới hạn kênh')
                   .setDescription('Thay đổi giới hạn kênh')
                   .setValue('cLimitChange'),
+
+                new StringSelectMenuOptionBuilder()
+                  .setLabel('Trạng thái kênh')
+                  .setDescription('Thay đổi trạng thái kênh')
+                  .setValue('cStatusChange'),
               ),
           ),
         )
@@ -189,7 +194,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                   .setCustomId('cLimitSet')
                   .addLabelComponents(
                     new LabelBuilder()
-                      .setLabel('Giới hạn kênh bạn muốn')
+                      .setLabel('Giới hạn kênh')
                       .setDescription('Đặt 0 để xóa giới hạn')
                       .setTextInputComponent(
                         new TextInputBuilder()
@@ -202,6 +207,26 @@ export default class UserJoinTempVoiceEvent extends Event {
                   );
 
                 await interaction.showModal(cLimitModal);
+                break;
+              }
+              case 'cStatusChange': {
+                const cStatusModal = new ModalBuilder()
+                  .setCustomId('cStatusModal')
+                  .setTitle('Đặt trạng thái kênh')
+                  .setLabelComponents(
+                    new LabelBuilder()
+                      .setLabel('Trạng thái kênh')
+                      .setTextInputComponent(
+                        new TextInputBuilder()
+                          .setCustomId('cStatus')
+                          .setPlaceholder('Nhập trạng thái kênh bạn muốn đặt')
+                          .setStyle(TextInputStyle.Paragraph)
+                          .setMinLength(1)
+                          .setMaxLength(200),
+                      ),
+                  );
+
+                await interaction.showModal(cStatusModal);
                 break;
               }
             }
@@ -232,6 +257,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                     await TempVoiceChannelSetting.create({
                       userId: member.id,
                       channelName: cName,
+                      channelLimit: 0,
                     });
                   }
 
@@ -251,51 +277,95 @@ export default class UserJoinTempVoiceEvent extends Event {
                 userCheck: [member.id],
                 type: ComponentEnum.MODAL,
               },
+              {
+                customId: 'cStatusModal',
+                handler: async (interaction: ModalSubmitInteraction) => {
+                  const client = interaction.client;
+                  const cStatus =
+                    interaction.fields.getTextInputValue('cStatus');
+                  const loadingContainer =
+                    await this.loadingContainer(loadingEmoji);
+                  await interaction.reply({
+                    components: [loadingContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+
+                  await client.rest.put(
+                    `/channels/${newChannel.id}/voice-status`,
+                    {body: {status: cStatus}},
+                  );
+
+                  const successContainer;
+                },
+                userCheck: [member.id],
+                type: ComponentEnum.MODAL,
+              },
+              {
+                customId: 'cLimitSet',
+                handler: async (interaction: ModalSubmitInteraction) => {
+                  const loadingContainer =
+                    await this.loadingContainer(infoEmoji);
+                  await interaction.reply({
+                    components: [loadingContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+
+                  const cLimit = parseInt(
+                    interaction.fields.getTextInputValue('cLimit'),
+                  );
+
+                  if (!cLimit) {
+                    const cLimitErrorContainer = new ContainerBuilder()
+                      .setAccentColor(EmbedColors.red())
+                      .addTextDisplayComponents(textDisplay =>
+                        textDisplay.setContent(
+                          `## ${failedEmoji} Lỗi: Giới hạn không hợp lệ!`,
+                        ),
+                      );
+
+                    await interaction.editReply({
+                      components: [cLimitErrorContainer],
+                    });
+                    return;
+                  }
+
+                  await newChannel.setUserLimit(cLimit);
+
+                  if (memberVoiceChannelSetting) {
+                    await memberVoiceChannelSetting.update({
+                      channelLimit: cLimit,
+                    });
+                  } else {
+                    await TempVoiceChannelSetting.create({
+                      userId: member.id,
+                      channelName,
+                      channelLimit: 0,
+                    });
+                  }
+
+                  const successContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.green())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${successEmoji} Đặt giới hạn kênh thành công!`,
+                      ),
+                    );
+
+                  await interaction.editReply({components: [successContainer]});
+                },
+                type: ComponentEnum.MODAL,
+                userCheck: [member.id],
+              },
             ]);
           },
           userCheck: [member.id],
           type: ComponentEnum.MENU,
-        },
-        {
-          customId: 'cLimitSet',
-          handler: async (interaction: ModalSubmitInteraction) => {
-            const loadingContainer = await this.loadingContainer(infoEmoji);
-            await interaction.reply({
-              components: [loadingContainer],
-              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
-            });
-
-            const cLimit = parseInt(
-              interaction.fields.getTextInputValue('cLimit'),
-            );
-
-            if (!cLimit) {
-              const cLimitErrorContainer = new ContainerBuilder()
-                .setAccentColor(EmbedColors.red())
-                .addTextDisplayComponents(textDisplay =>
-                  textDisplay.setContent(
-                    `## ${failedEmoji} Lỗi: Giới hạn không hợp lệ!`,
-                  ),
-                );
-
-              await interaction.editReply({components: [cLimitErrorContainer]});
-              return;
-            }
-
-            await newChannel.setUserLimit(cLimit);
-
-            const successContainer = new ContainerBuilder()
-              .setAccentColor(EmbedColors.green())
-              .addTextDisplayComponents(textDisplay =>
-                textDisplay.setContent(
-                  `## ${successEmoji} Đặt giới hạn kênh thành công!`,
-                ),
-              );
-
-            await interaction.editReply({components: [successContainer]});
-          },
-          type: ComponentEnum.MODAL,
-          userCheck: [member.id],
         },
         // {
         //   customId: 'cPermission',
@@ -392,6 +462,17 @@ export default class UserJoinTempVoiceEvent extends Event {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(`## ${loadingEmoji} Đang xử lý...`),
+      );
+  }
+
+  private async successContainer(
+    successEmoji: unknown,
+    successMessage: string,
+  ): Promise<ContainerBuilder> {
+    return new ContainerBuilder()
+      .setAccentColor(EmbedColors.green())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`## ${successEmoji} ${successMessage}`),
       );
   }
 }
