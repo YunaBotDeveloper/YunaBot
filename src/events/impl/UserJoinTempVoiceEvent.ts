@@ -19,7 +19,6 @@ import {
   TextInputBuilder,
   TextInputStyle,
   ModalSubmitInteraction,
-  RoleSelectMenuBuilder,
 } from 'discord.js';
 import TempVoiceChannel from '../../database/models/TempVoiceChannel.model';
 import {EmbedColors} from '../../util/EmbedColors';
@@ -161,6 +160,75 @@ export default class UserJoinTempVoiceEvent extends Event {
           ),
         );
 
+      const resetSelectMenu = async () => {
+        const resetContainer = new ContainerBuilder()
+          .setAccentColor(EmbedColors.blue())
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(
+              `## ${infoEmoji} Chào mừng bạn đến với kênh trò chuyện tạm thời!`,
+            ),
+          )
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(
+              `- Điều khiển kênh của bạn bằng cách sử dụng hộp thoại dưới đây\n- Hoặc bạn có thể sử dụng lệnh ${inlineCode('/voice')} để điều khiển!`,
+            ),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(bold('Cài đặt của kênh')),
+          )
+          .addActionRowComponents<StringSelectMenuBuilder>(row =>
+            row.addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('cSetting')
+                .setPlaceholder('Chỉnh sửa tại đây!')
+                .addOptions(
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel('Tên kênh')
+                    .setDescription('Thay đổi tên kênh')
+                    .setValue('cNameChange'),
+
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel('Giới hạn kênh')
+                    .setDescription('Thay đổi giới hạn kênh')
+                    .setValue('cLimitChange'),
+
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel('Trạng thái kênh')
+                    .setDescription('Thay đổi trạng thái kênh')
+                    .setValue('cStatusChange'),
+                ),
+            ),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(bold('Quyền hạn của kênh')),
+          )
+          .addActionRowComponents<StringSelectMenuBuilder>(row =>
+            row.addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('cPermission')
+                .setPlaceholder('Chỉnh sửa tại đây!')
+                .addOptions(
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel('Khóa')
+                    .setDescription('Khóa kênh này lại')
+                    .setValue('cLock'),
+                ),
+            ),
+          );
+
+        try {
+          await message.edit({
+            content: userMention(member.id),
+            components: [resetContainer],
+            flags: MessageFlags.IsComponentsV2,
+          });
+        } catch (error) {
+          logger.error(`Error resetting select menu: ${error}`);
+        }
+      };
+
       ComponentManager.getComponentManager().register([
         {
           customId: 'cSetting',
@@ -272,6 +340,8 @@ export default class UserJoinTempVoiceEvent extends Event {
                   await interaction.editReply({
                     components: [successContainer],
                   });
+
+                  await resetSelectMenu();
                   return;
                 },
                 userCheck: [member.id],
@@ -298,7 +368,15 @@ export default class UserJoinTempVoiceEvent extends Event {
                     {body: {status: cStatus}},
                   );
 
-                  const successContainer;
+                  const successContainer = await this.successContainer(
+                    successEmoji,
+                    'Thay đổi trạng thái kênh thành công!',
+                  );
+
+                  await interaction.editReply({components: [successContainer]});
+
+                  await resetSelectMenu();
+                  return;
                 },
                 userCheck: [member.id],
                 type: ComponentEnum.MODAL,
@@ -358,6 +436,8 @@ export default class UserJoinTempVoiceEvent extends Event {
                     );
 
                   await interaction.editReply({components: [successContainer]});
+
+                  await resetSelectMenu();
                 },
                 type: ComponentEnum.MODAL,
                 userCheck: [member.id],
