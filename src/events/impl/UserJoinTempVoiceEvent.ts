@@ -365,7 +365,6 @@ export default class UserJoinTempVoiceEvent extends Event {
                     );
 
                   await interaction.editReply({components: [successContainer]});
-
                 },
                 type: ComponentEnum.MODAL,
                 userCheck: [member.id],
