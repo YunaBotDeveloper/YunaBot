@@ -272,7 +272,6 @@ export default class UserJoinTempVoiceEvent extends Event {
                     components: [successContainer],
                   });
 
-                  await resetSelectMenu();
                   return;
                 },
                 userCheck: [member.id],
@@ -306,7 +305,6 @@ export default class UserJoinTempVoiceEvent extends Event {
 
                   await interaction.editReply({components: [successContainer]});
 
-                  await resetSelectMenu();
                   return;
                 },
                 userCheck: [member.id],
@@ -368,7 +366,6 @@ export default class UserJoinTempVoiceEvent extends Event {
 
                   await interaction.editReply({components: [successContainer]});
 
-                  await resetSelectMenu();
                 },
                 type: ComponentEnum.MODAL,
                 userCheck: [member.id],

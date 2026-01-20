@@ -29,6 +29,8 @@ export default class UserLeaveTempVoiceEvent extends Event {
           where: {guildId: guild.id},
         });
 
+        if (!tempVoiceRecord) return;
+
         if (
           tempVoiceRecord &&
           tempVoiceRecord.channelId.includes(oldState.channelId)
