@@ -65,17 +65,56 @@ export default class UserJoinTempVoiceEvent extends Event {
 
       const member = newState.member;
 
+      if (!member) {
+        return;
+      }
+
       const memberVoiceChannelSetting = await TempVoiceChannelSetting.findOne({
-        where: {userId: member?.id},
+        where: {userId: member.id},
       });
+
+      const currentTime = Date.now();
+      const cooldownTime = 5000;
+
+      if (memberVoiceChannelSetting?.lastJoinTimestamp) {
+        const timeSinceLastJoin =
+          currentTime - Number(memberVoiceChannelSetting.lastJoinTimestamp);
+
+        if (timeSinceLastJoin < cooldownTime) {
+          const remainingTime = Math.ceil(
+            (cooldownTime - timeSinceLastJoin) / 1000,
+          );
+
+          await member.voice.disconnect();
+
+          try {
+            const cooldownContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `## ${failedEmoji} Bạn đang trong thời gian chờ!\n\nVui lòng đợi **${remainingTime} giây** trước khi tạo kênh mới.`,
+                ),
+              );
+
+            await member.send({
+              components: [cooldownContainer],
+              flags: MessageFlags.IsComponentsV2,
+            });
+          } catch (error) {
+            logger.error(`Failed to send cooldown message to user: ${error}`);
+          }
+
+          return;
+        }
+      }
 
       let channelName = memberVoiceChannelSetting?.channelName;
 
-      if (!channelName) channelName = `${member?.user.username}'s Channel`;
+      if (!channelName) channelName = `${member.user.username}'s Channel`;
 
       const parentChannel = newState.channel;
 
-      if (!member || !parentChannel) {
+      if (!parentChannel) {
         return;
       }
 
@@ -97,6 +136,19 @@ export default class UserJoinTempVoiceEvent extends Event {
         ],
       });
       await member.voice.setChannel(newChannel);
+
+      if (memberVoiceChannelSetting) {
+        await memberVoiceChannelSetting.update({
+          lastJoinTimestamp: currentTime,
+        });
+      } else {
+        await TempVoiceChannelSetting.create({
+          userId: member.id,
+          channelName,
+          channelLimit: 0,
+          lastJoinTimestamp: currentTime,
+        });
+      }
 
       const message = await newChannel.send({
         content: userMention(member.id),
