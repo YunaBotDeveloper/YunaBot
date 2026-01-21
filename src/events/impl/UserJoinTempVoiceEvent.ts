@@ -200,6 +200,11 @@ export default class UserJoinTempVoiceEvent extends Event {
                   .setLabel('Trạng thái kênh')
                   .setDescription('Thay đổi trạng thái kênh')
                   .setValue('cStatusChange'),
+
+                new StringSelectMenuOptionBuilder()
+                  .setLabel('Bitrate')
+                  .setDescription('Thay đổi bitrate kênh')
+                  .setValue('cBitrateChange'),
               ),
           ),
         )
@@ -238,7 +243,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                       .setTextInputComponent(
                         new TextInputBuilder()
                           .setCustomId('cName')
-                          .setPlaceholder('Nhập tên kênh mới của bạn')
+                          .setPlaceholder('Nhập tên kênh mới bạn muốn đặt')
                           .setStyle(TextInputStyle.Short)
                           .setMinLength(2)
                           .setMaxLength(32),
@@ -259,7 +264,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                       .setTextInputComponent(
                         new TextInputBuilder()
                           .setCustomId('cLimit')
-                          .setPlaceholder('Nhập giới hạn bạn muốn')
+                          .setPlaceholder('Nhập giới hạn bạn muốn đặt')
                           .setStyle(TextInputStyle.Short)
                           .setMinLength(1)
                           .setMaxLength(2),
@@ -271,7 +276,7 @@ export default class UserJoinTempVoiceEvent extends Event {
               }
               case 'cStatusChange': {
                 const cStatusModal = new ModalBuilder()
-                  .setCustomId('cStatusModal')
+                  .setCustomId('cStatusSet')
                   .setTitle('Đặt trạng thái kênh')
                   .setLabelComponents(
                     new LabelBuilder()
@@ -288,6 +293,26 @@ export default class UserJoinTempVoiceEvent extends Event {
 
                 await interaction.showModal(cStatusModal);
                 break;
+              }
+              case 'cBitrateChange': {
+                const cBitrateModal = new ModalBuilder()
+                  .setCustomId('cBitrateSet')
+                  .setTitle('Đặt bitrate kênh')
+                  .addLabelComponents(
+                    new LabelBuilder()
+                      .setLabel('Bitrate kênh')
+                      .setDescription('Giới hạn từ 8 - 96 (kbps)')
+                      .setTextInputComponent(
+                        new TextInputBuilder()
+                          .setCustomId('cBitrate')
+                          .setPlaceholder('Nhập bitrate kênh bạn muốn đặt')
+                          .setStyle(TextInputStyle.Short)
+                          .setMinLength(1)
+                          .setMaxLength(2),
+                      ),
+                  );
+
+                await interaction.showModal(cBitrateModal);
               }
             }
 
@@ -339,7 +364,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                 type: ComponentEnum.MODAL,
               },
               {
-                customId: 'cStatusModal',
+                customId: 'cStatusSet',
                 handler: async (interaction: ModalSubmitInteraction) => {
                   const client = interaction.client;
                   const cStatus =
@@ -428,11 +453,34 @@ export default class UserJoinTempVoiceEvent extends Event {
                   await interaction.editReply({components: [successContainer]});
                 },
                 type: ComponentEnum.MODAL,
-                userCheck: [member.id],
+                userCheck: [tempVoiceOwner.userId],
+              },
+              {
+                customId: 'cBitrateModal',
+                handler: async (interaction: ModalSubmitInteraction) => {
+                  const loadingContainer =
+                    await this.loadingContainer(loadingEmoji);
+
+                  await interaction.reply({
+                    components: [loadingContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+
+                  const bitrate = parseInt(
+                    interaction.fields.getTextInputValue('cBitrate'),
+                  );
+
+                  await newChannel.setBitrate();
+                },
+                type: ComponentEnum.MODAL,
+                userCheck: [tempVoiceOwner.userId],
               },
             ]);
           },
-          userCheck: [member.id],
+          userCheck: [tempVoiceOwner.userId],
           type: ComponentEnum.MENU,
         },
         // {
