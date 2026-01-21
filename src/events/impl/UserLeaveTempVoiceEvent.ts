@@ -1,7 +1,7 @@
 import Log4TS from '../../logger/Log4TS';
 import Event from '../Event';
 import {Events, VoiceState} from 'discord.js';
-import TempVoiceChannel from '../../database/models/TempVoiceChannel.model';
+import TempVoiceOwner from '../../database/models/TempVoiceOwner.model';
 import ExtendedClient from '../../classes/ExtendedClient';
 
 const logger = Log4TS.getLogger();
@@ -25,22 +25,18 @@ export default class UserLeaveTempVoiceEvent extends Event {
           return;
         }
 
-        const tempVoiceRecord = await TempVoiceChannel.findOne({
-          where: {guildId: guild.id},
+        const tempVoiceOwner = await TempVoiceOwner.findOne({
+          where: {channelId: oldChannel.id},
         });
 
-        if (!tempVoiceRecord) return;
-
-        if (
-          tempVoiceRecord &&
-          tempVoiceRecord.channelId.includes(oldState.channelId)
-        ) {
+        if (!tempVoiceOwner) {
           return;
         }
 
         if (oldChannel.isVoiceBased() && oldChannel.members.size === 0) {
           try {
             await oldChannel.delete();
+            await tempVoiceOwner.destroy();
           } catch (error) {
             logger.error(
               `Failed to delete channel ${oldChannel.name}: ${error}`,

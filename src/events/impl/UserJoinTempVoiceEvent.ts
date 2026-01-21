@@ -25,6 +25,7 @@ import {EmbedColors} from '../../util/EmbedColors';
 import ComponentManager from '../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../enum/ComponentEnum';
 import TempVoiceChannelSetting from '../../database/models/TempVoiceChannelSetting.model';
+import TempVoiceOwner from '../../database/models/TempVoiceOwner.model';
 
 const logger = Log4TS.getLogger();
 
@@ -135,7 +136,15 @@ export default class UserJoinTempVoiceEvent extends Event {
           },
         ],
       });
+
       await member.voice.setChannel(newChannel);
+
+      const tempVoiceOwner = new TempVoiceOwner({
+        channelId: newChannel.id,
+        userId: member.id,
+      });
+
+      await tempVoiceOwner.save();
 
       if (memberVoiceChannelSetting) {
         await memberVoiceChannelSetting.update({
