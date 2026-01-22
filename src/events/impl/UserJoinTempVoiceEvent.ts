@@ -93,7 +93,7 @@ export default class UserJoinTempVoiceEvent extends Event {
               .setAccentColor(EmbedColors.red())
               .addTextDisplayComponents(textDisplay =>
                 textDisplay.setContent(
-                  `## ${failedEmoji} Bạn đang trong thời gian chờ!\n\nVui lòng đợi **${remainingTime} giây** trước khi tạo kênh mới.`,
+                  `## ${failedEmoji} Vui lòng đợi ${remainingTime} giây nữa trước khi tạo kênh mới.`,
                 ),
               );
 
@@ -101,8 +101,8 @@ export default class UserJoinTempVoiceEvent extends Event {
               components: [cooldownContainer],
               flags: MessageFlags.IsComponentsV2,
             });
-          } catch (error) {
-            logger.error(`Failed to send cooldown message to user: ${error}`);
+          } catch {
+            //
           }
 
           return;
@@ -170,74 +170,7 @@ export default class UserJoinTempVoiceEvent extends Event {
         allowedMentions: {users: [tempVoiceOwner.userId]},
       });
 
-      const panelContainer = new ContainerBuilder()
-        .setAccentColor(EmbedColors.blue())
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `## ${infoEmoji} Chào mừng bạn đến với kênh trò chuyện tạm thời!`,
-          ),
-        )
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `- Điều khiển kênh của bạn bằng cách sử dụng hộp thoại dưới đây\n- Hoặc bạn có thể sử dụng lệnh ${inlineCode('/voice')} để điều khiển!`,
-          ),
-        )
-        .addSeparatorComponents(seperator => seperator)
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(bold('Cài đặt của kênh')),
-        )
-        .addActionRowComponents<StringSelectMenuBuilder>(row =>
-          row.addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId('cSetting')
-              .setPlaceholder('Chỉnh sửa tại đây!')
-              .addOptions(
-                new StringSelectMenuOptionBuilder()
-                  .setLabel('Tên kênh')
-                  .setDescription('Thay đổi tên kênh')
-                  .setValue('cNameChange'),
-
-                new StringSelectMenuOptionBuilder()
-                  .setLabel('Giới hạn kênh')
-                  .setDescription('Thay đổi giới hạn kênh')
-                  .setValue('cLimitChange'),
-
-                new StringSelectMenuOptionBuilder()
-                  .setLabel('Trạng thái kênh')
-                  .setDescription('Thay đổi trạng thái kênh')
-                  .setValue('cStatusChange'),
-
-                new StringSelectMenuOptionBuilder()
-                  .setLabel('Bitrate')
-                  .setDescription('Thay đổi bitrate kênh')
-                  .setValue('cBitrateChange'),
-
-                new StringSelectMenuOptionBuilder()
-                  .setLabel('Chủ kênh')
-                  .setDescription(
-                    'Nhận quyền chủ kênh (khi chủ kênh cũ đã rời)',
-                  )
-                  .setValue('cOwnerChange'),
-              ),
-          ),
-        )
-        .addSeparatorComponents(seperator => seperator)
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(bold('Quyền hạn của kênh')),
-        )
-        .addActionRowComponents<StringSelectMenuBuilder>(row =>
-          row.addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId('cPermission')
-              .setPlaceholder('Chỉnh sửa tại đây!')
-              .addOptions(
-                new StringSelectMenuOptionBuilder()
-                  .setLabel('Khóa')
-                  .setDescription('Khóa kênh này lại')
-                  .setValue('cLock'),
-              ),
-          ),
-        );
+      const panelContainer = await this.panelContainer(infoEmoji);
 
       ComponentManager.getComponentManager().register([
         {
@@ -247,6 +180,12 @@ export default class UserJoinTempVoiceEvent extends Event {
 
             switch (value) {
               case 'cNameChange': {
+                await message.edit({
+                  content: '',
+                  components: [panelContainer],
+                  flags: MessageFlags.IsComponentsV2,
+                });
+
                 const cNameModal = new ModalBuilder()
                   .setTitle('Đặt tên kênh')
                   .setCustomId('cNameSet')
@@ -267,6 +206,12 @@ export default class UserJoinTempVoiceEvent extends Event {
                 break;
               }
               case 'cLimitChange': {
+                await message.edit({
+                  content: '',
+                  components: [panelContainer],
+                  flags: MessageFlags.IsComponentsV2,
+                });
+
                 const cLimitModal = new ModalBuilder()
                   .setTitle('Đặt giới hạn kênh')
                   .setCustomId('cLimitSet')
@@ -288,6 +233,12 @@ export default class UserJoinTempVoiceEvent extends Event {
                 break;
               }
               case 'cStatusChange': {
+                await message.edit({
+                  content: '',
+                  components: [panelContainer],
+                  flags: MessageFlags.IsComponentsV2,
+                });
+
                 const cStatusModal = new ModalBuilder()
                   .setCustomId('cStatusSet')
                   .setTitle('Đặt trạng thái kênh')
@@ -308,6 +259,12 @@ export default class UserJoinTempVoiceEvent extends Event {
                 break;
               }
               case 'cBitrateChange': {
+                await message.edit({
+                  content: '',
+                  components: [panelContainer],
+                  flags: MessageFlags.IsComponentsV2,
+                });
+
                 const cBitrateModal = new ModalBuilder()
                   .setCustomId('cBitrateSet')
                   .setTitle('Đặt bitrate kênh')
@@ -546,6 +503,75 @@ export default class UserJoinTempVoiceEvent extends Event {
       .setAccentColor(EmbedColors.green())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(`## ${successEmoji} ${successMessage}`),
+      );
+  }
+
+  private async panelContainer(infoEmoji: unknown): Promise<ContainerBuilder> {
+    return new ContainerBuilder()
+      .setAccentColor(EmbedColors.blue())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `## ${infoEmoji} Chào mừng bạn đến với kênh trò chuyện tạm thời!`,
+        ),
+      )
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `- Điều khiển kênh của bạn bằng cách sử dụng hộp thoại dưới đây\n- Hoặc bạn có thể sử dụng lệnh ${inlineCode('/voice')} để điều khiển!`,
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(bold('Cài đặt của kênh')),
+      )
+      .addActionRowComponents<StringSelectMenuBuilder>(row =>
+        row.addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('cSetting')
+            .setPlaceholder('Chỉnh sửa tại đây!')
+            .addOptions(
+              new StringSelectMenuOptionBuilder()
+                .setLabel('Tên kênh')
+                .setDescription('Thay đổi tên kênh')
+                .setValue('cNameChange'),
+
+              new StringSelectMenuOptionBuilder()
+                .setLabel('Giới hạn kênh')
+                .setDescription('Thay đổi giới hạn kênh')
+                .setValue('cLimitChange'),
+
+              new StringSelectMenuOptionBuilder()
+                .setLabel('Trạng thái kênh')
+                .setDescription('Thay đổi trạng thái kênh')
+                .setValue('cStatusChange'),
+
+              new StringSelectMenuOptionBuilder()
+                .setLabel('Bitrate')
+                .setDescription('Thay đổi bitrate kênh')
+                .setValue('cBitrateChange'),
+
+              new StringSelectMenuOptionBuilder()
+                .setLabel('Chủ kênh')
+                .setDescription('Nhận quyền chủ kênh (khi chủ kênh cũ đã rời)')
+                .setValue('cOwnerChange'),
+            ),
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(bold('Quyền hạn của kênh')),
+      )
+      .addActionRowComponents<StringSelectMenuBuilder>(row =>
+        row.addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('cPermission')
+            .setPlaceholder('Chỉnh sửa tại đây!')
+            .addOptions(
+              new StringSelectMenuOptionBuilder()
+                .setLabel('Khóa')
+                .setDescription('Khóa kênh này lại')
+                .setValue('cLock'),
+            ),
+        ),
       );
   }
 }

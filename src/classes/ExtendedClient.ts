@@ -1,4 +1,10 @@
-import {ActivityType, Client, GatewayIntentBits, Partials} from 'discord.js';
+import {
+  ActivityType,
+  Client,
+  GatewayIntentBits,
+  Partials,
+  PresenceUpdateStatus,
+} from 'discord.js';
 import IClient from '../interfaces/IClient';
 import {EventManager} from '../events/EventManager';
 import {CommandManager} from '../commands/CommandManager';
@@ -21,6 +27,7 @@ export default class ExtendedClient extends Client implements IClient {
             state: 'Cooking in discord.js v14',
           },
         ],
+        status: PresenceUpdateStatus.DoNotDisturb,
       },
     });
   }
