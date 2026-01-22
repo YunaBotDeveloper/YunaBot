@@ -15,6 +15,7 @@ class TempVoiceChannelSetting extends Model<
   declare userId: string;
   declare channelName: string;
   declare channelLimit: number;
+  declare channelBitrate: number;
   declare lastJoinTimestamp: number | null;
 }
 
@@ -38,6 +39,11 @@ export function initTempVoiceChannelSetting(
         type: DataTypes.NUMBER,
         allowNull: false,
         defaultValue: 0,
+      },
+      channelBitrate: {
+        type: DataTypes.NUMBER,
+        allowNull: false,
+        defaultValue: 64,
       },
       lastJoinTimestamp: {
         type: DataTypes.BIGINT,

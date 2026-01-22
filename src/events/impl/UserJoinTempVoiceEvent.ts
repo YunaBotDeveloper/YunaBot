@@ -110,8 +110,13 @@ export default class UserJoinTempVoiceEvent extends Event {
       }
 
       let channelName = memberVoiceChannelSetting?.channelName;
-
       if (!channelName) channelName = `${member.user.username}'s Channel`;
+
+      let channelBitrate = memberVoiceChannelSetting?.channelBitrate;
+      if (!channelBitrate) channelBitrate = 64;
+
+      let channelLimit = memberVoiceChannelSetting?.channelLimit;
+      if (!channelLimit) channelLimit = 0;
 
       const parentChannel = newState.channel;
 
@@ -123,8 +128,8 @@ export default class UserJoinTempVoiceEvent extends Event {
         name: channelName,
         type: ChannelType.GuildVoice,
         parent: parentChannel.parentId,
-        userLimit: parentChannel.userLimit || 0,
-        bitrate: parentChannel.bitrate,
+        userLimit: channelLimit,
+        bitrate: channelBitrate * 1000,
         permissionOverwrites: [
           {
             id: member.id,
@@ -152,16 +157,17 @@ export default class UserJoinTempVoiceEvent extends Event {
         });
       } else {
         await TempVoiceChannelSetting.create({
-          userId: member.id,
+          userId: tempVoiceOwner.userId,
           channelName,
           channelLimit: 0,
+          channelBitrate: 64,
           lastJoinTimestamp: currentTime,
         });
       }
 
       const message = await newChannel.send({
-        content: userMention(member.id),
-        allowedMentions: {users: [member.id]},
+        content: userMention(tempVoiceOwner.userId),
+        allowedMentions: {users: [tempVoiceOwner.userId]},
       });
 
       const panelContainer = new ContainerBuilder()
@@ -205,6 +211,13 @@ export default class UserJoinTempVoiceEvent extends Event {
                   .setLabel('Bitrate')
                   .setDescription('Thay đổi bitrate kênh')
                   .setValue('cBitrateChange'),
+
+                new StringSelectMenuOptionBuilder()
+                  .setLabel('Chủ kênh')
+                  .setDescription(
+                    'Nhận quyền chủ kênh (khi chủ kênh cũ đã rời)',
+                  )
+                  .setValue('cOwnerChange'),
               ),
           ),
         )
@@ -340,8 +353,9 @@ export default class UserJoinTempVoiceEvent extends Event {
                     });
                   } else {
                     await TempVoiceChannelSetting.create({
-                      userId: member.id,
+                      userId: tempVoiceOwner.userId,
                       channelName: cName,
+                      channelBitrate: 64,
                       channelLimit: 0,
                     });
                   }
@@ -360,7 +374,7 @@ export default class UserJoinTempVoiceEvent extends Event {
 
                   return;
                 },
-                userCheck: [member.id],
+                userCheck: [tempVoiceOwner.userId],
                 type: ComponentEnum.MODAL,
               },
               {
@@ -393,7 +407,7 @@ export default class UserJoinTempVoiceEvent extends Event {
 
                   return;
                 },
-                userCheck: [member.id],
+                userCheck: [tempVoiceOwner.userId],
                 type: ComponentEnum.MODAL,
               },
               {
@@ -401,6 +415,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                 handler: async (interaction: ModalSubmitInteraction) => {
                   const loadingContainer =
                     await this.loadingContainer(infoEmoji);
+
                   await interaction.reply({
                     components: [loadingContainer],
                     flags: [
@@ -413,7 +428,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                     interaction.fields.getTextInputValue('cLimit'),
                   );
 
-                  if (!cLimit) {
+                  if (cLimit < 0 || cLimit > 99 || isNaN(cLimit)) {
                     const cLimitErrorContainer = new ContainerBuilder()
                       .setAccentColor(EmbedColors.red())
                       .addTextDisplayComponents(textDisplay =>
@@ -430,25 +445,17 @@ export default class UserJoinTempVoiceEvent extends Event {
 
                   await newChannel.setUserLimit(cLimit);
 
-                  if (memberVoiceChannelSetting) {
-                    await memberVoiceChannelSetting.update({
-                      channelLimit: cLimit,
-                    });
-                  } else {
-                    await TempVoiceChannelSetting.create({
-                      userId: member.id,
-                      channelName,
-                      channelLimit: 0,
-                    });
-                  }
+                  await TempVoiceChannelSetting.upsert({
+                    userId: tempVoiceOwner.userId,
+                    channelName,
+                    channelBitrate: 64,
+                    channelLimit: cLimit,
+                  });
 
-                  const successContainer = new ContainerBuilder()
-                    .setAccentColor(EmbedColors.green())
-                    .addTextDisplayComponents(textDisplay =>
-                      textDisplay.setContent(
-                        `## ${successEmoji} Đặt giới hạn kênh thành công!`,
-                      ),
-                    );
+                  const successContainer = await this.successContainer(
+                    successEmoji,
+                    'Đặt giới hạn kênh thành công!',
+                  );
 
                   await interaction.editReply({components: [successContainer]});
                 },
@@ -456,7 +463,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                 userCheck: [tempVoiceOwner.userId],
               },
               {
-                customId: 'cBitrateModal',
+                customId: 'cBitrateSet',
                 handler: async (interaction: ModalSubmitInteraction) => {
                   const loadingContainer =
                     await this.loadingContainer(loadingEmoji);
@@ -469,11 +476,38 @@ export default class UserJoinTempVoiceEvent extends Event {
                     ],
                   });
 
-                  const bitrate = parseInt(
+                  const cBitrate = parseInt(
                     interaction.fields.getTextInputValue('cBitrate'),
                   );
 
-                  await newChannel.setBitrate();
+                  if (cBitrate < 8 || cBitrate > 96 || isNaN(cBitrate)) {
+                    const cLimitErrorContainer = new ContainerBuilder()
+                      .setAccentColor(EmbedColors.red())
+                      .addTextDisplayComponents(textDisplay =>
+                        textDisplay.setContent(
+                          `## ${failedEmoji} Lỗi: Bitrate không hợp lệ!`,
+                        ),
+                      );
+
+                    await interaction.editReply({
+                      components: [cLimitErrorContainer],
+                    });
+                    return;
+                  }
+
+                  await newChannel.setBitrate(
+                    cBitrate * 1000,
+                    `${member.user.username} requested.`,
+                  );
+
+                  const successContainer = await this.successContainer(
+                    successEmoji,
+                    'Đặt bitrate thành kênh công!',
+                  );
+
+                  await interaction.editReply({
+                    components: [successContainer],
+                  });
                 },
                 type: ComponentEnum.MODAL,
                 userCheck: [tempVoiceOwner.userId],
@@ -483,83 +517,6 @@ export default class UserJoinTempVoiceEvent extends Event {
           userCheck: [tempVoiceOwner.userId],
           type: ComponentEnum.MENU,
         },
-        // {
-        //   customId: 'cPermission',
-        //   handler: async (interaction: StringSelectMenuInteraction) => {
-        //     const value = interaction.values[0];
-
-        //     switch (value) {
-        //       case 'cLock': {
-        //         try {
-        //           const isLocked = newChannel.permissionOverwrites.cache.some(
-        //             overwrite =>
-        //               overwrite.id === guild.id &&
-        //               overwrite.deny.has(PermissionFlagsBits.Connect),
-        //           );
-
-        //           if (isLocked) {
-        //             await newChannel.permissionOverwrites.edit(guild.id, {
-        //               Connect: null,
-        //             });
-
-        //             const unlockContainer = new ContainerBuilder()
-        //               .setAccentColor(EmbedColors.green())
-        //               .addTextDisplayComponents(textDisplay =>
-        //                 textDisplay.setContent('🔓 Đã mở khóa kênh!'),
-        //               );
-
-        //             await interaction.reply({
-        //               components: [unlockContainer],
-        //               flags: [
-        //                 MessageFlags.Ephemeral,
-        //                 MessageFlags.IsComponentsV2,
-        //               ],
-        //             });
-        //           } else {
-        //             await newChannel.permissionOverwrites.edit(guild.id, {
-        //               Connect: false,
-        //             });
-
-        //             const lockContainer = new ContainerBuilder()
-        //               .setAccentColor(EmbedColors.red())
-        //               .addTextDisplayComponents(textDisplay =>
-        //                 textDisplay.setContent('🔒 Đã khóa kênh!'),
-        //               );
-
-        //             await interaction.reply({
-        //               components: [lockContainer],
-        //               flags: [
-        //                 MessageFlags.Ephemeral,
-        //                 MessageFlags.IsComponentsV2,
-        //               ],
-        //             });
-        //           }
-        //         } catch (error) {
-        //           logger.error(`Error toggling channel lock: ${error}`);
-
-        //           const errorContainer = new ContainerBuilder()
-        //             .setAccentColor(EmbedColors.red())
-        //             .addTextDisplayComponents(textDisplay =>
-        //               textDisplay.setContent(
-        //                 '❌ Có lỗi xảy ra khi khóa/mở khóa kênh!',
-        //               ),
-        //             );
-
-        //           await interaction.reply({
-        //             components: [errorContainer],
-        //             flags: [
-        //               MessageFlags.Ephemeral,
-        //               MessageFlags.IsComponentsV2,
-        //             ],
-        //           });
-        //         }
-        //         break;
-        //       }
-        //     }
-        //   },
-        //   userCheck: [member.id],
-        //   type: ComponentEnum.MENU,
-        // },
       ]);
       await message.edit({
         content: '',
