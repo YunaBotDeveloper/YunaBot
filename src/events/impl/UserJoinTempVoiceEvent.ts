@@ -19,6 +19,7 @@ import {
   TextInputBuilder,
   TextInputStyle,
   ModalSubmitInteraction,
+  EmbedBuilder,
 } from 'discord.js';
 import TempVoiceChannel from '../../database/models/TempVoiceChannel.model';
 import {EmbedColors} from '../../util/EmbedColors';
@@ -176,6 +177,27 @@ export default class UserJoinTempVoiceEvent extends Event {
         {
           customId: 'cSetting',
           handler: async (interaction: StringSelectMenuInteraction) => {
+            // Check current owner from database
+            const currentOwner = await TempVoiceOwner.findOne({
+              where: {channelId: newChannel.id},
+            });
+
+            if (!currentOwner || currentOwner.userId !== interaction.user.id) {
+              const errorEmbed = new EmbedBuilder()
+                .setColor(EmbedColors.red())
+                .setTitle('❌ Error ❌')
+                .setDescription(
+                  "Error while processing your request:\nYou don't have any permission to use this!",
+                )
+                .setFooter({text: 'ManagerBot @ 0.0.1'})
+                .setTimestamp();
+              await interaction.reply({
+                embeds: [errorEmbed],
+                flags: 'Ephemeral',
+              });
+              return;
+            }
+
             const value = interaction.values[0];
 
             switch (value) {
@@ -258,6 +280,7 @@ export default class UserJoinTempVoiceEvent extends Event {
                 await interaction.showModal(cStatusModal);
                 break;
               }
+
               case 'cBitrateChange': {
                 await message.edit({
                   content: '',
@@ -358,6 +381,40 @@ export default class UserJoinTempVoiceEvent extends Event {
                   );
 
                 await interaction.showModal(cRTCModal);
+                break;
+              }
+
+              case 'cNSFWChange': {
+                await message.edit({
+                  content: '',
+                  components: [panelContainer],
+                  flags: [MessageFlags.IsComponentsV2],
+                });
+
+                const loadingContainer =
+                  await this.loadingContainer(loadingEmoji);
+
+                await interaction.reply({
+                  components: [loadingContainer],
+                  flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+                });
+
+                const isChannelNSFW: boolean = newChannel.nsfw;
+
+                if (isChannelNSFW === true) {
+                  await newChannel.setNSFW(false);
+                } else {
+                  await newChannel.setNSFW(true);
+                }
+
+                const successContainer = await this.successContainer(
+                  successEmoji,
+                  'Thay đổi chế độ NSFW thành công!',
+                );
+
+                await interaction.editReply({components: [successContainer]});
+
+                break;
               }
             }
 
@@ -550,7 +607,6 @@ export default class UserJoinTempVoiceEvent extends Event {
               },
             ]);
           },
-          userCheck: [tempVoiceOwner.userId],
           type: ComponentEnum.MENU,
         },
         {
@@ -580,11 +636,100 @@ export default class UserJoinTempVoiceEvent extends Event {
             );
 
             await interaction.editReply({components: [successContainer]});
+
+            return;
           },
           type: ComponentEnum.MODAL,
           userCheck: [tempVoiceOwner.userId],
         },
+        {
+          customId: 'cPermission',
+          handler: async (interaction: StringSelectMenuInteraction) => {
+            const value = interaction.values[0];
+
+            switch (value) {
+              case 'cOwnerChange': {
+                await message.edit({
+                  content: '',
+                  components: [panelContainer],
+                  flags: MessageFlags.IsComponentsV2,
+                });
+
+                const loadingContainer =
+                  await this.loadingContainer(loadingEmoji);
+
+                await interaction.reply({
+                  components: [loadingContainer],
+                  flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+                });
+
+                // Get current owner from database
+                const currentOwner = await TempVoiceOwner.findOne({
+                  where: {channelId: newChannel.id},
+                });
+
+                if (!currentOwner) {
+                  const errorContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Không tìm thấy chủ kênh!`,
+                      ),
+                    );
+
+                  await interaction.editReply({components: [errorContainer]});
+                  break;
+                }
+
+                // Check if current owner is still in the voice channel
+                const ownerInChannel = newChannel.members.has(
+                  currentOwner.userId,
+                );
+
+                if (ownerInChannel) {
+                  const errorContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Chủ kênh hiện tại vẫn đang trong kênh!`,
+                      ),
+                    );
+
+                  await interaction.editReply({components: [errorContainer]});
+                  break;
+                }
+
+                // Transfer ownership to the interacting user
+                await currentOwner.update({
+                  userId: interaction.user.id,
+                });
+
+                // Update channel permissions
+                await newChannel.permissionOverwrites.edit(
+                  interaction.user.id,
+                  {
+                    ManageChannels: true,
+                    MoveMembers: true,
+                    MuteMembers: true,
+                  },
+                );
+
+                const successContainer = await this.successContainer(
+                  successEmoji,
+                  'Bạn đã trở thành chủ kênh mới!',
+                );
+
+                await interaction.editReply({components: [successContainer]});
+
+                break;
+              }
+            }
+          },
+          userCheck: ['*'],
+          type: ComponentEnum.MENU,
+        },
       ]);
+
       await message.edit({
         content: '',
         components: [panelContainer],
@@ -668,11 +813,6 @@ export default class UserJoinTempVoiceEvent extends Event {
                 .setLabel('NSFW')
                 .setDescription('Thay đổi chế độ NSFW cho kênh')
                 .setValue('cNSFWChange'),
-
-              new StringSelectMenuOptionBuilder()
-                .setLabel('Chủ kênh')
-                .setDescription('Nhận quyền chủ kênh (khi chủ kênh cũ đã rời)')
-                .setValue('cOwnerChange'),
             ),
         ),
       )
@@ -690,6 +830,11 @@ export default class UserJoinTempVoiceEvent extends Event {
                 .setLabel('Khóa')
                 .setDescription('Khóa kênh này lại')
                 .setValue('cLock'),
+
+              new StringSelectMenuOptionBuilder()
+                .setLabel('Chủ kênh')
+                .setDescription('Nhận quyền chủ kênh (khi chủ kênh cũ đã rời)')
+                .setValue('cOwnerChange'),
             ),
         ),
       );
