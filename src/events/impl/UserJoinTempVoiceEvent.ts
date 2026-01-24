@@ -283,6 +283,81 @@ export default class UserJoinTempVoiceEvent extends Event {
                   );
 
                 await interaction.showModal(cBitrateModal);
+                break;
+              }
+
+              case 'cRTCChange': {
+                await message.edit({
+                  content: '',
+                  components: [panelContainer],
+                  flags: MessageFlags.IsComponentsV2,
+                });
+
+                const cRTCModal = new ModalBuilder()
+                  .setCustomId('cRTCSet')
+                  .setTitle('Đặt quốc gia kênh')
+                  .addLabelComponents(
+                    new LabelBuilder()
+                      .setLabel('Quốc gia kênh')
+                      .setStringSelectMenuComponent(select =>
+                        select
+                          .setCustomId('cRTC')
+                          .setPlaceholder('Chọn quốc gia kênh bạn muốn đặt')
+                          .addOptions(
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('Global')
+                              .setValue('global')
+                              .setDefault(true)
+                              .setEmoji('🌐'),
+
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('Brazil')
+                              .setValue('brazil')
+                              .setEmoji('🇧🇷'),
+
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('Hong Kong')
+                              .setValue('hongkong')
+                              .setEmoji('🇭🇰'),
+
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('India')
+                              .setValue('india')
+                              .setEmoji('🇮🇳'),
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('Netherlands')
+                              .setValue('rotterdam')
+                              .setEmoji('🇳🇱'),
+
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('Singapore')
+                              .setValue('singapore')
+                              .setEmoji('🇸🇬'),
+
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('South Africa')
+                              .setValue('southafrica')
+                              .setEmoji('🇿🇦'),
+
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('Australia')
+                              .setValue('sydney')
+                              .setEmoji('🇦🇺'),
+
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('US - East')
+                              .setValue('us-east')
+                              .setEmoji('🇺🇸'),
+
+                            new StringSelectMenuOptionBuilder()
+                              .setLabel('US - West')
+                              .setValue('us-west')
+                              .setEmoji('🇺🇸'),
+                          ),
+                      ),
+                  );
+
+                await interaction.showModal(cRTCModal);
               }
             }
 
@@ -352,7 +427,11 @@ export default class UserJoinTempVoiceEvent extends Event {
 
                   await client.rest.put(
                     `/channels/${newChannel.id}/voice-status`,
-                    {body: {status: cStatus}},
+                    {
+                      body: {
+                        status: cStatus,
+                      },
+                    },
                   );
 
                   const successContainer = await this.successContainer(
@@ -474,6 +553,37 @@ export default class UserJoinTempVoiceEvent extends Event {
           userCheck: [tempVoiceOwner.userId],
           type: ComponentEnum.MENU,
         },
+        {
+          customId: 'cRTCSet',
+          handler: async (interaction: ModalSubmitInteraction) => {
+            const loadingContainer = await this.loadingContainer(loadingEmoji);
+            await interaction.reply({
+              components: [loadingContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+            });
+
+            const cRTC = interaction.fields.getStringSelectValues('cRTC')[0];
+
+            try {
+              if (cRTC === 'global') {
+                await newChannel.setRTCRegion(null);
+              } else {
+                await newChannel.setRTCRegion(cRTC);
+              }
+            } catch (error) {
+              console.log(error);
+            }
+
+            const successContainer = await this.successContainer(
+              successEmoji,
+              'Đặt quốc gia cho kênh thành công!',
+            );
+
+            await interaction.editReply({components: [successContainer]});
+          },
+          type: ComponentEnum.MODAL,
+          userCheck: [tempVoiceOwner.userId],
+        },
       ]);
       await message.edit({
         content: '',
@@ -548,6 +658,16 @@ export default class UserJoinTempVoiceEvent extends Event {
                 .setLabel('Bitrate')
                 .setDescription('Thay đổi bitrate kênh')
                 .setValue('cBitrateChange'),
+
+              new StringSelectMenuOptionBuilder()
+                .setLabel('Quốc gia kênh')
+                .setDescription('Thay đổi quốc gia của kênh (RTC)')
+                .setValue('cRTCChange'),
+
+              new StringSelectMenuOptionBuilder()
+                .setLabel('NSFW')
+                .setDescription('Thay đổi chế độ NSFW cho kênh')
+                .setValue('cNSFWChange'),
 
               new StringSelectMenuOptionBuilder()
                 .setLabel('Chủ kênh')
