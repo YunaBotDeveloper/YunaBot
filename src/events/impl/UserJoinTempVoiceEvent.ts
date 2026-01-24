@@ -681,7 +681,6 @@ export default class UserJoinTempVoiceEvent extends Event {
                   break;
                 }
 
-                // Check if current owner is still in the voice channel
                 const ownerInChannel = newChannel.members.has(
                   currentOwner.userId,
                 );
@@ -699,12 +698,10 @@ export default class UserJoinTempVoiceEvent extends Event {
                   break;
                 }
 
-                // Transfer ownership to the interacting user
                 await currentOwner.update({
                   userId: interaction.user.id,
                 });
 
-                // Update channel permissions
                 await newChannel.permissionOverwrites.edit(
                   interaction.user.id,
                   {
