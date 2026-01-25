@@ -23,6 +23,6 @@
     "prepare": "yarn run compile",
     "pretest": "yarn run compile",
     "posttest": "yarn run lint",
-    "start": "tsx --watch ./src/index"
+    "dev": "bun --watch ./src/index"
   }
 }
