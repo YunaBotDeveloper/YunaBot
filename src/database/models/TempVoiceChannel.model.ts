@@ -13,7 +13,7 @@ class TempVoiceChannel extends Model<
   InferCreationAttributes<TempVoiceChannel>
 > {
   declare guildId: string;
-  declare channelId: string[];
+  declare channelId: string;
 }
 
 export function initTempVoiceChannel(sequelizeInstance: Sequelize): void {
@@ -26,9 +26,8 @@ export function initTempVoiceChannel(sequelizeInstance: Sequelize): void {
         primaryKey: true,
       },
       channelId: {
-        type: DataTypes.JSON,
+        type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: '[]',
       },
     },
     {

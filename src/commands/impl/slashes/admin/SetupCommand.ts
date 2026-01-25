@@ -11,9 +11,6 @@ import GuildLog from '../../../../database/models/GuildLog.model';
 import TempVoiceChannel from '../../../../database/models/TempVoiceChannel.model';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {EmbedColors} from '../../../../util/EmbedColors';
-import Log4TS from '../../../../logger/Log4TS';
-
-const logger = Log4TS.getLogger();
 
 export default class SetupCommand extends Command {
   constructor() {
@@ -22,15 +19,15 @@ export default class SetupCommand extends Command {
     this.data.addSubcommandGroup(group =>
       group
         .setName('log')
-        .setDescription('Setup log channel.')
+        .setDescription('Cài đặt kênh log')
         .addSubcommand(subcommand =>
           subcommand
             .setName('nuke')
-            .setDescription('Set default nuke log')
+            .setDescription('Cài đặt kênh nuke log')
             .addChannelOption(option =>
               option
                 .setName('channel')
-                .setDescription('Log channel')
+                .setDescription('Kênh log bạn muốn đặt')
                 .setRequired(true)
                 .addChannelTypes(ChannelType.GuildText),
             ),
@@ -39,18 +36,24 @@ export default class SetupCommand extends Command {
 
     this.data.addSubcommandGroup(group =>
       group
-        .setName('voice')
-        .setDescription('Setup voice channel.')
+        .setName('tempvoice')
+        .setDescription('Cài đặt kênh trò chuyện tạm thời.')
         .addSubcommand(subcommand =>
           subcommand
-            .setName('add')
-            .setDescription('Add temp voice channel')
+            .setName('create')
+            .setDescription('Tạo kênh trò chuyện tạm thời mới.')
+            .addStringOption(option =>
+              option
+                .setName('name')
+                .setDescription('Tên kênh tạm thời bạn muốn tạo')
+                .setRequired(true),
+            )
             .addChannelOption(option =>
               option
-                .setName('channel')
-                .setDescription('Voice channel')
-                .setRequired(true)
-                .addChannelTypes(ChannelType.GuildVoice),
+                .setName('category')
+                .setDescription('Vị trí kênh bạn muốn đặt')
+                .addChannelTypes(ChannelType.GuildCategory)
+                .setRequired(false),
             ),
         ),
     );
@@ -66,6 +69,7 @@ export default class SetupCommand extends Command {
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
 
     const guild = interaction.guild;
+
     if (!guild) return;
 
     const subcommandGroup = interaction.options.getSubcommandGroup(true);
@@ -116,49 +120,62 @@ export default class SetupCommand extends Command {
         }
         break;
       }
-      case 'voice': {
+      case 'tempvoice': {
         switch (subcommand) {
-          case 'add': {
-            const channel = interaction.options.getChannel('channel', true, [
-              ChannelType.GuildVoice,
-            ]);
+          case 'create': {
+            // Check if guild already has keys configured
+            const existingConfig = await TempVoiceChannel.findOne({
+              where: {
+                guildId: guild.id,
+              },
+            });
+
+            if (existingConfig) {
+              const warningContainer = new ContainerBuilder()
+                .setAccentColor(EmbedColors.yellow())
+                .addTextDisplayComponents(text =>
+                  text.setContent(
+                    `## ⚠️ Cảnh báo!\nMáy chủ này đã được thiết lập kênh voice tạm thời.`,
+                  ),
+                );
+
+              await interaction.editReply({
+                components: [warningContainer],
+                flags: MessageFlags.IsComponentsV2,
+              });
+              return;
+            }
+
+            const channelName = interaction.options.getString('name', true);
+            const channelCategory =
+              interaction.options.getChannel<ChannelType.GuildCategory>(
+                'category',
+                false,
+                [ChannelType.GuildCategory],
+              );
 
             try {
-              // Fetch existing record or create new one
-              const [record] = await TempVoiceChannel.findOrCreate({
-                where: {guildId: guild.id},
-                defaults: {
-                  guildId: guild.id,
-                  channelId: [],
-                },
+              // Create the voice channel
+              const newTempVoiceChannel =
+                await guild.channels.create<ChannelType.GuildVoice>({
+                  name: channelName,
+                  type: ChannelType.GuildVoice,
+                  parent: channelCategory,
+                });
+
+              // Save to database
+              const newTempVoiceChannelDB = new TempVoiceChannel({
+                guildId: guild.id,
+                channelId: newTempVoiceChannel.id,
               });
 
-              // Check if channel is already in the list
-              if (record.channelId.includes(channel.id)) {
-                const warningContainer = new ContainerBuilder()
-                  .setAccentColor(EmbedColors.yellow())
-                  .addTextDisplayComponents(text =>
-                    text.setContent(
-                      `## ⚠️ Cảnh báo!\\nKênh ${channelMention(channel.id)} đã được thiết lập làm kênh tạm thời rồi.`,
-                    ),
-                  );
-
-                await interaction.editReply({
-                  components: [warningContainer],
-                  flags: MessageFlags.IsComponentsV2,
-                });
-                break;
-              }
-
-              // Add channel ID to the array
-              record.channelId = [...record.channelId, channel.id];
-              await record.save();
+              await newTempVoiceChannelDB.save();
 
               const successContainer = new ContainerBuilder()
                 .setAccentColor(EmbedColors.green())
                 .addTextDisplayComponents(text =>
                   text.setContent(
-                    `## ${successEmoji} Thành công!\\nĐã thêm ${channelMention(channel.id)} làm kênh voice tạm thời.`,
+                    `## ${successEmoji} Thành công!\nĐã tạo kênh voice tạm thời ${channelMention(newTempVoiceChannel.id)} và lưu vào cơ sở dữ liệu.`,
                   ),
                 );
 
@@ -167,12 +184,12 @@ export default class SetupCommand extends Command {
                 flags: MessageFlags.IsComponentsV2,
               });
             } catch (error) {
-              logger.error(`Error adding temp voice channel: ${error}`);
+              console.error('[SetupCommand] Error setup tempvoice:', error);
               const failedContainer = new ContainerBuilder()
                 .setAccentColor(EmbedColors.red())
                 .addTextDisplayComponents(text =>
                   text.setContent(
-                    `## ${failedEmoji} Lỗi!\\nKhông thể lưu cài đặt. Vui lòng thử lại sau.`,
+                    `## ${failedEmoji} Lỗi!\nĐã xảy ra lỗi khi tạo kênh voice tạm thời. Vui lòng kiểm tra quyền của bot và thử lại.`,
                   ),
                 );
 
