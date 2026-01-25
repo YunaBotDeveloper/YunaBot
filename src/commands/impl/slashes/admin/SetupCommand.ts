@@ -106,7 +106,7 @@ export default class SetupCommand extends Command {
                 .setAccentColor(EmbedColors.red())
                 .addTextDisplayComponents(text =>
                   text.setContent(
-                    `## ${failedEmoji} Lỗi!\nKhông thể lưu cài đặt. Vui lòng thử lại sau.`,
+                    `## ${failedEmoji} Không thể lưu cài đặt. Vui lòng thử lại sau.`,
                   ),
                 );
 
