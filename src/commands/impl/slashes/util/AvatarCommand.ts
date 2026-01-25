@@ -4,8 +4,6 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  User,
-  GuildMember,
 } from 'discord.js';
 import {Command} from '../../../Command';
 
