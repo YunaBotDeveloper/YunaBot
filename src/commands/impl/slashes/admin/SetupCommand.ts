@@ -93,7 +93,7 @@ export default class SetupCommand extends Command {
                 .setAccentColor(EmbedColors.green())
                 .addTextDisplayComponents(text =>
                   text.setContent(
-                    `## ${successEmoji} Thành công!\nĐã đặt kênh log nuke thành ${channelMention(channel.id)}`,
+                    `## ${successEmoji} Đã đặt kênh log nuke thành ${channelMention(channel.id)}`,
                   ),
                 );
 
