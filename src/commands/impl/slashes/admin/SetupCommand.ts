@@ -10,6 +10,9 @@ import GuildLog from '../../../../database/models/GuildLog.model';
 import TempVoiceChannel from '../../../../database/models/TempVoiceChannel.model';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
+import Log4TS from '../../../../logger/Log4TS';
+
+const logger = Log4TS.getLogger();
 
 export default class SetupCommand extends Command {
   constructor() {
@@ -78,9 +81,12 @@ export default class SetupCommand extends Command {
       case 'log': {
         switch (subcommand) {
           case 'nuke': {
-            const channel = interaction.options.getChannel('channel', true, [
-              ChannelType.GuildText,
-            ]);
+            const channel =
+              interaction.options.getChannel<ChannelType.GuildText>(
+                'channel',
+                true,
+                [ChannelType.GuildText],
+              );
 
             try {
               await GuildLog.upsert({
@@ -167,8 +173,7 @@ export default class SetupCommand extends Command {
                 components: [successContainer],
                 flags: MessageFlags.IsComponentsV2,
               });
-            } catch (error) {
-              console.error('[SetupCommand] Error setup tempvoice:', error);
+            } catch {
               const failedContainer = await StatusContainer.failed(
                 failedEmoji,
                 `## ${failedEmoji} Đã xảy ra lỗi khi tạo kênh voice tạm thời. Vui lòng thử lại sau.`,
