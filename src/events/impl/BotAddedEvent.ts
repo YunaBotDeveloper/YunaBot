@@ -9,29 +9,35 @@ import {
   EmbedBuilder,
   Events,
   Guild,
+  PermissionFlagsBits,
   RESTJSONErrorCodes,
 } from 'discord.js';
 
 const logger = Log4TS.getLogger();
 
-export default class BotInviteWelcomeEvent extends Event {
+export default class BotAddedEvent extends Event {
   constructor() {
     super(Events.GuildCreate);
   }
 
   async run(client: ExtendedClient, guild: Guild) {
-    logger.info(
-      `${guild.name} (ID: ${guild.id}) added ${client.user?.username}`,
-    );
     const guildPrefix = new GuildPrefix({guildId: guild.id, prefix: '!'});
     const guildLog = new GuildLog({guildId: guild.id, nukeLogId: ''});
     await guildPrefix.save();
     await guildLog.save();
 
+    const bot = await guild.members.fetchMe();
+
+    if (!bot.permissions.has(PermissionFlagsBits.Administrator)) {
+      await guild.leave();
+      return;
+    }
+
     const fetchedLog = await guild.fetchAuditLogs({
       limit: 1,
       type: AuditLogEvent.BotAdd,
     });
+
     const auditLog = fetchedLog.entries.first();
     const executor = auditLog?.executor;
     if (!auditLog || !executor) return;
