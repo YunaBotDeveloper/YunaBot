@@ -135,7 +135,7 @@ export default class SetupCommand extends Command {
                 .setAccentColor(EmbedColors.yellow())
                 .addTextDisplayComponents(text =>
                   text.setContent(
-                    `## ⚠️ Cảnh báo!\nMáy chủ này đã được thiết lập kênh voice tạm thời.`,
+                    '## ⚠️ Máy chủ này đã thiết lập kênh voice tạm thời.',
                   ),
                 );
 
@@ -155,7 +155,6 @@ export default class SetupCommand extends Command {
               );
 
             try {
-              // Create the voice channel
               const newTempVoiceChannel =
                 await guild.channels.create<ChannelType.GuildVoice>({
                   name: channelName,
@@ -163,7 +162,6 @@ export default class SetupCommand extends Command {
                   parent: channelCategory,
                 });
 
-              // Save to database
               const newTempVoiceChannelDB = new TempVoiceChannel({
                 guildId: guild.id,
                 channelId: newTempVoiceChannel.id,
@@ -175,7 +173,7 @@ export default class SetupCommand extends Command {
                 .setAccentColor(EmbedColors.green())
                 .addTextDisplayComponents(text =>
                   text.setContent(
-                    `## ${successEmoji} Thành công!\nĐã tạo kênh voice tạm thời ${channelMention(newTempVoiceChannel.id)} và lưu vào cơ sở dữ liệu.`,
+                    `## ${successEmoji} Đã tạo kênh voice tạm thời ${channelMention(newTempVoiceChannel.id)} và lưu vào cơ sở dữ liệu.`,
                   ),
                 );
 
@@ -189,7 +187,7 @@ export default class SetupCommand extends Command {
                 .setAccentColor(EmbedColors.red())
                 .addTextDisplayComponents(text =>
                   text.setContent(
-                    `## ${failedEmoji} Lỗi!\nĐã xảy ra lỗi khi tạo kênh voice tạm thời. Vui lòng kiểm tra quyền của bot và thử lại.`,
+                    `## ${failedEmoji} Đã xảy ra lỗi khi tạo kênh voice tạm thời. Vui lòng thử lại sau.`,
                   ),
                 );
 
