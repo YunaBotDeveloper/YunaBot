@@ -10,9 +10,6 @@ import GuildLog from '../../../../database/models/GuildLog.model';
 import TempVoiceChannel from '../../../../database/models/TempVoiceChannel.model';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
-import Log4TS from '../../../../logger/Log4TS';
-
-const logger = Log4TS.getLogger();
 
 export default class SetupCommand extends Command {
   constructor() {
