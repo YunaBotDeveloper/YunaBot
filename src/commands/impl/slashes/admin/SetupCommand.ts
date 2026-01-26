@@ -2,7 +2,6 @@ import {
   channelMention,
   ChannelType,
   ChatInputCommandInteraction,
-  ContainerBuilder,
   MessageFlags,
   PermissionFlagsBits,
 } from 'discord.js';
@@ -10,7 +9,7 @@ import {Command} from '../../../Command';
 import GuildLog from '../../../../database/models/GuildLog.model';
 import TempVoiceChannel from '../../../../database/models/TempVoiceChannel.model';
 import ExtendedClient from '../../../../classes/ExtendedClient';
-import {EmbedColors} from '../../../../util/EmbedColors';
+import {StatusContainer} from '../../../../util/StatusContainer';
 
 export default class SetupCommand extends Command {
   constructor() {
@@ -89,26 +88,20 @@ export default class SetupCommand extends Command {
                 nukeLogId: channel.id,
               });
 
-              const successContainer = new ContainerBuilder()
-                .setAccentColor(EmbedColors.green())
-                .addTextDisplayComponents(text =>
-                  text.setContent(
-                    `## ${successEmoji} Đã đặt kênh log nuke thành ${channelMention(channel.id)}`,
-                  ),
-                );
+              const successContainer = await StatusContainer.success(
+                successEmoji,
+                `Đã đặt kênh log nuke thành ${channelMention(channel.id)}`,
+              );
 
               await interaction.editReply({
                 components: [successContainer],
                 flags: MessageFlags.IsComponentsV2,
               });
             } catch {
-              const failedContainer = new ContainerBuilder()
-                .setAccentColor(EmbedColors.red())
-                .addTextDisplayComponents(text =>
-                  text.setContent(
-                    `## ${failedEmoji} Không thể lưu cài đặt. Vui lòng thử lại sau.`,
-                  ),
-                );
+              const failedContainer = await StatusContainer.failed(
+                failedEmoji,
+                'Không thể lưu cài đặt. Vui lòng thử lại sau.',
+              );
 
               await interaction.editReply({
                 components: [failedContainer],
@@ -123,7 +116,6 @@ export default class SetupCommand extends Command {
       case 'tempvoice': {
         switch (subcommand) {
           case 'create': {
-            // Check if guild already has keys configured
             const existingConfig = await TempVoiceChannel.findOne({
               where: {
                 guildId: guild.id,
@@ -131,16 +123,13 @@ export default class SetupCommand extends Command {
             });
 
             if (existingConfig) {
-              const warningContainer = new ContainerBuilder()
-                .setAccentColor(EmbedColors.yellow())
-                .addTextDisplayComponents(text =>
-                  text.setContent(
-                    '## ⚠️ Máy chủ này đã thiết lập kênh voice tạm thời.',
-                  ),
-                );
+              const failedContainer = await StatusContainer.failed(
+                failedEmoji,
+                'Máy chủ này đã được thiết lập kênh voice tạm thời.',
+              );
 
               await interaction.editReply({
-                components: [warningContainer],
+                components: [failedContainer],
                 flags: MessageFlags.IsComponentsV2,
               });
               return;
@@ -169,13 +158,10 @@ export default class SetupCommand extends Command {
 
               await newTempVoiceChannelDB.save();
 
-              const successContainer = new ContainerBuilder()
-                .setAccentColor(EmbedColors.green())
-                .addTextDisplayComponents(text =>
-                  text.setContent(
-                    `## ${successEmoji} Đã tạo kênh voice tạm thời ${channelMention(newTempVoiceChannel.id)} và lưu vào cơ sở dữ liệu.`,
-                  ),
-                );
+              const successContainer = await StatusContainer.success(
+                successEmoji,
+                `## ${successEmoji} Đã tạo kênh voice tạm thời ${channelMention(newTempVoiceChannel.id)}.`,
+              );
 
               await interaction.editReply({
                 components: [successContainer],
@@ -183,13 +169,10 @@ export default class SetupCommand extends Command {
               });
             } catch (error) {
               console.error('[SetupCommand] Error setup tempvoice:', error);
-              const failedContainer = new ContainerBuilder()
-                .setAccentColor(EmbedColors.red())
-                .addTextDisplayComponents(text =>
-                  text.setContent(
-                    `## ${failedEmoji} Đã xảy ra lỗi khi tạo kênh voice tạm thời. Vui lòng thử lại sau.`,
-                  ),
-                );
+              const failedContainer = await StatusContainer.failed(
+                failedEmoji,
+                `## ${failedEmoji} Đã xảy ra lỗi khi tạo kênh voice tạm thời. Vui lòng thử lại sau.`,
+              );
 
               await interaction.editReply({
                 components: [failedContainer],
