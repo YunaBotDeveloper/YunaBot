@@ -5,7 +5,7 @@ import GuildPrefix from '../../database/models/GuildPrefix.model';
 import GuildLog from '../../database/models/GuildLog.model';
 import NukeLog from '../../database/models/NukeLog.model';
 
-export default class BotGotKickedEvent extends Event {
+export default class BotRemovedEvent extends Event {
   constructor() {
     super(Events.GuildDelete);
   }
