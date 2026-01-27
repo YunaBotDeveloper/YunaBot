@@ -16,13 +16,13 @@
   },
   "private": true,
   "scripts": {
+    "dev": "bun --watch ./src/index",
     "lint": "gts lint",
     "clean": "gts clean",
     "compile": "tsc",
     "fix": "gts fix",
-    "prepare": "yarn run compile",
-    "pretest": "yarn run compile",
-    "posttest": "yarn run lint",
-    "dev": "bun --watch ./src/index"
+    "prepare": "npm.cmd run compile",
+    "pretest": "npm.cmd run compile",
+    "posttest": "npm.cmd run lint"
   }
 }
