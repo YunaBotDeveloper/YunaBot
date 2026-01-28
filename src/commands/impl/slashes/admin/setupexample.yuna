@@ -1,0 +1,102 @@
+import {
+  channelMention,
+  ChannelType,
+  ChatInputCommandInteraction,
+  MessageFlags,
+  PermissionFlagsBits,
+} from 'discord.js';
+import {Command} from '../../../Command';
+import GuildLog from '../../../../database/models/GuildLog.model';
+import ExtendedClient from '../../../../classes/ExtendedClient';
+import {StatusContainer} from '../../../../util/StatusContainer';
+
+export default class SetupCommand extends Command {
+  constructor() {
+    super('setup', 'Setup the bot!');
+
+    this.data.addSubcommandGroup(subcommandGroup =>
+      subcommandGroup
+        .setName('log')
+        .setDescription('Cài đặt kênh log')
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('nuke')
+            .setDescription('Cài đặt kênh nuke log')
+            .addChannelOption(option =>
+              option
+                .setName('channel')
+                .setDescription('Kênh log bạn muốn đặt')
+                .setRequired(true)
+                .addChannelTypes(ChannelType.GuildText),
+            ),
+        ),
+    );
+
+    this.data.addSubcommand(subcommand =>
+      subcommand
+        .setName('tempvoice')
+        .setDescription('Cài đặt kênh thoại tạm thời'),
+    );
+
+    this.data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+  }
+
+  async run(interaction: ChatInputCommandInteraction) {
+    await interaction.deferReply({flags: [MessageFlags.Ephemeral]});
+
+    const client = interaction.client as ExtendedClient;
+    const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
+    const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
+
+    const guild = interaction.guild;
+
+    if (!guild) return;
+
+    const subcommandGroup = interaction.options.getSubcommandGroup(true);
+    const subcommand = interaction.options.getSubcommand(true);
+
+    switch (subcommandGroup) {
+      case 'log': {
+        switch (subcommand) {
+          case 'nuke': {
+            const channel =
+              interaction.options.getChannel<ChannelType.GuildText>(
+                'channel',
+                true,
+                [ChannelType.GuildText],
+              );
+
+            try {
+              await GuildLog.upsert({
+                guildId: guild.id,
+                nukeLogId: channel.id,
+              });
+
+              const successContainer = await StatusContainer.success(
+                successEmoji,
+                `Đã đặt kênh log nuke thành ${channelMention(channel.id)}`,
+              );
+
+              await interaction.editReply({
+                components: [successContainer],
+                flags: MessageFlags.IsComponentsV2,
+              });
+            } catch {
+              const failedContainer = await StatusContainer.failed(
+                failedEmoji,
+                'Không thể lưu cài đặt. Vui lòng thử lại sau.',
+              );
+
+              await interaction.editReply({
+                components: [failedContainer],
+                flags: MessageFlags.IsComponentsV2,
+              });
+            }
+            break;
+          }
+        }
+        break;
+      }
+    }
+  }
+}
