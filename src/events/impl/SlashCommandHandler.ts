@@ -4,9 +4,9 @@ import {
   Events,
   Interaction,
   ModalSubmitInteraction,
-  StringSelectMenuInteraction,
   UserContextMenuCommandInteraction,
   MessageContextMenuCommandInteraction,
+  AnySelectMenuInteraction,
 } from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
@@ -73,7 +73,7 @@ export default class SlashCommandHandler extends Event {
     }
     if (
       interaction.isButton() ||
-      interaction.isStringSelectMenu() ||
+      interaction.isAnySelectMenu() ||
       interaction.isModalSubmit()
     ) {
       const component = client.components.get(interaction.customId);
@@ -113,10 +113,8 @@ export default class SlashCommandHandler extends Event {
             }
             break;
           case ComponentEnum.MENU:
-            if (interaction.isStringSelectMenu()) {
-              await component.handler(
-                interaction as StringSelectMenuInteraction,
-              );
+            if (interaction.isAnySelectMenu()) {
+              await component.handler(interaction as AnySelectMenuInteraction);
             }
             break;
           case ComponentEnum.MODAL:

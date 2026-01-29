@@ -201,6 +201,8 @@ export default class SetupCommand extends Command {
                 return;
               },
               handler: async (interaction: ChannelSelectMenuInteraction) => {
+                console.log('a');
+
                 await interaction.update({
                   components: [loadingContainer],
                   flags: [MessageFlags.IsComponentsV2],
