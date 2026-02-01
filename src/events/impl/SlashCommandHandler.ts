@@ -7,6 +7,7 @@ import {
   UserContextMenuCommandInteraction,
   MessageContextMenuCommandInteraction,
   AnySelectMenuInteraction,
+  MessageFlags,
 } from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
@@ -14,6 +15,7 @@ import {ComponentEnum} from '../../enum/ComponentEnum';
 import {CooldownManager} from '../../commands/CooldownManager';
 import {EmbedColors} from '../../util/EmbedColors';
 import Log4TS from '../../logger/Log4TS';
+import {StatusContainer} from '../../util/StatusContainer';
 
 const logging = Log4TS.getLogger();
 
@@ -23,6 +25,8 @@ export default class SlashCommandHandler extends Event {
   }
 
   async run(client: ExtendedClient, interaction: Interaction): Promise<void> {
+    const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
+
     if (interaction.user.bot) return;
 
     const cooldownManager = CooldownManager.getCooldownManager();
@@ -41,24 +45,16 @@ export default class SlashCommandHandler extends Event {
           commandName,
           userId,
         );
+
         if (expirationTimestamp) {
-          const errEmbed = new EmbedBuilder()
-            .setAuthor({
-              name: interaction.user.displayName,
-              iconURL: interaction.user.displayAvatarURL(),
-            })
-            .setColor(EmbedColors.red())
-            .setTitle('❌ Error ❌')
-            .setDescription(
-              `Error while excuting command:\nYou must wait <t:${Math.floor(expirationTimestamp / 1000)}:R> to re-execute command!`,
-            )
-            .setFooter({
-              text: 'ManagerBot @ 0.0.1',
-            })
-            .setTimestamp();
+          const errorContainer = await StatusContainer.failed(
+            failedEmoji,
+            `Bạn cần phải đợi thêm <t:${Math.floor(expirationTimestamp / 1000)}:R> nữa để thực hiện lệnh!`,
+          );
+
           await interaction.reply({
-            embeds: [errEmbed],
-            flags: 'Ephemeral',
+            components: [errorContainer],
+            flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
           });
         }
         return;
@@ -86,23 +82,14 @@ export default class SlashCommandHandler extends Event {
         !component.userCheck.includes('*') &&
         !component.userCheck.includes(interaction.user.id)
       ) {
-        const errEmbed = new EmbedBuilder()
-          .setAuthor({
-            name: interaction.user.displayName,
-            iconURL: interaction.user.displayAvatarURL(),
-          })
-          .setColor(EmbedColors.red())
-          .setTitle('❌ Error ❌')
-          .setDescription(
-            "Error while processing your request:\nYou don't have any permission to use this!",
-          )
-          .setFooter({
-            text: 'ManagerBot @ 0.0.1',
-          })
-          .setTimestamp();
+        const errorContainer = await StatusContainer.failed(
+          failedEmoji,
+          'Bạn không có quyền để sử dụng chức năng này.',
+        );
+
         await interaction.reply({
-          embeds: [errEmbed],
-          flags: 'Ephemeral',
+          components: [errorContainer],
+          flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
         });
         return;
       }
