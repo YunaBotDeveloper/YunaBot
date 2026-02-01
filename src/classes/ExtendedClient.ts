@@ -23,8 +23,8 @@ export default class ExtendedClient extends Client implements IClient {
         activities: [
           {
             name: 'ManagerBot v2.0',
-            type: ActivityType.Watching,
-            state: 'Cooking in discord.js v14',
+            type: ActivityType.Custom,
+            state: 'nho em.',
           },
         ],
         status: PresenceUpdateStatus.DoNotDisturb,

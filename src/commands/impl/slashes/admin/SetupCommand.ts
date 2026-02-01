@@ -201,12 +201,57 @@ export default class SetupCommand extends Command {
                 return;
               },
               handler: async (interaction: ChannelSelectMenuInteraction) => {
-                console.log('a');
+                ComponentManager.getComponentManager().unregister(
+                  'logChooserRow',
+                );
 
                 await interaction.update({
                   components: [loadingContainer],
                   flags: [MessageFlags.IsComponentsV2],
                 });
+
+                const selectedChannelId = interaction.values[0];
+
+                try {
+                  let guildLog = await GuildLog.findOne({
+                    where: {guildId: interaction.guildId!},
+                  });
+
+                  if (!guildLog) {
+                    guildLog = await GuildLog.create({
+                      guildId: interaction.guildId!,
+                      nukeLogId: selectedChannelId,
+                    });
+                  } else {
+                    guildLog.nukeLogId = selectedChannelId;
+                    await guildLog.save();
+                  }
+
+                  const successEmoji =
+                    await client.api.emojiAPI.getEmojiByName('success');
+
+                  const successContainer = await StatusContainer.success(
+                    successEmoji,
+                    `Đã cài đặt kênh nhật ký tạo lại kênh thành công! (<#${selectedChannelId}>)`,
+                  );
+
+                  await interaction.editReply({
+                    components: [successContainer],
+                    flags: [MessageFlags.IsComponentsV2],
+                  });
+                } catch (error) {
+                  console.error('Error saving nuke log channel:', error);
+
+                  const failedContainer = await StatusContainer.failed(
+                    failedEmoji,
+                    'Đã xảy ra lỗi khi lưu kênh nhật ký!',
+                  );
+
+                  await interaction.editReply({
+                    components: [failedContainer],
+                    flags: [MessageFlags.IsComponentsV2],
+                  });
+                }
               },
               type: ComponentEnum.MENU,
               userCheck: [interaction.user.id],
