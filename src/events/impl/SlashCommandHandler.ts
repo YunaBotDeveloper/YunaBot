@@ -23,6 +23,8 @@ export default class SlashCommandHandler extends Event {
   }
 
   async run(client: ExtendedClient, interaction: Interaction): Promise<void> {
+    if (interaction.user.bot) return;
+
     const cooldownManager = CooldownManager.getCooldownManager();
 
     if (interaction.isChatInputCommand()) {

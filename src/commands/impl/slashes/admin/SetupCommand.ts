@@ -232,7 +232,7 @@ export default class SetupCommand extends Command {
 
                   const successContainer = await StatusContainer.success(
                     successEmoji,
-                    `Đã cài đặt kênh nhật ký tạo lại kênh thành công! (<#${selectedChannelId}>)`,
+                    'Đã cài đặt kênh nhật ký tạo lại kênh thành công!',
                   );
 
                   await interaction.editReply({
