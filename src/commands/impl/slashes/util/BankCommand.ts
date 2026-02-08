@@ -3,7 +3,6 @@ import ExtendedClient from '../../../../classes/ExtendedClient';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import Config from '../../../../config/Config';
 import Balance from '../../../../database/models/Balance.model';
-import GameBalance from '../../../../database/models/GameBalance.model';
 import LoanLog from '../../../../database/models/LoanLog.model';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {EmbedColors} from '../../../../util/EmbedColors';
@@ -70,12 +69,6 @@ export default class BankCommand extends Command {
                 .setLabel('Khu vực vay tiền')
                 .setDescription('Vay tiền dễ dàng')
                 .setValue('loan'),
-              new StringSelectMenuOptionBuilder()
-                .setLabel('Chuyển tiền vào tài khoản chơi game')
-                .setDescription(
-                  'Chuyển tiền từ tài khoản chính sang tài khoản chơi game',
-                )
-                .setValue('gameTransfer'),
             ),
         ),
       );
@@ -430,188 +423,7 @@ export default class BankCommand extends Command {
               });
               break;
             }
-            case 'gameTransfer': {
-              const [userBalance] = await Balance.findOrCreate({
-                where: {userId: interaction.user.id},
-                defaults: {
-                  userId: interaction.user.id,
-                  balance: 1000,
-                  creditScore: 500,
-                },
-              });
 
-              const transferModal = new ModalBuilder()
-                .setCustomId('transferModal')
-                .setTitle('Chuyển tiền vào tài khoản chơi game')
-                .addLabelComponents(
-                  new LabelBuilder()
-                    .setLabel('Bạn muốn chuyển bao nhiêu tiền?')
-                    .setDescription(
-                      `Số dư hiện tại: ${numberFormat(userBalance.balance)}`,
-                    )
-                    .setTextInputComponent(textInput =>
-                      textInput
-                        .setCustomId('transferAmount')
-                        .setStyle(TextInputStyle.Short)
-                        .setMinLength(1)
-                        .setMaxLength(10)
-                        .setPlaceholder('Nhập số tiền bạn muốn chuyển'),
-                    ),
-                );
-
-              await interaction.showModal(transferModal);
-
-              ComponentManager.getComponentManager().register([
-                {
-                  customId: 'transferModal',
-                  type: ComponentEnum.MODAL,
-                  userCheck: [interaction.user.id],
-                  handler: async (interaction: ModalSubmitInteraction) => {
-                    await interaction.deferUpdate();
-
-                    if (!interaction.message) {
-                      return;
-                    }
-
-                    const transferAmountStr =
-                      interaction.fields.getTextInputValue('transferAmount');
-                    const transferAmount = parseInt(transferAmountStr);
-
-                    if (!transferAmount || transferAmount <= 0) {
-                      const invalidContainer = new ContainerBuilder()
-                        .setAccentColor(EmbedColors.red())
-                        .addTextDisplayComponents(textDisplay =>
-                          textDisplay.setContent(
-                            `## ${failedEmoji} Số tiền không hợp lệ!`,
-                          ),
-                        )
-                        .addTextDisplayComponents(textDisplay =>
-                          textDisplay.setContent(
-                            'Vui lòng nhập số tiền hợp lệ (lớn hơn 0).',
-                          ),
-                        );
-
-                      await interaction.message.edit({
-                        components: [invalidContainer],
-                        flags: MessageFlags.IsComponentsV2,
-                      });
-                      return;
-                    }
-
-                    const [userBalance] = await Balance.findOrCreate({
-                      where: {userId: interaction.user.id},
-                      defaults: {
-                        userId: interaction.user.id,
-                        balance: 1000,
-                        creditScore: 500,
-                      },
-                    });
-
-                    if (userBalance.balance < transferAmount) {
-                      const insufficientContainer = new ContainerBuilder()
-                        .setAccentColor(EmbedColors.red())
-                        .addTextDisplayComponents(textDisplay =>
-                          textDisplay.setContent(
-                            `## ${failedEmoji} Số dư không đủ!`,
-                          ),
-                        )
-                        .addTextDisplayComponents(textDisplay =>
-                          textDisplay.setContent(
-                            `Số dư hiện tại của bạn: ${numberFormat(userBalance.balance)}`,
-                          ),
-                        )
-                        .addTextDisplayComponents(textDisplay =>
-                          textDisplay.setContent(
-                            `Số tiền bạn muốn chuyển: ${numberFormat(transferAmount)}`,
-                          ),
-                        );
-
-                      await interaction.message.edit({
-                        components: [insufficientContainer],
-                        flags: MessageFlags.IsComponentsV2,
-                      });
-                      return;
-                    }
-
-                    const processingContainer = new ContainerBuilder()
-                      .setAccentColor(EmbedColors.yellow())
-                      .addTextDisplayComponents(textDisplay =>
-                        textDisplay.setContent(
-                          `## ${loadingEmoji} Đang xử lý, vui lòng đợi...`,
-                        ),
-                      );
-
-                    await interaction.message.edit({
-                      components: [processingContainer],
-                      flags: MessageFlags.IsComponentsV2,
-                    });
-
-                    // Deduct from main balance
-                    await userBalance.update({
-                      balance: userBalance.balance - transferAmount,
-                    });
-
-                    // Add to Game balance
-                    const [gameBalance] = await GameBalance.findOrCreate({
-                      where: {userId: interaction.user.id},
-                      defaults: {userId: interaction.user.id, balance: 0},
-                    });
-
-                    await gameBalance.update({
-                      balance: gameBalance.balance + transferAmount,
-                    });
-
-                    await userBalance.reload();
-                    await gameBalance.reload();
-
-                    const successContainer = new ContainerBuilder()
-                      .setAccentColor(EmbedColors.green())
-                      .addTextDisplayComponents(textDisplay =>
-                        textDisplay.setContent(
-                          `## ${successEmoji} Chuyển tiền thành công!`,
-                        ),
-                      )
-                      .addSeparatorComponents(separator => separator)
-                      .addTextDisplayComponents(textDisplay =>
-                        textDisplay.setContent(
-                          `Chúc mừng ${userMention(interaction.user.id)}! Bạn đã chuyển tiền thành công.`,
-                        ),
-                      )
-                      .addTextDisplayComponents(textDisplay =>
-                        textDisplay.setContent(
-                          `💰 **Số tiền chuyển:** ${numberFormat(transferAmount)}`,
-                        ),
-                      )
-                      .addTextDisplayComponents(textDisplay =>
-                        textDisplay.setContent(
-                          `💵 **Số dư chính còn lại:** ${numberFormat(userBalance.balance)}`,
-                        ),
-                      )
-                      .addTextDisplayComponents(textDisplay =>
-                        textDisplay.setContent(
-                          `🎮 **Số dư Game mới:** ${numberFormat(gameBalance.balance)}`,
-                        ),
-                      )
-                      .addSeparatorComponents(separator => separator)
-                      .addTextDisplayComponents(textDisplay =>
-                        textDisplay.setContent(
-                          subtext(
-                            italic(
-                              'Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!',
-                            ),
-                          ),
-                        ),
-                      );
-
-                    await interaction.message.edit({
-                      components: [successContainer],
-                      flags: MessageFlags.IsComponentsV2,
-                    });
-                  },
-                },
-              ]);
-              break;
-            }
           }
         },
       },

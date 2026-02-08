@@ -29,7 +29,7 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import SicboHistory from '../../../../database/models/SicboHistory.model';
-import GameBalance from '../../../../database/models/GameBalance.model';
+import Balance from '../../../../database/models/Balance.model';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {numberFormat} from '../../../../util/NumberFormat';
 import {sleep} from '../../../../util/Sleep';
@@ -212,9 +212,9 @@ export default class SicboNewCommand extends Command {
           }
 
           const userId = interaction.user.id;
-          const [userBalance] = await GameBalance.findOrCreate({
+          const [userBalance] = await Balance.findOrCreate({
             where: {userId},
-            defaults: {userId, balance: 0},
+            defaults: {userId, balance: 1000, creditScore: 500},
           });
 
           const taiBetModal = new ModalBuilder()
@@ -280,7 +280,7 @@ export default class SicboNewCommand extends Command {
                 }
 
                 const userId = interaction.user.id;
-                const userBalance = await GameBalance.findOne({
+                const userBalance = await Balance.findOne({
                   where: {userId},
                 });
 
@@ -386,9 +386,9 @@ export default class SicboNewCommand extends Command {
           }
 
           const userId = interaction.user.id;
-          const [userBalance] = await GameBalance.findOrCreate({
+          const [userBalance] = await Balance.findOrCreate({
             where: {userId},
-            defaults: {userId, balance: 0},
+            defaults: {userId, balance: 1000, creditScore: 500},
           });
 
           const xiuBetModal = new ModalBuilder()
@@ -454,7 +454,7 @@ export default class SicboNewCommand extends Command {
                 }
 
                 const userId = interaction.user.id;
-                const userBalance = await GameBalance.findOne({
+                const userBalance = await Balance.findOne({
                   where: {userId},
                 });
 
@@ -978,7 +978,7 @@ export default class SicboNewCommand extends Command {
       const taxAmount = Math.floor(grossWinAmount * 0.05);
       const netWinAmount = grossWinAmount - taxAmount;
 
-      const userBalance = await GameBalance.findOne({
+      const userBalance = await Balance.findOne({
         where: {userId: winner.orderId},
       });
 
@@ -1045,7 +1045,7 @@ export default class SicboNewCommand extends Command {
     for (const loser of losers) {
       try {
         const user = await interaction.client.users.fetch(loser.orderId);
-        const userBalance = await GameBalance.findOne({
+        const userBalance = await Balance.findOne({
           where: {userId: loser.orderId},
         });
 
