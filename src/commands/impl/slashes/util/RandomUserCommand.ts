@@ -94,8 +94,8 @@ export default class RandomUserCommand extends Command {
         embeds: [
           new EmbedBuilder()
             .setColor(0xffd700)
-            .setTitle('🎲 Đang chọn ngẫu nhiên...')
-            .setDescription('🔄 Đang quay...'),
+            .setTitle('🎲 Đang xử lý...')
+            .setDescription('🔄 Đang chọn ngẫu nhiên...'),
         ],
       });
 
@@ -241,27 +241,19 @@ export default class RandomUserCommand extends Command {
       return null;
     }
 
-    const loadingEmbed = new EmbedBuilder()
-      .setColor(0xffd700)
-      .setTitle('🎲 Đang chọn ngẫu nhiên...')
-      .setDescription('🔄 Đang quay...');
+    // Show loading state once (no animation to avoid rate limit)
+    await message.edit({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0xffd700)
+          .setTitle('🎲 Đang xử lý...')
+          .setDescription('🔄 Đang chọn ngẫu nhiên...'),
+      ],
+      components: [],
+    });
 
-    await message.edit({embeds: [loadingEmbed], components: []});
-
-    // Animation frames
-    const frames = 8;
-    const frameDelay = 150;
-
-    for (let i = 0; i < frames; i++) {
-      await this.sleep(frameDelay);
-
-      const randomMember =
-        available[Math.floor(Math.random() * available.length)];
-
-      loadingEmbed.setDescription(`🔄 ${randomMember.user.tag}...`);
-
-      await message.edit({embeds: [loadingEmbed]});
-    }
+    // Small delay for visual feedback
+    await this.sleep(500);
 
     // Final selection
     const winner = available[Math.floor(Math.random() * available.length)];

@@ -1,6 +1,14 @@
-import {ChatInputCommandInteraction, EmbedBuilder} from 'discord.js';
+import {
+  ChatInputCommandInteraction,
+  ContainerBuilder,
+  MessageFlags,
+} from 'discord.js';
 import {Command} from '../../../Command';
 import {sleep} from '../../../../util/Sleep';
+import {StatusContainer} from '../../../../util/StatusContainer';
+import ExtendedClient from '../../../../classes/ExtendedClient';
+import {EmbedColors} from '../../../../util/EmbedColors';
+import LoveLog from '../../../../database/models/LoveLog.model';
 
 export default class LoveCommand extends Command {
   constructor() {
@@ -20,21 +28,20 @@ export default class LoveCommand extends Command {
   }
 
   async run(interaction: ChatInputCommandInteraction): Promise<void> {
+    const client = interaction.client as ExtendedClient;
     const user1 = interaction.options.getUser('user1', true);
     const user2 = interaction.options.getUser('user2') ?? interaction.user;
 
-    const loadingFrames = [
-      '💗',
-      '💖',
-      '💝',
-      '💘',
-      '💕',
-      '💓',
-      '💞',
-      '💟',
-      '❤️',
-      '🧡',
-    ];
+    const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
+    const loadingContainer = await StatusContainer.loading(loadingEmoji);
+
+    const message = await interaction.reply({
+      components: [loadingContainer],
+      flags: MessageFlags.IsComponentsV2,
+      fetchReply: true,
+    });
+
+    await sleep(2000);
 
     const createProgressBar = (
       progress: number,
@@ -45,37 +52,14 @@ export default class LoveCommand extends Command {
       return '▓'.repeat(filled) + '░'.repeat(empty);
     };
 
-    const loadingEmbed = new EmbedBuilder()
-      .setColor(0xff69b4)
-      .setTitle('💕 Love Calculator')
-      .setDescription(
-        `Đang tính toán tình yêu giữa ${user1} và ${user2}...\n\n` +
-          `${loadingFrames[0]} [${createProgressBar(0)}] 0%`,
-      );
-
-    const message = await interaction.reply({
-      embeds: [loadingEmbed],
-      fetchReply: true,
-    });
-
-    const totalSteps = 10;
-    const stepDelay = 500;
-
-    for (let i = 1; i <= totalSteps; i++) {
-      await sleep(stepDelay);
-
-      const progress = i * 10;
-      const frameIndex = i % loadingFrames.length;
-
-      loadingEmbed.setDescription(
-        `Đang tính toán tình yêu giữa ${user1} và ${user2}...\n\n` +
-          `${loadingFrames[frameIndex]} [${createProgressBar(progress)}] ${progress}%`,
-      );
-
-      await message.edit({embeds: [loadingEmbed]});
-    }
-
     const lovePercentage = Math.floor(Math.random() * 101);
+
+    await LoveLog.create({
+      user1Id: user1.id,
+      user2Id: user2.id,
+      percentage: lovePercentage,
+      guildId: interaction.guildId ?? 'DM',
+    });
 
     let loveEmoji: string;
     let loveMessage: string;
@@ -107,18 +91,28 @@ export default class LoveCommand extends Command {
       color = 0x2f3136;
     }
 
-    const resultEmbed = new EmbedBuilder()
-      .setColor(color)
-      .setTitle(`${loveEmoji} Love Calculator ${loveEmoji}`)
-      .setDescription(
-        `${user1} 💘 ${user2}\n\n` +
-          `**[${createProgressBar(lovePercentage)}]**\n\n` +
-          `## 💝 ${lovePercentage}% 💝\n\n` +
-          `*${loveMessage}*`,
+    const resultContainer = new ContainerBuilder()
+      .setAccentColor(color)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`## ${loveEmoji} Love Calculator ${loveEmoji}`),
       )
-      .setFooter({text: '💕 Love is in the air~'})
-      .setTimestamp();
+      .addSeparatorComponents(separator => separator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `${user1} 💘 ${user2}\n\n` +
+            `**[${createProgressBar(lovePercentage)}]**\n\n` +
+            `## 💝 ${lovePercentage}% 💝\n\n` +
+            `*${loveMessage}*`,
+        ),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent('💕 Love is in the air~'),
+      );
 
-    await message.edit({embeds: [resultEmbed]});
+    await message.edit({
+      components: [resultContainer],
+      flags: MessageFlags.IsComponentsV2,
+    });
   }
 }
