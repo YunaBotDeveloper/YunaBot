@@ -1,14 +1,21 @@
 import {
   bold,
+  ButtonInteraction,
   ButtonStyle,
   ContainerBuilder,
   inlineCode,
   italic,
+  LabelBuilder,
   Message,
   MessageFlags,
+  ModalBuilder,
+  ModalSubmitInteraction,
   subtext,
   TextChannel,
+  TextInputBuilder,
+  TextInputStyle,
   time,
+  userMention,
 } from 'discord.js';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {PrefixCommand} from '../../../PrefixCommand';
@@ -19,6 +26,13 @@ import {nanoid} from 'nanoid';
 import * as crypto from 'crypto';
 import SicboHistory from '../../../../database/models/SicboHistory.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
+import ComponentManager from '../../../../component/manager/ComponentManager';
+import Balance from '../../../../database/models/Balance.model';
+import {numberFormat} from '../../../../util/NumberFormat';
+import {ComponentEnum} from '../../../../enum/ComponentEnum';
+import {sleep} from '../../../../util/Sleep';
+import {where} from 'sequelize';
+import {fail} from 'assert';
 
 type BetType = 'tai' | 'xiu';
 
@@ -87,6 +101,8 @@ export default class SicboCommand extends PrefixCommand {
 
     if (!guild || !channel) return;
 
+    if (!channel.isTextBased()) return;
+
     const existingSession = await SicboSession.findOne({
       where: {
         guildId: guild.id,
@@ -95,13 +111,13 @@ export default class SicboCommand extends PrefixCommand {
     });
 
     if (existingSession) {
-      const errorEmbed = await StatusContainer.failed(
+      const errorContainer = await StatusContainer.failed(
         failedEmoji,
         'Đã có một ván Tài Xỉu đang diễn ra trong server này!',
       );
 
       await replyMessage.edit({
-        components: [errorEmbed],
+        components: [errorContainer],
         flags: [MessageFlags.IsComponentsV2],
       });
 
@@ -149,6 +165,356 @@ export default class SicboCommand extends PrefixCommand {
     const taiButtonId = `sicbo_tai_${sessionId}`;
     const xiuButtonId = `sicbo_xiu_${sessionId}`;
 
+    ComponentManager.getComponentManager().register([
+      {
+        customId: taiButtonId,
+        handler: async (interaction: ButtonInteraction) => {
+          if (!session.isRunning) {
+            const endedContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                ),
+              );
+            await interaction.reply({
+              components: [endedContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+            });
+            return;
+          }
+
+          if (session.players.has(interaction.user.id)) {
+            const currentBet = session.players.get(interaction.user.id)!;
+            const alreadyBetContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `## ${failedEmoji} Bạn đã đặt ${inlineCode(currentBet.betLabel)} rồi!`,
+                ),
+              );
+            await interaction.reply({
+              components: [alreadyBetContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+            });
+            return;
+          }
+
+          const userId = interaction.user.id;
+          const [userBalance] = await Balance.findOrCreate({
+            where: {userId},
+            defaults: {userId, balance: 1000, creditScore: 500},
+          });
+
+          const taiBetModal = new ModalBuilder()
+            .setCustomId('taiBetModal')
+            .setTitle('Đặt tiền cược')
+            .addLabelComponents(
+              new LabelBuilder()
+                .setLabel('Nhập số tiền bạn muốn cược')
+                .setDescription(`Số dư: ${numberFormat(userBalance.balance)}`)
+                .setTextInputComponent(
+                  new TextInputBuilder()
+                    .setCustomId('taiBetInput')
+                    .setStyle(TextInputStyle.Short)
+                    .setPlaceholder('VD: 100, 1000, ...'),
+                ),
+            );
+
+          await interaction.showModal(taiBetModal);
+
+          ComponentManager.getComponentManager().register([
+            {
+              customId: 'taiBetModal',
+              handler: async (interaction: ModalSubmitInteraction) => {
+                if (!session.isRunning) {
+                  const endedContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                      ),
+                    );
+                  await interaction.reply({
+                    components: [endedContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+                  return;
+                }
+
+                const betAmountInput =
+                  interaction.fields.getTextInputValue('taiBetInput');
+
+                const betAmount = parseFloat(betAmountInput);
+
+                if (isNaN(betAmount) || betAmount <= 0) {
+                  const invaildBetAmountContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Số tiền không hợp lệ!`,
+                      ),
+                    );
+                  await interaction.reply({
+                    components: [invaildBetAmountContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+                  return;
+                }
+
+                const userId = interaction.user.id;
+                const userBalance = await Balance.findOne({
+                  where: {userId},
+                });
+
+                if (!userBalance || userBalance.balance < betAmount) {
+                  const insufficientBalanceContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Số dư của bạn không đủ!`,
+                      ),
+                    );
+                  await interaction.reply({
+                    components: [insufficientBalanceContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+                  return;
+                }
+
+                await userBalance.update({
+                  balance: userBalance.balance - betAmount,
+                });
+
+                const playerBet: PlayerBet = {
+                  orderId: interaction.user.id,
+                  ordererTag: interaction.user.tag,
+                  ordererMention: userMention(interaction.user.id),
+                  ordererAvatar: interaction.user.displayAvatarURL(),
+                  betType: 'tai',
+                  betLabel: 'Tài',
+                  betAmount: betAmount,
+                  multiplier: 2,
+                };
+
+                session.players.set(userId, playerBet);
+
+                await SicboSession.update(
+                  {
+                    players: JSON.stringify(
+                      Object.fromEntries(session.players),
+                    ),
+                  },
+                  {where: {sessionId}},
+                );
+
+                const betCompletedContainer = new ContainerBuilder()
+                  .setAccentColor(EmbedColors.green())
+                  .addTextDisplayComponents(textDisplay =>
+                    textDisplay.setContent(
+                      `## ${successEmoji} Bạn đã đặt cược vào ${inlineCode('Tài')} thành công!`,
+                    ),
+                  );
+                await interaction.reply({
+                  components: [betCompletedContainer],
+                  flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+                });
+
+                await this.updateLobbyContainer(interaction, client, session);
+              },
+              type: ComponentEnum.MODAL,
+            },
+          ]);
+        },
+        timeout: this.waitTime + 5000,
+        onTimeout: async () => {},
+        type: ComponentEnum.BUTTON,
+        userCheck: ['*'],
+      },
+      {
+        customId: xiuButtonId,
+        handler: async (interaction: ButtonInteraction) => {
+          if (!session.isRunning) {
+            const endedContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                ),
+              );
+            await interaction.reply({
+              components: [endedContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+            });
+            return;
+          }
+
+          if (session.players.has(interaction.user.id)) {
+            const currentBet = session.players.get(interaction.user.id)!;
+            const alreadyBetContainer = new ContainerBuilder()
+              .setAccentColor(EmbedColors.red())
+              .addTextDisplayComponents(textDisplay =>
+                textDisplay.setContent(
+                  `## ${failedEmoji} Bạn đã đặt ${inlineCode(currentBet.betLabel)} rồi!`,
+                ),
+              );
+            await interaction.reply({
+              components: [alreadyBetContainer],
+              flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+            });
+            return;
+          }
+
+          const userId = interaction.user.id;
+          const [userBalance] = await Balance.findOrCreate({
+            where: {userId},
+            defaults: {userId, balance: 1000, creditScore: 500},
+          });
+
+          const xiuBetModal = new ModalBuilder()
+            .setCustomId('xiuBetModal')
+            .setTitle('Đặt tiền cược')
+            .addLabelComponents(
+              new LabelBuilder()
+                .setLabel('Nhập số tiền bạn muốn cược')
+                .setDescription(`Số dư: ${numberFormat(userBalance.balance)}`)
+                .setTextInputComponent(
+                  new TextInputBuilder()
+                    .setCustomId('xiuBetInput')
+                    .setStyle(TextInputStyle.Short)
+                    .setPlaceholder('VD: 100, 1000, ...'),
+                ),
+            );
+
+          await interaction.showModal(xiuBetModal);
+
+          ComponentManager.getComponentManager().register([
+            {
+              customId: 'xiuBetModal',
+              handler: async (interaction: ModalSubmitInteraction) => {
+                if (!session.isRunning) {
+                  const endedContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `${failedEmoji} Thời gian đặt cược đã kết thúc!`,
+                      ),
+                    );
+                  await interaction.reply({
+                    components: [endedContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+                  return;
+                }
+
+                const betAmountInput =
+                  interaction.fields.getTextInputValue('xiuBetInput');
+
+                const betAmount = parseFloat(betAmountInput);
+
+                if (isNaN(betAmount) || betAmount <= 0) {
+                  const invaildBetAmountContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Số tiền không hợp lệ!`,
+                      ),
+                    );
+                  await interaction.reply({
+                    components: [invaildBetAmountContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+                  return;
+                }
+
+                const userId = interaction.user.id;
+                const userBalance = await Balance.findOne({
+                  where: {userId},
+                });
+
+                if (!userBalance || userBalance.balance < betAmount) {
+                  const insufficientBalanceContainer = new ContainerBuilder()
+                    .setAccentColor(EmbedColors.red())
+                    .addTextDisplayComponents(textDisplay =>
+                      textDisplay.setContent(
+                        `## ${failedEmoji} Số dư của bạn không đủ!`,
+                      ),
+                    );
+                  await interaction.reply({
+                    components: [insufficientBalanceContainer],
+                    flags: [
+                      MessageFlags.Ephemeral,
+                      MessageFlags.IsComponentsV2,
+                    ],
+                  });
+                  return;
+                }
+
+                await userBalance.update({
+                  balance: userBalance.balance - betAmount,
+                });
+
+                const playerBet: PlayerBet = {
+                  orderId: interaction.user.id,
+                  ordererTag: interaction.user.tag,
+                  ordererMention: userMention(interaction.user.id),
+                  ordererAvatar: interaction.user.displayAvatarURL(),
+                  betType: 'xiu',
+                  betLabel: 'Xỉu',
+                  betAmount: betAmount,
+                  multiplier: 2,
+                };
+
+                session.players.set(userId, playerBet);
+
+                await SicboSession.update(
+                  {
+                    players: JSON.stringify(
+                      Object.fromEntries(session.players),
+                    ),
+                  },
+                  {where: {sessionId}},
+                );
+
+                const betCompletedContainer = new ContainerBuilder()
+                  .setAccentColor(EmbedColors.green())
+                  .addTextDisplayComponents(textDisplay =>
+                    textDisplay.setContent(
+                      `## ${successEmoji} Bạn đã đặt cược vào ${inlineCode('Xỉu')} thành công!`,
+                    ),
+                  );
+                await interaction.reply({
+                  components: [betCompletedContainer],
+                  flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+                });
+
+                await this.updateLobbyContainer(interaction, client, session);
+              },
+              type: ComponentEnum.MODAL,
+            },
+          ]);
+        },
+        timeout: this.waitTime + 5000,
+        onTimeout: async () => {},
+        type: ComponentEnum.BUTTON,
+        userCheck: ['*'],
+      },
+    ]);
     const LobbyContainer = await this.createLobbyContainer(
       session,
       infoEmoji,
@@ -168,12 +534,61 @@ export default class SicboCommand extends PrefixCommand {
       flags: [MessageFlags.IsComponentsV2],
     });
 
-    const lobbyMessage = await (channel as TextChannel).send({
-      content: '',
-      components: [LobbyContainer],
-      flags: [MessageFlags.IsComponentsV2],
-      allowedMentions: {},
-    });
+    setTimeout(async () => {
+      await replyMessage.delete();
+    }, 5000);
+
+    if (channel.isTextBased() && 'send' in channel) {
+      const lobbyMessage = await channel.send({
+        content: '',
+        components: [LobbyContainer],
+        flags: [MessageFlags.IsComponentsV2],
+        allowedMentions: {},
+      });
+
+      session.messageId = lobbyMessage.id;
+      await SicboSession.update(
+        {
+          messageId: message.id,
+        },
+        {
+          where: {sessionId},
+        },
+      );
+
+      const updateInterval = setInterval(async () => {
+        if (!session.isRunning) {
+          clearInterval(updateInterval);
+          return;
+        }
+        await this.updateLobbyContainer(lobbyMessage, client, session);
+      }, this.updateInterval);
+
+      await sleep(this.waitTime);
+      session.isRunning = false;
+      clearInterval(updateInterval);
+
+      ComponentManager.getComponentManager().unregisterMany([
+        taiButtonId,
+        xiuButtonId,
+      ]);
+
+      await SicboSession.update({isRunning: false}, {where: {sessionId}});
+
+      if (session.players.size === 0) {
+        const errorContainer = await StatusContainer.failed(
+          failedEmoji,
+          'Không có người chơi nào tham gia. Ván này đã bị huỷ!',
+        );
+
+        await lobbyMessage.edit({
+          components: [errorContainer],
+        });
+
+        await SicboSession.destroy({where: {sessionId}});
+        return;
+      }
+    }
   }
 
   private async createLobbyContainer(
@@ -261,6 +676,48 @@ export default class SicboCommand extends PrefixCommand {
           ),
         ),
       );
+  }
+
+  private async updateLobbyContainer(
+    message: Message<boolean> | ModalSubmitInteraction,
+    client: ExtendedClient,
+    session: GameSession,
+  ) {
+    try {
+      const guildId = message.guild?.id;
+      if (!guildId) return;
+
+      if (!session.messageId) {
+        console.error('Message ID not found in session');
+        return;
+      }
+
+      const taiButtonId = `sicbo_tai_${session.sessionId}`;
+      const xiuButtonId = `sicbo_xiu_${session.sessionId}`;
+
+      const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
+
+      const LobbyContainer = await this.createLobbyContainer(
+        session,
+        infoEmoji,
+        taiButtonId,
+        xiuButtonId,
+        guildId,
+      );
+
+      const channel = await message.client.channels.fetch(session.channelId);
+
+      if (channel?.isTextBased()) {
+        const fetchedMessage = await channel.messages.fetch(session.messageId);
+        await fetchedMessage.edit({
+          components: [LobbyContainer],
+          flags: MessageFlags.IsComponentsV2,
+          allowedMentions: {},
+        });
+      }
+    } catch (error) {
+      console.error('Error updating lobby container:', error);
+    }
   }
 
   private getPlayerList(session: GameSession): string {
