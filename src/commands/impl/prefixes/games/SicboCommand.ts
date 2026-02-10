@@ -2,6 +2,7 @@ import {
   bold,
   ButtonInteraction,
   ButtonStyle,
+  codeBlock,
   ContainerBuilder,
   inlineCode,
   italic,
@@ -10,6 +11,7 @@ import {
   MessageFlags,
   ModalBuilder,
   ModalSubmitInteraction,
+  quote,
   subtext,
   TextInputBuilder,
   TextInputStyle,
@@ -585,6 +587,8 @@ export default class SicboCommand extends PrefixCommand {
         await SicboSession.destroy({where: {sessionId}});
         return;
       }
+
+      await this.gameFinish(session, lobbyMessage, infoEmoji, loadingEmoji);
     }
   }
 
@@ -787,5 +791,295 @@ export default class SicboCommand extends PrefixCommand {
     ).length;
 
     return `${history.length} ván | 🔴 ${taiCount} - 🔵 ${xiuCount}`;
+  }
+
+  private async gameFinish(
+    session: GameSession,
+    message: Message<boolean>,
+    infoEmoji: unknown,
+    loadingEmoji: unknown,
+  ): Promise<void> {
+    const loadingContainer = await StatusContainer.loading(loadingEmoji);
+
+    await message.edit({components: [loadingContainer]});
+
+    await sleep(this.updateInterval);
+
+    const diceFromSeed = this.getDiceFromSeed(session.seed);
+    const dice1 = diceFromSeed[0];
+    const dice2 = diceFromSeed[1];
+    const dice3 = diceFromSeed[2];
+    const total = dice1 + dice2 + dice3;
+    const isTai = total >= 11 && total <= 17;
+    const isXiu = total >= 3 && total <= 10;
+
+    const resultType: BetType = isTai ? 'tai' : 'xiu';
+
+    const winners: PlayerBet[] = [];
+    const losers: PlayerBet[] = [];
+
+    session.players.forEach(player => {
+      const won = this.checkPlayerWin(player.betType, isTai, isXiu);
+      if (won) {
+        winners.push(player);
+      } else {
+        losers.push(player);
+      }
+    });
+
+    const resultContainer = new ContainerBuilder()
+      .setAccentColor(EmbedColors.yellow())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`## ${infoEmoji} Tài Xỉu`),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(codeBlock(`${dice1}  ${dice2}  ${dice3}`)),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          bold(`Kết quả: ${this.getResultLabel(resultType)}`),
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `${bold('🔐 Seed:')} ${inlineCode(session.seed)}`,
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `${bold('🔒 MD5:')} ${inlineCode(session.hash)}`,
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `${bold(`🎉 Người thắng (${winners.length}):`)}\n${winners.map(w => quote(`${w.ordererMention}`)).join('\n') || quote(italic('Không có'))}`,
+        ),
+      )
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `${bold(`💔 Người thua (${losers.length}):`)}\n${losers.map(l => quote(`${l.ordererMention}`)).join('\n') || quote(italic('Không có'))}`,
+        ),
+      )
+      .addSeparatorComponents(seperator => seperator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          subtext(
+            `Session ID: ${inlineCode(session.sessionId)} • ${time(session.startTime)}`,
+          ),
+        ),
+      );
+
+    const guildId = message.guildId;
+
+    if (!guildId) return;
+
+    await this.addToHistory(guildId, session.sessionId, {
+      result: resultType,
+      dice: [dice1, dice2, dice3],
+      total,
+      timestamp: Math.round(Date.now() / 1000),
+    });
+
+    await SicboSession.update(
+      {
+        dice1,
+        dice2,
+        dice3,
+        result: resultType,
+        isRunning: false,
+      },
+      {where: {sessionId: session.sessionId}},
+    );
+
+    await this.processPayouts(message, infoEmoji, winners, losers, resultType);
+
+    await message.edit({
+      components: [resultContainer],
+      allowedMentions: {},
+    });
+  }
+
+  private getDiceFromSeed(seed: string): [number, number, number] {
+    const hash = crypto.createHash('sha256').update(seed).digest('hex');
+
+    const dice1 = (parseInt(hash.substring(0, 2), 16) % 6) + 1;
+    const dice2 = (parseInt(hash.substring(2, 4), 16) % 6) + 1;
+    const dice3 = (parseInt(hash.substring(4, 6), 16) % 6) + 1;
+
+    return [dice1, dice2, dice3];
+  }
+
+  private checkPlayerWin(
+    betType: BetType,
+    isTai: boolean,
+    isXiu: boolean,
+  ): boolean {
+    if (betType === 'tai') return isTai;
+    if (betType === 'xiu') return isXiu;
+    return false;
+  }
+
+  private async processPayouts(
+    message: Message<boolean>,
+    infoEmoji: unknown,
+    winners: PlayerBet[],
+    losers: PlayerBet[],
+    resultType: BetType,
+  ): Promise<void> {
+    const resultLabel = this.getResultLabel(resultType);
+
+    for (const winner of winners) {
+      const grossWinAmount = winner.betAmount * winner.multiplier;
+      const taxAmount = Math.floor(grossWinAmount * 0.05);
+      const netWinAmount = grossWinAmount - taxAmount;
+
+      const userBalance = await Balance.findOne({
+        where: {userId: winner.orderId},
+      });
+
+      if (userBalance) {
+        await userBalance.update({
+          balance: userBalance.balance + netWinAmount,
+        });
+
+        await userBalance.reload();
+
+        try {
+          const user = await message.client.users.fetch(winner.orderId);
+          const winContainer = new ContainerBuilder()
+            .setAccentColor(EmbedColors.green())
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`## ${infoEmoji} Kết Quả`),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(bold('🎉 Chúc mừng! Bạn đã thắng cược!')),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(`${bold('Kết quả: ' + resultLabel)}`),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `${bold('💵 Số tiền cược:')} ${numberFormat(winner.betAmount)}`,
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `${bold('💵 Tiền thắng (trước thuế):')} ${numberFormat(grossWinAmount)}`,
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `${bold('💸 Thuế (5%):')} -${numberFormat(taxAmount)}`,
+              ),
+            )
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `${bold('💵 Tiền thắng (sau thuế):')} ${numberFormat(netWinAmount)}`,
+              ),
+            )
+            .addSeparatorComponents(seperator => seperator)
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `💰 ${bold('Số dư mới:')} ${numberFormat(userBalance.balance)}`,
+              ),
+            );
+
+          await user.send({
+            components: [winContainer],
+            flags: MessageFlags.IsComponentsV2,
+          });
+        } catch {
+          //
+        }
+      }
+    }
+
+    for (const loser of losers) {
+      try {
+        const user = await message.client.users.fetch(loser.orderId);
+        const userBalance = await Balance.findOne({
+          where: {userId: loser.orderId},
+        });
+
+        const loseContainer = new ContainerBuilder()
+          .setAccentColor(EmbedColors.red())
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(`## ${infoEmoji} Kết Quả`),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(bold('💔 Rất tiếc! Bạn đã thua!')),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(`${bold('Kết quả: ' + resultLabel)}`),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(
+              `${bold('💸 Số tiền mất:')} ${numberFormat(loser.betAmount)}`,
+            ),
+          )
+          .addSeparatorComponents(seperator => seperator)
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(
+              `${bold('💰 Số dư hiện tại:')} ${numberFormat(userBalance?.balance || 0)}`,
+            ),
+          );
+
+        await user.send({
+          components: [loseContainer],
+          flags: MessageFlags.IsComponentsV2,
+        });
+      } catch {
+        //
+      }
+    }
+  }
+
+  private getResultLabel(resultType: 'tai' | 'xiu'): string {
+    switch (resultType) {
+      case 'tai':
+        return '🔴 TÀI';
+      case 'xiu':
+        return '🔵 XỈU';
+    }
+  }
+
+  private async addToHistory(
+    guildId: string,
+    sessionId: string,
+    result: GameResult,
+  ): Promise<void> {
+    await SicboHistory.create({
+      guildId,
+      sessionId,
+      result: result.result,
+      dice1: result.dice[0],
+      dice2: result.dice[1],
+      dice3: result.dice[2],
+      total: result.total,
+      timestamp: result.timestamp,
+    });
+
+    const count = await SicboHistory.count({where: {guildId}});
+    if (count > this.maxHistory) {
+      const oldest = await SicboHistory.findAll({
+        where: {guildId},
+        order: [['timestamp', 'ASC']],
+        limit: count - this.maxHistory,
+      });
+      for (const record of oldest) {
+        await record.destroy();
+      }
+    }
   }
 }
