@@ -22,9 +22,14 @@ export default class ExtendedClient extends Client implements IClient {
       presence: {
         activities: [
           {
-            name: 'ManagerBot v2.0',
+            name: 'Custom1',
             type: ActivityType.Custom,
-            state: 'nho em.',
+            state: 'YunaBot - v3.0.',
+          },
+          {
+            name: 'Custom2',
+            type: ActivityType.Custom,
+            state: 'Developed by Yuna.',
           },
         ],
         status: PresenceUpdateStatus.DoNotDisturb,
