@@ -11,7 +11,6 @@ import {
   ModalBuilder,
   ModalSubmitInteraction,
   subtext,
-  TextChannel,
   TextInputBuilder,
   TextInputStyle,
   time,
@@ -31,8 +30,6 @@ import Balance from '../../../../database/models/Balance.model';
 import {numberFormat} from '../../../../util/NumberFormat';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {sleep} from '../../../../util/Sleep';
-import {where} from 'sequelize';
-import {fail} from 'assert';
 
 type BetType = 'tai' | 'xiu';
 

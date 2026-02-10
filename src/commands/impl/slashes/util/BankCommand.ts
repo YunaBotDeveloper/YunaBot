@@ -423,7 +423,6 @@ export default class BankCommand extends Command {
               });
               break;
             }
-
           }
         },
       },
