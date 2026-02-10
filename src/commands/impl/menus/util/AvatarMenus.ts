@@ -1,0 +1,152 @@
+import {
+  ApplicationCommandType,
+  ButtonStyle,
+  ContainerBuilder,
+  inlineCode,
+  MessageFlags,
+  quote,
+  subtext,
+  UserContextMenuCommandInteraction,
+  userMention,
+} from 'discord.js';
+import {ContextMenuCommand} from '../../../ContextMenuCommand';
+import ExtendedClient from '../../../../classes/ExtendedClient';
+import {StatusContainer} from '../../../../util/StatusContainer';
+import {EmbedColors} from '../../../../util/EmbedColors';
+
+export default class AvatarMenus extends ContextMenuCommand {
+  constructor() {
+    super('Lấy ảnh đại diện', ApplicationCommandType.User);
+
+    this.advancedOptions.cooldown = 10000;
+  }
+
+  async run(interaction: UserContextMenuCommandInteraction): Promise<void> {
+    const client = interaction.client as ExtendedClient;
+    const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
+    const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
+    const linkEmoji = await client.api.emojiAPI.getEmojiByName('link');
+    const loadingContainer = await StatusContainer.loading(loadingEmoji);
+    await interaction.reply({
+      components: [loadingContainer],
+      flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
+    });
+
+    const targetUser = interaction.targetUser;
+    const member = interaction.guild?.members.cache.get(targetUser.id);
+
+    const isGlobalAvatarAnimated = targetUser.avatar?.startsWith('a_');
+    const isGuildAvatarAnimated = member?.avatar?.startsWith('a_');
+
+    const globalAvatar = targetUser.displayAvatarURL({
+      size: 4096,
+      extension: isGlobalAvatarAnimated ? 'gif' : 'png',
+    });
+
+    const guildAvatar = member?.displayAvatarURL({
+      size: 4096,
+      extension: isGuildAvatarAnimated ? 'gif' : 'png',
+    });
+
+    const hasGuildAvatar =
+      member && guildAvatar && guildAvatar !== globalAvatar;
+
+    if (hasGuildAvatar) {
+      const componentIds: string[] = [
+        `avatar_global_${interaction.id}`,
+        `avatar_guild_${interaction.id}`,
+      ];
+    } else {
+      const avatarContainer = await this.avatarContainer(
+        infoEmoji,
+        targetUser.id,
+        false,
+        'global',
+        globalAvatar,
+        undefined,
+        [],
+      );
+
+      await interaction.editReply({
+        components: [avatarContainer],
+        allowedMentions: {},
+      });
+    }
+  }
+
+  private async avatarContainer(
+    infoEmoji: unknown,
+    userId: string,
+    hasGuildAvatar: boolean,
+    active: 'global' | 'guild',
+    globalAvatar: string,
+    guildAvatar: string | undefined,
+    componentIds: string[],
+  ): Promise<ContainerBuilder> {
+    const isGuild = active === 'guild' && hasGuildAvatar;
+    const avatarUrl = isGuild ? guildAvatar! : globalAvatar;
+
+    if (hasGuildAvatar && componentIds.length === 2) {
+      return new ContainerBuilder()
+        .setAccentColor(EmbedColors.random())
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(`## ${infoEmoji} Ảnh đại diện của ${userId}`),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode(isGuild ? 'Ảnh đại diện trong máy chủ' : 'Ảnh đại diện toàn Discord')}`,
+          ),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addMediaGalleryComponents(gallery =>
+          gallery.addItems(item => item.setURL(avatarUrl)),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addSectionComponents(section =>
+          section
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                active === 'global'
+                  ? 'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ'
+                  : 'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
+              ),
+            )
+            .setButtonAccessory(button => button),
+        );
+    } else {
+      return new ContainerBuilder()
+        .setAccentColor(EmbedColors.random())
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(
+            `## ${infoEmoji} Ảnh đại diện của ${userMention(userId)}`,
+          ),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
+          ),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addMediaGalleryComponents(gallery =>
+          gallery.addItems(item => item.setURL(avatarUrl)),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addSectionComponents(section =>
+          section
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                subtext('Bấm vào đây để tải ảnh đại diện'),
+              ),
+            )
+            .setButtonAccessory(button =>
+              button
+                .setLabel('Tải xuống')
+                .setURL(avatarUrl)
+                .setStyle(ButtonStyle.Link),
+            ),
+        );
+    }
+  }
+}
