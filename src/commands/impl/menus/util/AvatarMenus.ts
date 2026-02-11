@@ -5,7 +5,6 @@ import {
   ContainerBuilder,
   inlineCode,
   MessageFlags,
-  quote,
   subtext,
   UserContextMenuCommandInteraction,
   userMention,
@@ -28,7 +27,6 @@ export default class AvatarMenus extends ContextMenuCommand {
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
-    const linkEmoji = await client.api.emojiAPI.getEmojiByName('link');
     const loadingContainer = await StatusContainer.loading(loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
