@@ -1,5 +1,6 @@
 import {
   ApplicationCommandType,
+  ButtonInteraction,
   ButtonStyle,
   ContainerBuilder,
   inlineCode,
@@ -13,6 +14,8 @@ import {ContextMenuCommand} from '../../../ContextMenuCommand';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
+import ComponentManager from '../../../../component/manager/ComponentManager';
+import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 export default class AvatarMenus extends ContextMenuCommand {
   constructor() {
@@ -56,6 +59,58 @@ export default class AvatarMenus extends ContextMenuCommand {
         `avatar_global_${interaction.id}`,
         `avatar_guild_${interaction.id}`,
       ];
+      const avatarContainer = await this.avatarContainer(
+        infoEmoji,
+        targetUser.id,
+        true,
+        'guild',
+        globalAvatar,
+        guildAvatar,
+        componentIds,
+      );
+
+      await interaction.editReply({
+        components: [avatarContainer],
+      });
+
+      ComponentManager.getComponentManager().register([
+        {
+          customId: componentIds[0],
+          handler: async (interaction: ButtonInteraction) => {
+            const avatarContainer = await this.avatarContainer(
+              infoEmoji,
+              targetUser.id,
+              true,
+              'global',
+              globalAvatar,
+              guildAvatar,
+              componentIds,
+            );
+
+            await interaction.update({components: [avatarContainer]});
+          },
+          type: ComponentEnum.BUTTON,
+          userCheck: [interaction.user.id],
+        },
+        {
+          customId: componentIds[1],
+          handler: async (interaction: ButtonInteraction) => {
+            const avatarContainer = await this.avatarContainer(
+              infoEmoji,
+              targetUser.id,
+              true,
+              'guild',
+              globalAvatar,
+              guildAvatar,
+              componentIds,
+            );
+
+            await interaction.update({components: [avatarContainer]});
+          },
+          type: ComponentEnum.BUTTON,
+          userCheck: [interaction.user.id],
+        },
+      ]);
     } else {
       const avatarContainer = await this.avatarContainer(
         infoEmoji,
@@ -90,7 +145,9 @@ export default class AvatarMenus extends ContextMenuCommand {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(`## ${infoEmoji} Ảnh đại diện của ${userId}`),
+          textDisplay.setContent(
+            `## ${infoEmoji} Ảnh đại diện của ${userMention(userId)}`,
+          ),
         )
         .addSeparatorComponents(seperator => seperator)
         .addTextDisplayComponents(textDisplay =>
@@ -107,12 +164,36 @@ export default class AvatarMenus extends ContextMenuCommand {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                active === 'global'
-                  ? 'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ'
-                  : 'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
+                subtext(
+                  active === 'global'
+                    ? 'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ'
+                    : 'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
+                ),
               ),
             )
-            .setButtonAccessory(button => button),
+            .setButtonAccessory(button =>
+              button
+                .setCustomId(
+                  active === 'global' ? componentIds[1] : componentIds[0],
+                )
+                .setLabel('Đổi loại ảnh đại diện')
+                .setStyle(ButtonStyle.Success),
+            ),
+        )
+        .addSeparatorComponents(seperator => seperator)
+        .addSectionComponents(section =>
+          section
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                subtext('Bấm vào đây để tải ảnh đại diện'),
+              ),
+            )
+            .setButtonAccessory(button =>
+              button
+                .setLabel('Tải xuống')
+                .setStyle(ButtonStyle.Link)
+                .setURL(avatarUrl),
+            ),
         );
     } else {
       return new ContainerBuilder()
