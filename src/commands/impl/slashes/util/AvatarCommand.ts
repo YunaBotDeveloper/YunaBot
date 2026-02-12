@@ -1,39 +1,45 @@
+import {Command} from '../../../Command';
 import {
-  ApplicationCommandType,
   ButtonInteraction,
   ButtonStyle,
+  ChatInputCommandInteraction,
   ContainerBuilder,
   inlineCode,
   MessageFlags,
   subtext,
-  UserContextMenuCommandInteraction,
   userMention,
 } from 'discord.js';
-import {ContextMenuCommand} from '../../../ContextMenuCommand';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
-import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
+import {EmbedColors} from '../../../../util/EmbedColors';
 
-export default class AvatarMenus extends ContextMenuCommand {
+export default class AvatarCommand extends Command {
   constructor() {
-    super('Lấy ảnh đại diện', ApplicationCommandType.User);
+    super('avatar', 'Lấy ảnh đại diện');
 
     this.advancedOptions.cooldown = 10000;
+
+    this.data.addUserOption(option =>
+      option
+        .setName('user')
+        .setDescription('Người dùng bạn chỉ định')
+        .setRequired(false),
+    );
   }
 
-  async run(interaction: UserContextMenuCommandInteraction): Promise<void> {
+  async run(interaction: ChatInputCommandInteraction): Promise<void> {
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const loadingContainer = await StatusContainer.loading(loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
-      flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
+      flags: [MessageFlags.IsComponentsV2],
     });
 
-    const targetUser = interaction.targetUser;
+    const targetUser = interaction.options.getUser('user') || interaction.user;
     const member = interaction.guild?.members.cache.get(targetUser.id);
 
     const isGlobalAvatarAnimated = targetUser.avatar?.startsWith('a_');
