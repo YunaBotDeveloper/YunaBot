@@ -147,17 +147,17 @@ export default class AvatarMenus extends ContextMenuCommand {
             `## ${infoEmoji} Ảnh đại diện của ${userMention(userId)}`,
           ),
         )
-        .addSeparatorComponents(seperator => seperator)
+        .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
             `**Loại:** ${inlineCode(isGuild ? 'Ảnh đại diện trong máy chủ' : 'Ảnh đại diện toàn Discord')}`,
           ),
         )
-        .addSeparatorComponents(seperator => seperator)
+        .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
           gallery.addItems(item => item.setURL(avatarUrl)),
         )
-        .addSeparatorComponents(seperator => seperator)
+        .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
@@ -178,7 +178,7 @@ export default class AvatarMenus extends ContextMenuCommand {
                 .setStyle(ButtonStyle.Success),
             ),
         )
-        .addSeparatorComponents(seperator => seperator)
+        .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
@@ -201,17 +201,17 @@ export default class AvatarMenus extends ContextMenuCommand {
             `## ${infoEmoji} Ảnh đại diện của ${userMention(userId)}`,
           ),
         )
-        .addSeparatorComponents(seperator => seperator)
+        .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
             `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
           ),
         )
-        .addSeparatorComponents(seperator => seperator)
+        .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
           gallery.addItems(item => item.setURL(avatarUrl)),
         )
-        .addSeparatorComponents(seperator => seperator)
+        .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
