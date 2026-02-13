@@ -2,9 +2,12 @@
   "dependencies": {
     "axios": "^1.13.3",
     "bufferutil": "^4.1.0",
+    "captcha-canvas": "^3.4.0",
     "discord.js": "^14.25.1",
     "nanoid": "^5.1.6",
     "sequelize": "^6.37.7",
+    "sharp": "^0.34.5",
+    "skia-canvas": "^3.0.8",
     "sqlite3": "^5.1.7",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
@@ -14,9 +17,12 @@
     "@types/node": "^25.0.10",
     "gts": "^7.0.0"
   },
+  "trustedDependencies": [
+    "skia-canvas"
+  ],
   "private": true,
   "scripts": {
-    "dev": "bun --watch ./src/index",
+    "dev": "bun --watch ./src/index.ts",
     "lint": "gts lint",
     "clean": "gts clean",
     "compile": "tsc",
