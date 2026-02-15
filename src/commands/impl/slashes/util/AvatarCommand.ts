@@ -7,6 +7,8 @@ import {
   inlineCode,
   MessageFlags,
   subtext,
+  time,
+  TimestampStyles,
   userMention,
 } from 'discord.js';
 import ExtendedClient from '../../../../classes/ExtendedClient';
@@ -14,17 +16,21 @@ import {StatusContainer} from '../../../../util/StatusContainer';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {EmbedColors} from '../../../../util/EmbedColors';
+import {t, tMap} from '../../../../locale';
 
 export default class AvatarCommand extends Command {
   constructor() {
-    super('avatar', 'Lấy ảnh đại diện');
+    super('avatar', t('avatar.description'));
+
+    this.data.setDescriptionLocalizations(tMap('avatar.description'));
 
     this.advancedOptions.cooldown = 10000;
 
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription('Người dùng bạn chỉ định')
+        .setDescription(t('avatar.option.user'))
+        .setDescriptionLocalizations(tMap('avatar.option.user'))
         .setRequired(false),
     );
   }
@@ -33,6 +39,7 @@ export default class AvatarCommand extends Command {
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
+    const memberEmoji = await client.api.emojiAPI.getEmojiByName('member');
     const loadingContainer = StatusContainer.loading(loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
@@ -58,37 +65,59 @@ export default class AvatarCommand extends Command {
     const hasGuildAvatar =
       member && guildAvatar && guildAvatar !== globalAvatar;
 
+    let deleteAt = new Date(Date.now() + 60000);
+    const locale = interaction.locale;
+
     if (hasGuildAvatar) {
       const componentIds: string[] = [
         `avatar_global_${interaction.id}`,
         `avatar_guild_${interaction.id}`,
       ];
+
       const avatarContainer = await this.avatarContainer(
         infoEmoji,
+        memberEmoji,
         targetUser.id,
         true,
         'guild',
         globalAvatar,
         guildAvatar,
         componentIds,
+        deleteAt,
+        locale,
       );
 
-      await interaction.editReply({
+      const message = await interaction.editReply({
         components: [avatarContainer],
       });
 
       ComponentManager.getComponentManager().register([
         {
           customId: componentIds[0],
-          handler: async (interaction: ButtonInteraction) => {
+          timeout: 60000,
+          onTimeout: async (): Promise<void> => {
+            ComponentManager.getComponentManager().unregisterMany([
+              componentIds[0],
+              componentIds[1],
+            ]);
+            await message.delete();
+          },
+          handler: async (interaction: ButtonInteraction): Promise<void> => {
+            ComponentManager.getComponentManager().unregister(componentIds[1]);
+
+            deleteAt = new Date(Date.now() + 60000);
+
             const avatarContainer = await this.avatarContainer(
               infoEmoji,
+              memberEmoji,
               targetUser.id,
               true,
               'global',
               globalAvatar,
               guildAvatar,
               componentIds,
+              deleteAt,
+              locale,
             );
 
             await interaction.update({components: [avatarContainer]});
@@ -98,15 +127,30 @@ export default class AvatarCommand extends Command {
         },
         {
           customId: componentIds[1],
+          timeout: 60000,
+          onTimeout: async (): Promise<void> => {
+            ComponentManager.getComponentManager().unregisterMany([
+              componentIds[0],
+              componentIds[1],
+            ]);
+            await message.delete();
+          },
           handler: async (interaction: ButtonInteraction) => {
+            ComponentManager.getComponentManager().unregister(componentIds[0]);
+
+            deleteAt = new Date(Date.now() + 60000);
+
             const avatarContainer = await this.avatarContainer(
               infoEmoji,
+              memberEmoji,
               targetUser.id,
               true,
               'guild',
               globalAvatar,
               guildAvatar,
               componentIds,
+              deleteAt,
+              locale,
             );
 
             await interaction.update({components: [avatarContainer]});
@@ -118,46 +162,59 @@ export default class AvatarCommand extends Command {
     } else {
       const avatarContainer = await this.avatarContainer(
         infoEmoji,
+        memberEmoji,
         targetUser.id,
         false,
         'global',
         globalAvatar,
         undefined,
         [],
+        deleteAt,
+        locale,
       );
 
-      await interaction.editReply({
+      const message = await interaction.editReply({
         components: [avatarContainer],
         allowedMentions: {},
       });
+
+      setTimeout(async () => {
+        await message.delete();
+      }, 60000);
     }
   }
 
   private async avatarContainer(
     infoEmoji: unknown,
+    memberEmoji: unknown,
     userId: string,
     hasGuildAvatar: boolean,
     active: 'global' | 'guild',
     globalAvatar: string,
     guildAvatar: string | undefined,
     componentIds: string[],
+    deleteAt: Date,
+    locale: string,
   ): Promise<ContainerBuilder> {
     const isGuild = active === 'guild' && hasGuildAvatar;
     const avatarUrl = isGuild ? guildAvatar! : globalAvatar;
+
+    const titleText = `## ${memberEmoji} ${t('avatar.title', locale, {user: userMention(userId)})}`;
+    const typeText = `**${t('avatar.type_label', locale)}** ${inlineCode(isGuild ? t('avatar.type.guild', locale) : t('avatar.type.global', locale))}`;
+    const deleteText = t('avatar.auto_delete', locale, {
+      emoji: String(infoEmoji),
+      timestamp: time(deleteAt, TimestampStyles.RelativeTime),
+    });
 
     if (hasGuildAvatar && componentIds.length === 2) {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `## ${infoEmoji} Ảnh đại diện của ${userMention(userId)}`,
-          ),
+          textDisplay.setContent(titleText),
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Loại:** ${inlineCode(isGuild ? 'Ảnh đại diện trong máy chủ' : 'Ảnh đại diện toàn Discord')}`,
-          ),
+          textDisplay.setContent(typeText),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -170,8 +227,8 @@ export default class AvatarCommand extends Command {
               textDisplay.setContent(
                 subtext(
                   active === 'global'
-                    ? 'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ'
-                    : 'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
+                    ? t('avatar.switch_to_guild', locale)
+                    : t('avatar.switch_to_global', locale),
                 ),
               ),
             )
@@ -180,7 +237,7 @@ export default class AvatarCommand extends Command {
                 .setCustomId(
                   active === 'global' ? componentIds[1] : componentIds[0],
                 )
-                .setLabel('Đổi loại ảnh đại diện')
+                .setLabel(t('avatar.switch_button', locale))
                 .setStyle(ButtonStyle.Success),
             ),
         )
@@ -189,29 +246,29 @@ export default class AvatarCommand extends Command {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
+                subtext(t('avatar.download_hint', locale)),
               ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel(t('avatar.download_button', locale))
                 .setStyle(ButtonStyle.Link)
                 .setURL(avatarUrl),
             ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(subtext(deleteText)),
         );
     } else {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `## ${infoEmoji} Ảnh đại diện của ${userMention(userId)}`,
-          ),
+          textDisplay.setContent(titleText),
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
-          ),
+          textDisplay.setContent(typeText),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -222,15 +279,19 @@ export default class AvatarCommand extends Command {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
+                subtext(t('avatar.download_hint', locale)),
               ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel(t('avatar.download_button', locale))
                 .setURL(avatarUrl)
                 .setStyle(ButtonStyle.Link),
             ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(subtext(deleteText)),
         );
     }
   }

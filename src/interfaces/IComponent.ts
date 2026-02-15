@@ -7,5 +7,5 @@ export interface IComponent {
   type: ComponentEnum;
   userCheck?: string[];
   timeout?: number;
-  onTimeout?: () => Promise<void> | void;
+  onTimeout?: () => Promise<void>;
 }
