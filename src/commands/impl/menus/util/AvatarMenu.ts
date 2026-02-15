@@ -15,19 +15,25 @@ import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
+import {t} from '../../../../locale';
 
 export default class AvatarMenu extends ContextMenuCommand {
   constructor() {
-    super('Lấy ảnh đại diện', ApplicationCommandType.User);
+    super(t('avatar.menu.name'), ApplicationCommandType.User);
+
+    this.data.setNameLocalization('vi', t('avatar.menu.name', 'vi'));
 
     this.advancedOptions.cooldown = 10000;
   }
 
   async run(interaction: UserContextMenuCommandInteraction): Promise<void> {
+    const locale = interaction.locale;
+
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
-    const loadingContainer = StatusContainer.loading(loadingEmoji);
+    const memberEmoji = await client.api.emojiAPI.getEmojiByName('member');
+    const loadingContainer = StatusContainer.loading(locale, loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
       flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
@@ -57,14 +63,16 @@ export default class AvatarMenu extends ContextMenuCommand {
         `avatar_global_${interaction.id}`,
         `avatar_guild_${interaction.id}`,
       ];
-      const avatarContainer = await this.avatarContainer(
+      const avatarContainer = this.avatarContainer(
         infoEmoji,
+        memberEmoji,
         targetUser.id,
         true,
         'guild',
         globalAvatar,
         guildAvatar,
         componentIds,
+        locale,
       );
 
       await interaction.editReply({
@@ -75,14 +83,16 @@ export default class AvatarMenu extends ContextMenuCommand {
         {
           customId: componentIds[0],
           handler: async (interaction: ButtonInteraction) => {
-            const avatarContainer = await this.avatarContainer(
+            const avatarContainer = this.avatarContainer(
               infoEmoji,
+              memberEmoji,
               targetUser.id,
               true,
               'global',
               globalAvatar,
               guildAvatar,
               componentIds,
+              locale,
             );
 
             await interaction.update({components: [avatarContainer]});
@@ -93,14 +103,16 @@ export default class AvatarMenu extends ContextMenuCommand {
         {
           customId: componentIds[1],
           handler: async (interaction: ButtonInteraction) => {
-            const avatarContainer = await this.avatarContainer(
+            const avatarContainer = this.avatarContainer(
               infoEmoji,
+              memberEmoji,
               targetUser.id,
               true,
               'guild',
               globalAvatar,
               guildAvatar,
               componentIds,
+              locale,
             );
 
             await interaction.update({components: [avatarContainer]});
@@ -110,14 +122,16 @@ export default class AvatarMenu extends ContextMenuCommand {
         },
       ]);
     } else {
-      const avatarContainer = await this.avatarContainer(
+      const avatarContainer = this.avatarContainer(
         infoEmoji,
+        memberEmoji,
         targetUser.id,
         false,
         'global',
         globalAvatar,
         undefined,
         [],
+        locale,
       );
 
       await interaction.editReply({
@@ -127,31 +141,32 @@ export default class AvatarMenu extends ContextMenuCommand {
     }
   }
 
-  private async avatarContainer(
+  private avatarContainer(
     infoEmoji: unknown,
+    memberEmoji: unknown,
     userId: string,
     hasGuildAvatar: boolean,
     active: 'global' | 'guild',
     globalAvatar: string,
     guildAvatar: string | undefined,
     componentIds: string[],
-  ): Promise<ContainerBuilder> {
+    locale: string,
+  ): ContainerBuilder {
     const isGuild = active === 'guild' && hasGuildAvatar;
     const avatarUrl = isGuild ? guildAvatar! : globalAvatar;
+
+    const titleText = `## ${memberEmoji} ${(t('avatar.title'), locale, {user: userMention(userId)})}`;
+    const typeText = `**${t('avatar.type_label', locale)}** ${inlineCode(isGuild ? t('avatar.type.guild', locale) : t('avatar.type.global', locale))}`;
 
     if (hasGuildAvatar && componentIds.length === 2) {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `## ${infoEmoji} Ảnh đại diện của ${userMention(userId)}`,
-          ),
+          textDisplay.setContent(titleText),
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Loại:** ${inlineCode(isGuild ? 'Ảnh đại diện trong máy chủ' : 'Ảnh đại diện toàn Discord')}`,
-          ),
+          textDisplay.setContent(typeText),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -164,8 +179,8 @@ export default class AvatarMenu extends ContextMenuCommand {
               textDisplay.setContent(
                 subtext(
                   active === 'global'
-                    ? 'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ'
-                    : 'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
+                    ? t('avatar.switch_to_guild', locale)
+                    : t('avatar.switch_to_global', locale),
                 ),
               ),
             )
@@ -174,7 +189,7 @@ export default class AvatarMenu extends ContextMenuCommand {
                 .setCustomId(
                   active === 'global' ? componentIds[1] : componentIds[0],
                 )
-                .setLabel('Đổi loại ảnh đại diện')
+                .setLabel(t('avatar.switch_button', locale))
                 .setStyle(ButtonStyle.Success),
             ),
         )
@@ -183,12 +198,12 @@ export default class AvatarMenu extends ContextMenuCommand {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
+                subtext(t('avatar.download_hint', locale)),
               ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel(t('avatar.download_button', locale))
                 .setStyle(ButtonStyle.Link)
                 .setURL(avatarUrl),
             ),
@@ -197,15 +212,11 @@ export default class AvatarMenu extends ContextMenuCommand {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `## ${infoEmoji} Ảnh đại diện của ${userMention(userId)}`,
-          ),
+          textDisplay.setContent(titleText),
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
-          ),
+          textDisplay.setContent(typeText),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -216,12 +227,12 @@ export default class AvatarMenu extends ContextMenuCommand {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
+                subtext(t('avatar.download_hint', locale)),
               ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel(t('avatar.download_button', locale))
                 .setURL(avatarUrl)
                 .setStyle(ButtonStyle.Link),
             ),

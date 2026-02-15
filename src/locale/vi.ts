@@ -3,6 +3,7 @@ import {LocaleMap} from './types';
 const vi: LocaleMap = {
   'container.loading': 'Đang xử lý...',
 
+  'avatar.menu.name': 'Lấy ảnh đại diện',
   'avatar.description': 'Lấy ảnh đại diện',
   'avatar.option.user': 'Người dùng bạn chỉ định',
   'avatar.title': 'Ảnh đại diện của {user}',

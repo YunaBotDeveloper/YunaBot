@@ -3,6 +3,7 @@ import {LocaleMap} from './types';
 const en: LocaleMap = {
   'container.loading': 'Processing',
 
+  'avatar.menu.name': 'Get user avatar',
   'avatar.description': 'Get user avatar',
   'avatar.option.user': 'The user you want to target',
   'avatar.title': 'Avatar of {user}',
