@@ -16,10 +16,13 @@ import {EmbedColors} from '../../../../util/EmbedColors';
 import GuildLog from '../../../../database/models/GuildLog.model';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
+import {t, tMap} from '../../../../locale';
 
 export default class SetupCommand extends Command {
   constructor() {
-    super('setup', 'Cài đặt cho bot');
+    super('setup', t('setup.description'));
+
+    this.data.setDescriptionLocalizations(tMap('setup.description'));
 
     this.advancedOptions.cooldown = 30000;
 
