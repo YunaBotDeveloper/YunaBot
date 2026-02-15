@@ -14,27 +14,33 @@ import {StatusContainer} from '../../../../util/StatusContainer';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {EmbedColors} from '../../../../util/EmbedColors';
+import {t, tMap} from '../../../../locale';
 
 export default class BannerCommand extends Command {
   constructor() {
-    super('banner', 'Lấy ảnh bìa');
+    super('banner', t('banner.description'));
+
+    this.data.setDescriptionLocalizations(tMap('banner.description'));
 
     this.advancedOptions.cooldown = 10000;
 
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription('Người dùng bạn chỉ định')
+        .setDescription(t('banner.option.user'))
+        .setDescriptionLocalizations(tMap('banner.option.user'))
         .setRequired(false),
     );
   }
 
   async run(interaction: ChatInputCommandInteraction) {
+    const locale = interaction.locale;
+
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
-    const loadingContainer = StatusContainer.loading(loadingEmoji);
+    const loadingContainer = StatusContainer.loading(locale, loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
       flags: [MessageFlags.IsComponentsV2],
@@ -56,7 +62,7 @@ export default class BannerCommand extends Command {
     if (!globalBanner) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        `${userMention(targetUser.id)} không có ảnh bìa.`,
+        t('banner.failed', locale, {user: userMention(targetUser.id)}),
       );
       await interaction.editReply({
         components: [errorContainer],

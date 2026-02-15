@@ -21,6 +21,7 @@ const vi: LocaleMap = {
 
   'banner.description': 'Lấy ảnh bìa',
   'banner.option.user': 'Người dùng bạn chỉ định',
+  'banner.failed': '{user} không có ảnh bìa.',
 
   'help.description': 'Hiển thị toàn bộ lệnh',
 

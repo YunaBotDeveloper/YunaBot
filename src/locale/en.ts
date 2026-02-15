@@ -20,6 +20,7 @@ const en: LocaleMap = {
 
   'banner.description': 'Get user banner',
   'banner.option.user': 'The user you want to target',
+  'banner.failed': "{user} doesn't have banner.",
 
   'help.description': 'Show all commands',
 
