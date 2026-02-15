@@ -36,11 +36,13 @@ export default class AvatarCommand extends Command {
   }
 
   async run(interaction: ChatInputCommandInteraction): Promise<void> {
+    const locale = interaction.locale;
+
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const memberEmoji = await client.api.emojiAPI.getEmojiByName('member');
-    const loadingContainer = StatusContainer.loading(loadingEmoji);
+    const loadingContainer = StatusContainer.loading(locale, loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
       flags: [MessageFlags.IsComponentsV2],
@@ -66,7 +68,6 @@ export default class AvatarCommand extends Command {
       member && guildAvatar && guildAvatar !== globalAvatar;
 
     let deleteAt = new Date(Date.now() + 60000);
-    const locale = interaction.locale;
 
     if (hasGuildAvatar) {
       const componentIds: string[] = [
@@ -74,7 +75,7 @@ export default class AvatarCommand extends Command {
         `avatar_guild_${interaction.id}`,
       ];
 
-      const avatarContainer = await this.avatarContainer(
+      const avatarContainer = this.avatarContainer(
         infoEmoji,
         memberEmoji,
         targetUser.id,
@@ -107,7 +108,7 @@ export default class AvatarCommand extends Command {
 
             deleteAt = new Date(Date.now() + 60000);
 
-            const avatarContainer = await this.avatarContainer(
+            const avatarContainer = this.avatarContainer(
               infoEmoji,
               memberEmoji,
               targetUser.id,
@@ -140,7 +141,7 @@ export default class AvatarCommand extends Command {
 
             deleteAt = new Date(Date.now() + 60000);
 
-            const avatarContainer = await this.avatarContainer(
+            const avatarContainer = this.avatarContainer(
               infoEmoji,
               memberEmoji,
               targetUser.id,
@@ -160,7 +161,7 @@ export default class AvatarCommand extends Command {
         },
       ]);
     } else {
-      const avatarContainer = await this.avatarContainer(
+      const avatarContainer = this.avatarContainer(
         infoEmoji,
         memberEmoji,
         targetUser.id,
@@ -184,7 +185,7 @@ export default class AvatarCommand extends Command {
     }
   }
 
-  private async avatarContainer(
+  private avatarContainer(
     infoEmoji: unknown,
     memberEmoji: unknown,
     userId: string,
@@ -195,7 +196,7 @@ export default class AvatarCommand extends Command {
     componentIds: string[],
     deleteAt: Date,
     locale: string,
-  ): Promise<ContainerBuilder> {
+  ): ContainerBuilder {
     const isGuild = active === 'guild' && hasGuildAvatar;
     const avatarUrl = isGuild ? guildAvatar! : globalAvatar;
 

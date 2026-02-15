@@ -1,7 +1,8 @@
 import {LocaleMap} from './types';
 
 const vi: LocaleMap = {
-  // ─── Command: Avatar ───────────────────────────────────────────
+  'container.loading': 'Đang xử lý...',
+
   'avatar.description': 'Lấy ảnh đại diện',
   'avatar.option.user': 'Người dùng bạn chỉ định',
   'avatar.title': 'Ảnh đại diện của {user}',
@@ -15,31 +16,25 @@ const vi: LocaleMap = {
   'avatar.switch_button': 'Đổi loại ảnh đại diện',
   'avatar.download_hint': 'Bấm vào đây để tải ảnh đại diện',
   'avatar.download_button': 'Tải xuống',
-  'avatar.auto_delete': '{emoji} Tin nhắn này sẽ tự động xoá {timestamp}',
+  'avatar.auto_delete': '{emoji} Tin nhắn này sẽ tự động xoá trong {timestamp}',
 
-  // ─── Command: Banner ───────────────────────────────────────────
   'banner.description': 'Lấy ảnh bìa',
   'banner.option.user': 'Người dùng bạn chỉ định',
 
-  // ─── Command: Help ─────────────────────────────────────────────
   'help.description': 'Hiển thị toàn bộ lệnh',
 
-  // ─── Command: Nuke ─────────────────────────────────────────────
   'nuke.description': 'Tạo lại kênh',
   'nuke.option.channel': 'kênh chỉ định',
   'nuke.option.reason': 'lý do tạo lại kênh',
 
-  // ─── Command: Setup ────────────────────────────────────────────
   'setup.description': 'Cài đặt cho bot',
   'setup.subcommand.log': 'Cài đặt kênh nhật ký',
   'setup.subcommand.verify': 'Cài đặt xác minh người dùng',
 
-  // ─── Command: Prefix ───────────────────────────────────────────
   'prefix.description': 'Xem hoặc thay đổi prefix cho bot trong máy chủ này',
   'prefix.option.new_prefix': 'Prefix mới (để trống để xem prefix hiện tại)',
   'prefix.option.reset': 'Đặt lại prefix về mặc định (!)',
 
-  // ─── Command: Test ─────────────────────────────────────────────
   'test.description': 'Tính năng thử nghiệm',
 };
 
