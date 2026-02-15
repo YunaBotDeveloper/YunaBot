@@ -42,7 +42,7 @@ export default abstract class ComponentBuilder {
     return this;
   }
 
-  public setOnTimeout(onTimeout: () => Promise<void> | void): this {
+  public setOnTimeout(onTimeout: () => Promise<void>): this {
     this.data.onTimeout = onTimeout;
     return this;
   }
