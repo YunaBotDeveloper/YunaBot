@@ -42,6 +42,8 @@ export default class SetupCommand extends Command {
   }
 
   async run(interaction: ChatInputCommandInteraction): Promise<void> {
+    const locale = interaction.locale;
+
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const manageServerEmoji =
@@ -49,7 +51,7 @@ export default class SetupCommand extends Command {
     const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
 
-    const loadingContainer = StatusContainer.loading(loadingEmoji);
+    const loadingContainer = StatusContainer.loading(locale, loadingEmoji);
 
     await interaction.reply({
       components: [loadingContainer],
