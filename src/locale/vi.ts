@@ -8,8 +8,10 @@ const vi: LocaleMap = {
   'avatar.type.guild': 'Ảnh đại diện trong máy chủ',
   'avatar.type.global': 'Ảnh đại diện toàn Discord',
   'avatar.type_label': 'Loại:',
-  'avatar.switch_to_guild': 'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ',
-  'avatar.switch_to_global': 'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
+  'avatar.switch_to_guild':
+    'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ',
+  'avatar.switch_to_global':
+    'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
   'avatar.switch_button': 'Đổi loại ảnh đại diện',
   'avatar.download_hint': 'Bấm vào đây để tải ảnh đại diện',
   'avatar.download_button': 'Tải xuống',

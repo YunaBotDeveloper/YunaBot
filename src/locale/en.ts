@@ -13,7 +13,8 @@ const en: LocaleMap = {
   'avatar.switch_button': 'Switch avatar type',
   'avatar.download_hint': 'Click here to download avatar',
   'avatar.download_button': 'Download',
-  'avatar.auto_delete': '{emoji} This message will be automatically deleted {timestamp}',
+  'avatar.auto_delete':
+    '{emoji} This message will be automatically deleted {timestamp}',
 
   // ─── Command: Banner ───────────────────────────────────────────
   'banner.description': 'Get user banner',
@@ -34,7 +35,8 @@ const en: LocaleMap = {
 
   // ─── Command: Prefix ───────────────────────────────────────────
   'prefix.description': 'View or change the bot prefix for this server',
-  'prefix.option.new_prefix': 'The new prefix to set (leave empty to view current prefix)',
+  'prefix.option.new_prefix':
+    'The new prefix to set (leave empty to view current prefix)',
   'prefix.option.reset': 'Reset the prefix to default (!)',
 
   // ─── Command: Test ─────────────────────────────────────────────
