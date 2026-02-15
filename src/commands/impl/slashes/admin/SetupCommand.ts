@@ -27,13 +27,17 @@ export default class SetupCommand extends Command {
     this.advancedOptions.cooldown = 30000;
 
     this.data.addSubcommand(subcommand =>
-      subcommand.setName('log').setDescription('Cài đặt kênh nhật ký'),
+      subcommand
+        .setName('log')
+        .setDescription(t('setup.subcommand.log'))
+        .setDescriptionLocalizations(tMap('setup.subcommand.log')),
     );
 
     this.data.addSubcommand(subcommand =>
       subcommand
         .setName('verify')
-        .setDescription('Cài đặt xác minh người dùng'),
+        .setDescription(t('setup.subcommand.verify'))
+        .setDescriptionLocalizations(tMap('setup.subcommand.verify')),
     );
   }
 
