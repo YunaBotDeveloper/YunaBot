@@ -21,6 +21,11 @@ const en: LocaleMap = {
   'banner.description': 'Get user banner',
   'banner.option.user': 'The user you want to target',
   'banner.failed': "{user} doesn't have banner.",
+  'banner.title': 'Banner of {user}',
+  'banner.type.guild': 'Server banner',
+  'banner.type.global': 'Global Discord banner',
+  'banner.type_label': 'Type:',
+  'banner.delete_at': '',
 
   'help.description': 'Show all commands',
 

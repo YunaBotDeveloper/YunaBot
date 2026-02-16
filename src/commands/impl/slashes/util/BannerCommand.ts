@@ -6,6 +6,8 @@ import {
   inlineCode,
   MessageFlags,
   subtext,
+  time,
+  TimestampStyles,
   userMention,
 } from 'discord.js';
 import {Command} from '../../../Command';
@@ -40,6 +42,8 @@ export default class BannerCommand extends Command {
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
+    const memberEmoji = await client.api.emojiAPI.getEmojiByName('memberEmoji');
+
     const loadingContainer = StatusContainer.loading(locale, loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
@@ -64,9 +68,11 @@ export default class BannerCommand extends Command {
         failedEmoji,
         t('banner.failed', locale, {user: userMention(targetUser.id)}),
       );
+
       await interaction.editReply({
         components: [errorContainer],
       });
+
       return;
     }
 
@@ -78,37 +84,58 @@ export default class BannerCommand extends Command {
     const hasGuildBanner =
       member && guildBanner && guildBanner !== globalBanner;
 
+    let deleteAt = new Date(Date.now() + 60000);
+
     if (hasGuildBanner) {
       const componentIds: string[] = [
         `banner_global_${interaction.id}`,
         `banner_guild_${interaction.id}`,
       ];
-      const bannerContainer = await this.bannerContainer(
+      const bannerContainer = this.bannerContainer(
         infoEmoji,
+        memberEmoji,
         targetUser.id,
         true,
         'guild',
         globalBanner,
         guildBanner,
         componentIds,
+        deleteAt,
+        locale,
       );
 
-      await interaction.editReply({
+      const message = await interaction.editReply({
         components: [bannerContainer],
       });
 
       ComponentManager.getComponentManager().register([
         {
           customId: componentIds[0],
+          timeout: 60000,
+          onTimeout: async () => {
+            ComponentManager.getComponentManager().unregisterMany([
+              componentIds[0],
+              componentIds[1],
+            ]);
+
+            await message.delete();
+          },
           handler: async (interaction: ButtonInteraction) => {
-            const bannerContainer = await this.bannerContainer(
+            ComponentManager.getComponentManager().unregister(componentIds[1]);
+
+            deleteAt = new Date(Date.now() + 60000);
+
+            const bannerContainer = this.bannerContainer(
               infoEmoji,
+              memberEmoji,
               targetUser.id,
               true,
               'global',
               globalBanner,
               guildBanner,
               componentIds,
+              deleteAt,
+              locale,
             );
 
             await interaction.update({components: [bannerContainer]});
@@ -118,15 +145,31 @@ export default class BannerCommand extends Command {
         },
         {
           customId: componentIds[1],
+          timeout: 60000,
+          onTimeout: async () => {
+            ComponentManager.getComponentManager().unregisterMany([
+              componentIds[0],
+              componentIds[1],
+            ]);
+
+            await message.delete();
+          },
           handler: async (interaction: ButtonInteraction) => {
-            const bannerContainer = await this.bannerContainer(
+            ComponentManager.getComponentManager().unregister(componentIds[0]);
+
+            deleteAt = new Date(Date.now() + 60000);
+
+            const bannerContainer = this.bannerContainer(
               infoEmoji,
+              memberEmoji,
               targetUser.id,
               true,
               'guild',
               globalBanner,
               guildBanner,
               componentIds,
+              deleteAt,
+              locale,
             );
 
             await interaction.update({components: [bannerContainer]});
@@ -136,34 +179,51 @@ export default class BannerCommand extends Command {
         },
       ]);
     } else {
-      const bannerContainer = await this.bannerContainer(
+      const bannerContainer = this.bannerContainer(
         infoEmoji,
+        memberEmoji,
         targetUser.id,
         false,
         'global',
         globalBanner,
         undefined,
         [],
+        deleteAt,
+        locale,
       );
 
-      await interaction.editReply({
+      const message = await interaction.editReply({
         components: [bannerContainer],
         allowedMentions: {},
       });
+
+      setTimeout(async () => {
+        await message.delete();
+      }, 60000);
     }
   }
 
-  private async bannerContainer(
+  private bannerContainer(
     infoEmoji: unknown,
+    memberEmoji: unknown,
     userId: string,
     hasGuildBanner: boolean,
     active: 'global' | 'guild',
     globalBanner: string,
     guildBanner: string | undefined,
     componentIds: string[],
-  ): Promise<ContainerBuilder> {
+    deleteAt: Date,
+    locale: string,
+  ): ContainerBuilder {
     const isGuild = active === 'guild' && hasGuildBanner;
     const bannerUrl = isGuild ? guildBanner! : globalBanner;
+
+    const titleText = `## ${memberEmoji} ${t('banner.title', locale, {user: userMention(userId)})}`;
+    const typeText = `**${t('banner.type_label', locale)}** ${inlineCode(isGuild ? t('banner.type.guild', locale) : t('banner.type.global', locale))}`;
+    const deleteText = t('banner.auto_delete', locale, {
+      emojo: String(infoEmoji),
+      timestamp: time(deleteAt, TimestampStyles.RelativeTime),
+    });
 
     if (hasGuildBanner && componentIds.length === 2) {
       return new ContainerBuilder()

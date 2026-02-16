@@ -22,6 +22,11 @@ const vi: LocaleMap = {
   'banner.description': 'Lấy ảnh bìa',
   'banner.option.user': 'Người dùng bạn chỉ định',
   'banner.failed': '{user} không có ảnh bìa.',
+  'banner.title': 'Ảnh bìa của {user}',
+  'banner.type.guild': 'Ảnh bìa trong máy chủ',
+  'banner.type.global': 'Ảnh bìa toàn Discord',
+  'banner.type_label': 'Loại:',
+  'banner.delete_at': '',
 
   'help.description': 'Hiển thị toàn bộ lệnh',
 
