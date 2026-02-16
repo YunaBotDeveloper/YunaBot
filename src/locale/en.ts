@@ -25,7 +25,12 @@ const en: LocaleMap = {
   'banner.type.guild': 'Server banner',
   'banner.type.global': 'Global Discord banner',
   'banner.type_label': 'Type:',
-  'banner.delete_at':
+  'banner.switch_to_guild': 'Click here to show server banner',
+  'banner.switch_to_global': 'Click here to show global Discord banner',
+  'banner.switch_button': 'Switch banner type',
+  'banner.download_hint': 'Click here to download banner',
+  'banner.download_button': 'Download',
+  'banner.auto_delete':
     '{emoji} This message will be automatically deleted {timestamp}',
 
   'help.description': 'Show all commands',

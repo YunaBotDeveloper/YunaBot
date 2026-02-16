@@ -246,8 +246,8 @@ export default class BannerCommand extends Command {
               textDisplay.setContent(
                 subtext(
                   active === 'global'
-                    ? 'Bấm vào đây để hiển thị ảnh bìa trong máy chủ'
-                    : 'Bấm vào đây để hiển thị ảnh bìa toàn Discord',
+                    ? t('banner.switch_to_guild', locale)
+                    : t('banner.switch_to_global', locale),
                 ),
               ),
             )
@@ -256,7 +256,7 @@ export default class BannerCommand extends Command {
                 .setCustomId(
                   active === 'global' ? componentIds[1] : componentIds[0],
                 )
-                .setLabel('Đổi loại ảnh bìa')
+                .setLabel(t('banner.switch_button', locale))
                 .setStyle(ButtonStyle.Success),
             ),
         )
@@ -264,28 +264,30 @@ export default class BannerCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để tải ảnh bìa')),
+              textDisplay.setContent(
+                subtext(t('banner.download_hint', locale)),
+              ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel(t('banner.download_button', locale))
                 .setStyle(ButtonStyle.Link)
                 .setURL(bannerUrl),
             ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(deleteText),
         );
     } else {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `## ${infoEmoji} Ảnh bìa của ${userMention(userId)}`,
-          ),
+          textDisplay.setContent(titleText),
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`,
-          ),
+          textDisplay.setContent(typeText),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -295,14 +297,20 @@ export default class BannerCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để tải ảnh bìa')),
+              textDisplay.setContent(
+                subtext(t('banner.download_hint', locale)),
+              ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel(t('banner.download_button', locale))
                 .setURL(bannerUrl)
                 .setStyle(ButtonStyle.Link),
             ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(deleteText),
         );
     }
   }
