@@ -26,7 +26,7 @@ const vi: LocaleMap = {
   'banner.type.guild': 'Ảnh bìa trong máy chủ',
   'banner.type.global': 'Ảnh bìa toàn Discord',
   'banner.type_label': 'Loại:',
-  'banner.delete_at': '',
+  'banner.delete_at': '{emoji} Tin nhắn này sẽ tự động xoá trong {timestamp}',
 
   'help.description': 'Hiển thị toàn bộ lệnh',
 

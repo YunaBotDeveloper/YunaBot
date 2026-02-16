@@ -229,15 +229,11 @@ export default class BannerCommand extends Command {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `## ${infoEmoji} Ảnh bìa của ${userMention(userId)}`,
-          ),
+          textDisplay.setContent(titleText),
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Loại:** ${inlineCode(isGuild ? 'Ảnh bìa trong máy chủ' : 'Ảnh bìa toàn Discord')}`,
-          ),
+          textDisplay.setContent(typeText),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
