@@ -41,13 +41,52 @@ const en: LocaleMap = {
   'nuke.option.reason': 'Reason for recreating the channel',
 
   'setup.description': 'Bot settings',
+  'setup.subcommand.prefix': 'Set up prefix',
   'setup.subcommand.log': 'Set up log channel',
   'setup.subcommand.verify': 'Set up user verification',
+
+  'setup.log.title': 'Log channel settings',
+  'setup.log.nuke_label': 'Channel recreation log',
+  'setup.log.nuke_placeholder': 'Select channel recreation log channel',
+  'setup.log.msgdelete_label': 'Message deletion log',
+  'setup.log.msgdelete_placeholder': 'Select message deletion log channel',
+  'setup.log.save': 'Save',
+  'setup.log.timeout': 'Timed out, please try again!',
+  'setup.log.saved': 'Log settings saved!',
+  'setup.log.saved_nuke': '- Channel recreation log: <#{channel}>',
+  'setup.log.saved_msgdelete': '- Message deletion log: <#{channel}>',
+  'setup.log.cleared': 'All log channels have been removed!',
+
+  'setup.prefix.title': 'Prefix settings',
+  'setup.prefix.current_label': 'Current prefix',
+  'setup.prefix.current_value': 'Current prefix: `{prefix}`',
+  'setup.prefix.input_label': 'New prefix',
+  'setup.prefix.input_placeholder': 'Enter a new prefix (max 10 characters)',
+  'setup.prefix.save': 'Save',
+  'setup.prefix.reset': 'Reset to default',
+  'setup.prefix.timeout': 'Timed out, please try again!',
+  'setup.prefix.saved': 'Prefix has been changed to: `{prefix}`',
+  'setup.prefix.reset_success': 'Prefix has been reset to default: `{prefix}`',
+  'setup.prefix.invalid': 'Invalid prefix! Must be 1-10 characters.',
+  'setup.prefix.modal_title': 'Change Prefix',
 
   'prefix.description': 'View or change the bot prefix for this server',
   'prefix.option.new_prefix':
     'The new prefix to set (leave empty to view current prefix)',
   'prefix.option.reset': 'Reset the prefix to default (!)',
+  'prefix.guild_only': 'This command can only be used in a server!',
+  'prefix.reset_title': 'Prefix Reset',
+  'prefix.reset_description':
+    'The prefix has been reset to the default: `{prefix}`',
+  'prefix.updated_title': 'Prefix Updated',
+  'prefix.updated_description': 'The prefix has been changed to: `{prefix}`',
+  'prefix.updated_example': '{prefix}help',
+  'prefix.current_title': 'Server Prefix',
+  'prefix.current_description':
+    'The current prefix for this server is: `{prefix}`',
+  'prefix.default_prefix': 'Default Prefix',
+  'prefix.example': 'Example',
+  'prefix.change_hint': 'Use /prefix <new_prefix> to change it',
 
   'test.description': 'Test feature',
 };

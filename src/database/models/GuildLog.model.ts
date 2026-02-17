@@ -14,6 +14,7 @@ class GuildLog extends Model<
 > {
   declare guildId: string;
   declare nukeLogId: string | null;
+  declare nukeLogWebhookURL: string | null;
   declare messageDeleteLogId: string | null;
 }
 
@@ -27,6 +28,11 @@ export function initGuildLogModel(sequelizeInstance: Sequelize): void {
         allowNull: false,
       },
       nukeLogId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
+      },
+      nukeLogWebhookURL: {
         type: DataTypes.STRING,
         allowNull: true,
         defaultValue: null,

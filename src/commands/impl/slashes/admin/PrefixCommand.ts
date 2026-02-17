@@ -6,33 +6,37 @@ import {
 import {Command} from '../../../Command';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import PrefixManager from '../../../PrefixManager';
+import {t, tMap} from '../../../../locale';
 
 export default class PrefixCommand extends Command {
   constructor() {
-    super('prefix', 'View or change the bot prefix for this server');
+    super('prefix', t('prefix.description'));
     this.data
+      .setDescriptionLocalizations(tMap('prefix.description'))
       .addStringOption(option =>
         option
           .setName('new_prefix')
-          .setDescription(
-            'The new prefix to set (leave empty to view current prefix)',
-          )
+          .setDescription(t('prefix.option.new_prefix'))
+          .setDescriptionLocalizations(tMap('prefix.option.new_prefix'))
           .setRequired(false)
           .setMaxLength(10),
       )
       .addBooleanOption(option =>
         option
           .setName('reset')
-          .setDescription('Reset the prefix to default (!)')
+          .setDescription(t('prefix.option.reset'))
+          .setDescriptionLocalizations(tMap('prefix.option.reset'))
           .setRequired(false),
       )
       .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
   }
 
   async run(interaction: ChatInputCommandInteraction): Promise<void> {
+    const locale = interaction.locale;
+
     if (!interaction.guild) {
       await interaction.reply({
-        content: '❌ This command can only be used in a server!',
+        content: `❌ ${t('prefix.guild_only', locale)}`,
         ephemeral: true,
       });
       return;
@@ -48,11 +52,11 @@ export default class PrefixCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setColor(EmbedColors.green())
-        .setTitle('✅ Prefix Reset')
+        .setTitle(`✅ ${t('prefix.reset_title', locale)}`)
         .setDescription(
-          `The prefix has been reset to the default: \`${defaultPrefix}\``,
+          t('prefix.reset_description', locale, {prefix: defaultPrefix}),
         )
-        .setFooter({text: `Changed by ${interaction.user.tag}`})
+        .setFooter({text: interaction.user.tag})
         .setTimestamp();
 
       await interaction.reply({embeds: [embed]});
@@ -64,14 +68,16 @@ export default class PrefixCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setColor(EmbedColors.green())
-        .setTitle('✅ Prefix Updated')
-        .setDescription(`The prefix has been changed to: \`${newPrefix}\``)
+        .setTitle(`✅ ${t('prefix.updated_title', locale)}`)
+        .setDescription(
+          t('prefix.updated_description', locale, {prefix: newPrefix}),
+        )
         .addFields({
-          name: 'Example',
-          value: `\`${newPrefix}help\``,
+          name: t('prefix.example', locale),
+          value: `\`${t('prefix.updated_example', locale, {prefix: newPrefix})}\``,
           inline: true,
         })
-        .setFooter({text: `Changed by ${interaction.user.tag}`})
+        .setFooter({text: interaction.user.tag})
         .setTimestamp();
 
       await interaction.reply({embeds: [embed]});
@@ -83,15 +89,23 @@ export default class PrefixCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setColor(EmbedColors.blue())
-      .setTitle('📝 Server Prefix')
+      .setTitle(`📝 ${t('prefix.current_title', locale)}`)
       .setDescription(
-        `The current prefix for this server is: \`${currentPrefix}\``,
+        t('prefix.current_description', locale, {prefix: currentPrefix}),
       )
       .addFields(
-        {name: 'Default Prefix', value: `\`${defaultPrefix}\``, inline: true},
-        {name: 'Example', value: `\`${currentPrefix}help\``, inline: true},
+        {
+          name: t('prefix.default_prefix', locale),
+          value: `\`${defaultPrefix}\``,
+          inline: true,
+        },
+        {
+          name: t('prefix.example', locale),
+          value: `\`${t('prefix.updated_example', locale, {prefix: currentPrefix})}\``,
+          inline: true,
+        },
       )
-      .setFooter({text: 'Use /prefix <new_prefix> to change it'})
+      .setFooter({text: t('prefix.change_hint', locale)})
       .setTimestamp();
 
     await interaction.reply({embeds: [embed]});
