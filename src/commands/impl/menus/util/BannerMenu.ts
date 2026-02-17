@@ -76,14 +76,16 @@ export default class BannerMenu extends ContextMenuCommand {
         `banner_global_${interaction.id}`,
         `banner_guild_${interaction.id}`,
       ];
-      const bannerContainer = await this.bannerContainer(
+      const bannerContainer = this.bannerContainer(
         infoEmoji,
+        memberEmoji,
         targetUser.id,
         true,
         'guild',
         globalBanner,
         guildBanner,
         componentIds,
+        locale,
       );
 
       await interaction.editReply({
@@ -94,14 +96,16 @@ export default class BannerMenu extends ContextMenuCommand {
         {
           customId: componentIds[0],
           handler: async (interaction: ButtonInteraction) => {
-            const bannerContainer = await this.bannerContainer(
+            const bannerContainer = this.bannerContainer(
               infoEmoji,
+              memberEmoji,
               targetUser.id,
               true,
               'global',
               globalBanner,
               guildBanner,
               componentIds,
+              locale,
             );
 
             await interaction.update({components: [bannerContainer]});
@@ -112,14 +116,16 @@ export default class BannerMenu extends ContextMenuCommand {
         {
           customId: componentIds[1],
           handler: async (interaction: ButtonInteraction) => {
-            const bannerContainer = await this.bannerContainer(
+            const bannerContainer = this.bannerContainer(
               infoEmoji,
+              memberEmoji,
               targetUser.id,
               true,
               'guild',
               globalBanner,
               guildBanner,
               componentIds,
+              locale,
             );
 
             await interaction.update({components: [bannerContainer]});
@@ -129,14 +135,16 @@ export default class BannerMenu extends ContextMenuCommand {
         },
       ]);
     } else {
-      const bannerContainer = await this.bannerContainer(
+      const bannerContainer = this.bannerContainer(
         infoEmoji,
+        memberEmoji,
         targetUser.id,
         false,
         'global',
         globalBanner,
         undefined,
         [],
+        locale,
       );
 
       await interaction.editReply({
