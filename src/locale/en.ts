@@ -18,6 +18,7 @@ const en: LocaleMap = {
   'avatar.auto_delete':
     '{emoji} This message will be automatically deleted {timestamp}',
 
+  'banner.menu.name': 'Get user avatar',
   'banner.description': 'Get user banner',
   'banner.option.user': 'The user you want to target',
   'banner.failed': "{user} doesn't have banner.",

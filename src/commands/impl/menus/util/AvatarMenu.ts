@@ -15,13 +15,13 @@ import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
-import {t} from '../../../../locale';
+import {t, tMap} from '../../../../locale';
 
 export default class AvatarMenu extends ContextMenuCommand {
   constructor() {
     super(t('avatar.menu.name'), ApplicationCommandType.User);
 
-    this.data.setNameLocalization('vi', t('avatar.menu.name', 'vi'));
+    this.data.setNameLocalizations(tMap('avatar.menu.name'));
 
     this.advancedOptions.cooldown = 10000;
   }

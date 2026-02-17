@@ -19,6 +19,7 @@ const vi: LocaleMap = {
   'avatar.download_button': 'Tải xuống',
   'avatar.auto_delete': '{emoji} Tin nhắn này sẽ tự động xoá trong {timestamp}',
 
+  'banner.menu.name': 'Lấy ảnh bìa',
   'banner.description': 'Lấy ảnh bìa',
   'banner.option.user': 'Người dùng bạn chỉ định',
   'banner.failed': '{user} không có ảnh bìa.',
