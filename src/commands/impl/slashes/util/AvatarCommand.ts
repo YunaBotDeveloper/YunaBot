@@ -101,7 +101,7 @@ export default class AvatarCommand extends Command {
               componentIds[0],
               componentIds[1],
             ]);
-            await message.delete();
+            await message.delete().catch(() => null);
           },
           handler: async (interaction: ButtonInteraction): Promise<void> => {
             ComponentManager.getComponentManager().unregister(componentIds[1]);
@@ -134,7 +134,7 @@ export default class AvatarCommand extends Command {
               componentIds[0],
               componentIds[1],
             ]);
-            await message.delete();
+            await message.delete().catch(() => null);
           },
           handler: async (interaction: ButtonInteraction) => {
             ComponentManager.getComponentManager().unregister(componentIds[0]);
@@ -180,7 +180,7 @@ export default class AvatarCommand extends Command {
       });
 
       setTimeout(async () => {
-        await message.delete();
+        await message.delete().catch(() => null);
       }, 60000);
     }
   }

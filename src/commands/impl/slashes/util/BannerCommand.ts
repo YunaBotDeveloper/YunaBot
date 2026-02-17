@@ -69,9 +69,13 @@ export default class BannerCommand extends Command {
         t('banner.failed', locale, {user: userMention(targetUser.id)}),
       );
 
-      await interaction.editReply({
+      const message = await interaction.editReply({
         components: [errorContainer],
       });
+
+      setTimeout(async () => {
+        await message.delete().catch(() => null);
+      }, 5000);
 
       return;
     }
@@ -118,7 +122,7 @@ export default class BannerCommand extends Command {
               componentIds[1],
             ]);
 
-            await message.delete();
+            await message.delete().catch(() => null);
           },
           handler: async (interaction: ButtonInteraction) => {
             ComponentManager.getComponentManager().unregister(componentIds[1]);
@@ -152,7 +156,7 @@ export default class BannerCommand extends Command {
               componentIds[1],
             ]);
 
-            await message.delete();
+            await message.delete().catch(() => null);
           },
           handler: async (interaction: ButtonInteraction) => {
             ComponentManager.getComponentManager().unregister(componentIds[0]);
@@ -198,7 +202,7 @@ export default class BannerCommand extends Command {
       });
 
       setTimeout(async () => {
-        await message.delete();
+        await message.delete().catch(() => null);
       }, 60000);
     }
   }
