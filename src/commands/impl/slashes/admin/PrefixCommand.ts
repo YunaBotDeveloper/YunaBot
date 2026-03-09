@@ -6,37 +6,31 @@ import {
 import {Command} from '../../../Command';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import PrefixManager from '../../../PrefixManager';
-import {t, tMap} from '../../../../locale';
 
 export default class PrefixCommand extends Command {
   constructor() {
-    super('prefix', t('prefix.description'));
+    super('prefix', 'Xem hoặc thay đổi prefix cho bot trong máy chủ này');
     this.data
-      .setDescriptionLocalizations(tMap('prefix.description'))
       .addStringOption(option =>
         option
           .setName('new_prefix')
-          .setDescription(t('prefix.option.new_prefix'))
-          .setDescriptionLocalizations(tMap('prefix.option.new_prefix'))
+          .setDescription('Prefix mới (để trống để xem prefix hiện tại)')
           .setRequired(false)
           .setMaxLength(10),
       )
       .addBooleanOption(option =>
         option
           .setName('reset')
-          .setDescription(t('prefix.option.reset'))
-          .setDescriptionLocalizations(tMap('prefix.option.reset'))
+          .setDescription('Đặt lại prefix về mặc định (!)')
           .setRequired(false),
       )
       .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
   }
 
   async run(interaction: ChatInputCommandInteraction): Promise<void> {
-    const locale = interaction.locale;
-
     if (!interaction.guild) {
       await interaction.reply({
-        content: `❌ ${t('prefix.guild_only', locale)}`,
+        content: '❌ Lệnh này chỉ có thể dùng trong máy chủ!',
         ephemeral: true,
       });
       return;
@@ -52,10 +46,8 @@ export default class PrefixCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setColor(EmbedColors.green())
-        .setTitle(`✅ ${t('prefix.reset_title', locale)}`)
-        .setDescription(
-          t('prefix.reset_description', locale, {prefix: defaultPrefix}),
-        )
+        .setTitle('✅ Đã đặt lại Prefix')
+        .setDescription(`Prefix đã được đặt lại về mặc định: \`${defaultPrefix}\``)
         .setFooter({text: interaction.user.tag})
         .setTimestamp();
 
@@ -68,13 +60,11 @@ export default class PrefixCommand extends Command {
 
       const embed = new EmbedBuilder()
         .setColor(EmbedColors.green())
-        .setTitle(`✅ ${t('prefix.updated_title', locale)}`)
-        .setDescription(
-          t('prefix.updated_description', locale, {prefix: newPrefix}),
-        )
+        .setTitle('✅ Đã cập nhật Prefix')
+        .setDescription(`Prefix đã được thay đổi thành: \`${newPrefix}\``)
         .addFields({
-          name: t('prefix.example', locale),
-          value: `\`${t('prefix.updated_example', locale, {prefix: newPrefix})}\``,
+          name: 'Ví dụ',
+          value: `\`${newPrefix}help\``,
           inline: true,
         })
         .setFooter({text: interaction.user.tag})
@@ -89,23 +79,21 @@ export default class PrefixCommand extends Command {
 
     const embed = new EmbedBuilder()
       .setColor(EmbedColors.blue())
-      .setTitle(`📝 ${t('prefix.current_title', locale)}`)
-      .setDescription(
-        t('prefix.current_description', locale, {prefix: currentPrefix}),
-      )
+      .setTitle('📝 Prefix máy chủ')
+      .setDescription(`Prefix hiện tại của máy chủ này là: \`${currentPrefix}\``)
       .addFields(
         {
-          name: t('prefix.default_prefix', locale),
+          name: 'Prefix mặc định',
           value: `\`${defaultPrefix}\``,
           inline: true,
         },
         {
-          name: t('prefix.example', locale),
-          value: `\`${t('prefix.updated_example', locale, {prefix: currentPrefix})}\``,
+          name: 'Ví dụ',
+          value: `\`${currentPrefix}help\``,
           inline: true,
         },
       )
-      .setFooter({text: t('prefix.change_hint', locale)})
+      .setFooter({text: 'Dùng /prefix <prefix_mới> để thay đổi'})
       .setTimestamp();
 
     await interaction.reply({embeds: [embed]});

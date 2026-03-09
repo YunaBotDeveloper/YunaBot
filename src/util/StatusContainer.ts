@@ -1,6 +1,5 @@
 import {ContainerBuilder} from 'discord.js';
 import {EmbedColors} from './EmbedColors';
-import {t} from '../locale';
 
 export class StatusContainer {
   static success(emoji: string | undefined, message: string): ContainerBuilder {
@@ -19,13 +18,11 @@ export class StatusContainer {
       );
   }
 
-  static loading(locale: string, emoji?: string | undefined): ContainerBuilder {
+  static loading(emoji?: string | undefined): ContainerBuilder {
     return new ContainerBuilder()
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `## ${emoji ?? '⏳'} ${t('container.loading', locale)}`,
-        ),
+        textDisplay.setContent(`## ${emoji ?? '⏳'} Đang xử lý...`),
       );
   }
 }

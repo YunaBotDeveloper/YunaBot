@@ -21,42 +21,34 @@ import {EmbedColors} from '../../../../util/EmbedColors';
 import GuildLog from '../../../../database/models/GuildLog.model';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
-import {t, tMap} from '../../../../locale';
 import PrefixManager from '../../../PrefixManager';
 
 export default class SetupCommand extends Command {
   constructor() {
-    super('setup', t('setup.description'));
-
-    this.data.setDescriptionLocalizations(tMap('setup.description'));
+    super('setup', 'Cài đặt cho bot');
 
     this.advancedOptions.cooldown = 30000;
 
     this.data.addSubcommand(subcommand =>
       subcommand
         .setName('log')
-        .setDescription(t('setup.subcommand.log'))
-        .setDescriptionLocalizations(tMap('setup.subcommand.log')),
+        .setDescription('Cài đặt kênh nhật ký'),
     );
 
     this.data.addSubcommand(subcommand =>
       subcommand
         .setName('prefix')
-        .setDescription(t('setup.subcommand.prefix'))
-        .setDescriptionLocalizations(tMap('setup.subcommand.prefix')),
+        .setDescription('Cài đặt prefix'),
     );
 
     this.data.addSubcommand(subcommand =>
       subcommand
         .setName('verify')
-        .setDescription(t('setup.subcommand.verify'))
-        .setDescriptionLocalizations(tMap('setup.subcommand.verify')),
+        .setDescription('Cài đặt xác minh người dùng'),
     );
   }
 
   async run(interaction: ChatInputCommandInteraction): Promise<void> {
-    const locale = interaction.locale;
-
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const manageServerEmoji =
@@ -64,7 +56,7 @@ export default class SetupCommand extends Command {
     const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
 
-    const loadingContainer = StatusContainer.loading(locale, loadingEmoji);
+    const loadingContainer = StatusContainer.loading(loadingEmoji);
 
     await interaction.reply({
       components: [loadingContainer],
@@ -102,7 +94,7 @@ export default class SetupCommand extends Command {
           .setChannelTypes(ChannelType.GuildText)
           .setMaxValues(1)
           .setMinValues(0)
-          .setPlaceholder(t('setup.log.nuke_placeholder', locale));
+          .setPlaceholder('Chọn kênh nhật ký tạo lại kênh');
 
         if (guildLog.nukeLogId) {
           const ch = await interaction.guild?.channels
@@ -122,7 +114,7 @@ export default class SetupCommand extends Command {
           .setChannelTypes(ChannelType.GuildText)
           .setMaxValues(1)
           .setMinValues(0)
-          .setPlaceholder(t('setup.log.msgdelete_placeholder', locale));
+          .setPlaceholder('Chọn kênh nhật ký xoá tin nhắn');
 
         if (guildLog.messageDeleteLogId) {
           const ch = await interaction.guild?.channels
@@ -141,20 +133,18 @@ export default class SetupCommand extends Command {
         const logPanelContainer = new ContainerBuilder()
           .setAccentColor(EmbedColors.yellow())
           .addTextDisplayComponents(td =>
-            td.setContent(
-              `## ${manageServerEmoji} ${t('setup.log.title', locale)}`,
-            ),
+            td.setContent(`## ${manageServerEmoji} Cài đặt kênh nhật ký`),
           )
           .addSeparatorComponents(s => s)
           .addTextDisplayComponents(td =>
-            td.setContent(`**${t('setup.log.nuke_label', locale)}**`),
+            td.setContent('**Nhật ký tạo lại kênh**'),
           )
           .addActionRowComponents<ChannelSelectMenuBuilder>(row =>
             row.addComponents(nukeLogSelect),
           )
           .addSeparatorComponents(s => s)
           .addTextDisplayComponents(td =>
-            td.setContent(`**${t('setup.log.msgdelete_label', locale)}**`),
+            td.setContent('**Nhật ký xoá tin nhắn**'),
           )
           .addActionRowComponents<ChannelSelectMenuBuilder>(row =>
             row.addComponents(msgDeleteLogSelect),
@@ -164,7 +154,7 @@ export default class SetupCommand extends Command {
             row.addComponents(
               new ButtonBuilder()
                 .setCustomId('setup-log-save')
-                .setLabel(t('setup.log.save', locale))
+                .setLabel('Lưu')
                 .setStyle(ButtonStyle.Success),
             ),
           );
@@ -180,7 +170,7 @@ export default class SetupCommand extends Command {
 
         const timeoutContainer = StatusContainer.failed(
           failedEmoji,
-          t('setup.log.timeout', locale),
+          'Đã hết thời gian chờ, vui lòng thử lại!',
         );
 
         const cleanupAll = () => {
@@ -248,24 +238,18 @@ export default class SetupCommand extends Command {
               // Build summary
               const lines: string[] = [];
               if (pending.nukeLogId) {
-                lines.push(
-                  t('setup.log.saved_nuke', locale, {
-                    channel: pending.nukeLogId,
-                  }),
-                );
+                lines.push(`- Nhật ký tạo lại kênh: <#${pending.nukeLogId}>`);
               }
               if (pending.messageDeleteLogId) {
                 lines.push(
-                  t('setup.log.saved_msgdelete', locale, {
-                    channel: pending.messageDeleteLogId,
-                  }),
+                  `- Nhật ký xoá tin nhắn: <#${pending.messageDeleteLogId}>`,
                 );
               }
 
               const summary =
                 lines.length > 0
-                  ? `${t('setup.log.saved', locale)}\n${lines.join('\n')}`
-                  : t('setup.log.cleared', locale);
+                  ? `Đã lưu cài đặt nhật ký!\n${lines.join('\n')}`
+                  : 'Đã xoá tất cả kênh nhật ký!';
 
               const resultContainer = StatusContainer.success(
                 successEmoji,
@@ -295,26 +279,22 @@ export default class SetupCommand extends Command {
         const prefixPanelContainer = new ContainerBuilder()
           .setAccentColor(EmbedColors.yellow())
           .addTextDisplayComponents(td =>
-            td.setContent(
-              `## ${manageServerEmoji} ${t('setup.prefix.title', locale)}`,
-            ),
+            td.setContent(`## ${manageServerEmoji} Cài đặt prefix`),
           )
           .addSeparatorComponents(s => s)
           .addTextDisplayComponents(td =>
-            td.setContent(
-              t('setup.prefix.current_value', locale, {prefix: currentPrefix}),
-            ),
+            td.setContent(`Prefix hiện tại: \`${currentPrefix}\``),
           )
           .addSeparatorComponents(s => s)
           .addActionRowComponents<ButtonBuilder>(row =>
             row.addComponents(
               new ButtonBuilder()
                 .setCustomId('setup-prefix-change')
-                .setLabel(t('setup.prefix.save', locale))
+                .setLabel('Lưu')
                 .setStyle(ButtonStyle.Primary),
               new ButtonBuilder()
                 .setCustomId('setup-prefix-reset')
-                .setLabel(t('setup.prefix.reset', locale))
+                .setLabel('Đặt lại mặc định')
                 .setStyle(ButtonStyle.Secondary),
             ),
           );
@@ -330,7 +310,7 @@ export default class SetupCommand extends Command {
 
         const prefixTimeoutContainer = StatusContainer.failed(
           failedEmoji,
-          t('setup.prefix.timeout', locale),
+          'Đã hết thời gian chờ, vui lòng thử lại!',
         );
 
         const prefixCleanupAll = () => {
@@ -355,12 +335,12 @@ export default class SetupCommand extends Command {
             handler: async (btnInteraction: ButtonInteraction) => {
               const modal = new ModalBuilder()
                 .setCustomId('setup-prefix-modal')
-                .setTitle(t('setup.prefix.modal_title', locale));
+                .setTitle('Đổi Prefix');
 
               const prefixInput = new TextInputBuilder()
                 .setCustomId('setup-prefix-input')
-                .setLabel(t('setup.prefix.input_label', locale))
-                .setPlaceholder(t('setup.prefix.input_placeholder', locale))
+                .setLabel('Prefix mới')
+                .setPlaceholder('Nhập prefix mới (tối đa 10 ký tự)')
                 .setStyle(TextInputStyle.Short)
                 .setMaxLength(10)
                 .setMinLength(1)
@@ -392,9 +372,7 @@ export default class SetupCommand extends Command {
 
               const resultContainer = StatusContainer.success(
                 successEmoji,
-                t('setup.prefix.reset_success', locale, {
-                  prefix: defaultPrefix,
-                }),
+                `Đã đặt lại prefix về mặc định: \`${defaultPrefix}\``,
               );
 
               await btnInteraction.editReply({
@@ -417,7 +395,7 @@ export default class SetupCommand extends Command {
               if (!newPrefix || newPrefix.length > 10) {
                 const invalidContainer = StatusContainer.failed(
                   failedEmoji,
-                  t('setup.prefix.invalid', locale),
+                  'Prefix không hợp lệ! Phải từ 1-10 ký tự.',
                 );
 
                 await modalInteraction.editReply({
@@ -434,7 +412,7 @@ export default class SetupCommand extends Command {
 
               const resultContainer = StatusContainer.success(
                 successEmoji,
-                t('setup.prefix.saved', locale, {prefix: newPrefix}),
+                `Đã thay đổi prefix thành: \`${newPrefix}\``,
               );
 
               await modalInteraction.editReply({

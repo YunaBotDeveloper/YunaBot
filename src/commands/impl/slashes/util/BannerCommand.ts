@@ -16,35 +16,29 @@ import {StatusContainer} from '../../../../util/StatusContainer';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {EmbedColors} from '../../../../util/EmbedColors';
-import {t, tMap} from '../../../../locale';
 
 export default class BannerCommand extends Command {
   constructor() {
-    super('banner', t('banner.description'));
-
-    this.data.setDescriptionLocalizations(tMap('banner.description'));
+    super('banner', 'Lấy ảnh bìa');
 
     this.advancedOptions.cooldown = 10000;
 
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription(t('banner.option.user'))
-        .setDescriptionLocalizations(tMap('banner.option.user'))
+        .setDescription('Người dùng bạn chỉ định')
         .setRequired(false),
     );
   }
 
   async run(interaction: ChatInputCommandInteraction) {
-    const locale = interaction.locale;
-
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const memberEmoji = await client.api.emojiAPI.getEmojiByName('memberEmoji');
 
-    const loadingContainer = StatusContainer.loading(locale, loadingEmoji);
+    const loadingContainer = StatusContainer.loading(loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
       flags: [MessageFlags.IsComponentsV2],
@@ -66,7 +60,7 @@ export default class BannerCommand extends Command {
     if (!globalBanner) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        t('banner.failed', locale, {user: userMention(targetUser.id)}),
+        `${userMention(targetUser.id)} không có ảnh bìa.`,
       );
 
       const message = await interaction.editReply({
@@ -105,7 +99,6 @@ export default class BannerCommand extends Command {
         guildBanner,
         componentIds,
         deleteAt,
-        locale,
       );
 
       const message = await interaction.editReply({
@@ -139,7 +132,6 @@ export default class BannerCommand extends Command {
               guildBanner,
               componentIds,
               deleteAt,
-              locale,
             );
 
             await interaction.update({components: [bannerContainer]});
@@ -173,7 +165,6 @@ export default class BannerCommand extends Command {
               guildBanner,
               componentIds,
               deleteAt,
-              locale,
             );
 
             await interaction.update({components: [bannerContainer]});
@@ -193,7 +184,6 @@ export default class BannerCommand extends Command {
         undefined,
         [],
         deleteAt,
-        locale,
       );
 
       const message = await interaction.editReply({
@@ -217,17 +207,13 @@ export default class BannerCommand extends Command {
     guildBanner: string | undefined,
     componentIds: string[],
     deleteAt: Date,
-    locale: string,
   ): ContainerBuilder {
     const isGuild = active === 'guild' && hasGuildBanner;
     const bannerUrl = isGuild ? guildBanner! : globalBanner;
 
-    const titleText = `## ${memberEmoji} ${t('banner.title', locale, {user: userMention(userId)})}`;
-    const typeText = `**${t('banner.type_label', locale)}** ${inlineCode(isGuild ? t('banner.type.guild', locale) : t('banner.type.global', locale))}`;
-    const deleteText = t('banner.auto_delete', locale, {
-      emojo: String(infoEmoji),
-      timestamp: time(deleteAt, TimestampStyles.RelativeTime),
-    });
+    const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
+    const typeText = `**Loại:** ${inlineCode(isGuild ? 'Ảnh bìa trong máy chủ' : 'Ảnh bìa toàn Discord')}`;
+    const deleteText = `${String(infoEmoji)} Tin nhắn này sẽ tự động xoá trong ${time(deleteAt, TimestampStyles.RelativeTime)}`;
 
     if (hasGuildBanner && componentIds.length === 2) {
       return new ContainerBuilder()
@@ -250,8 +236,8 @@ export default class BannerCommand extends Command {
               textDisplay.setContent(
                 subtext(
                   active === 'global'
-                    ? t('banner.switch_to_guild', locale)
-                    : t('banner.switch_to_global', locale),
+                    ? 'Bấm vào đây để hiển thị ảnh bìa trong máy chủ'
+                    : 'Bấm vào đây để hiển thị ảnh bìa toàn Discord',
                 ),
               ),
             )
@@ -260,7 +246,7 @@ export default class BannerCommand extends Command {
                 .setCustomId(
                   active === 'global' ? componentIds[1] : componentIds[0],
                 )
-                .setLabel(t('banner.switch_button', locale))
+                .setLabel('Đổi loại ảnh bìa')
                 .setStyle(ButtonStyle.Success),
             ),
         )
@@ -269,12 +255,12 @@ export default class BannerCommand extends Command {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                subtext(t('banner.download_hint', locale)),
+                subtext('Bấm vào đây để tải ảnh bìa'),
               ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel(t('banner.download_button', locale))
+                .setLabel('Tải xuống')
                 .setStyle(ButtonStyle.Link)
                 .setURL(bannerUrl),
             ),
@@ -302,12 +288,12 @@ export default class BannerCommand extends Command {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                subtext(t('banner.download_hint', locale)),
+                subtext('Bấm vào đây để tải ảnh bìa'),
               ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel(t('banner.download_button', locale))
+                .setLabel('Tải xuống')
                 .setURL(bannerUrl)
                 .setStyle(ButtonStyle.Link),
             ),

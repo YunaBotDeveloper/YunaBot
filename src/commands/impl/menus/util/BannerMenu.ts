@@ -15,27 +15,22 @@ import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
-import {t, tMap} from '../../../../locale';
 
 export default class BannerMenu extends ContextMenuCommand {
   constructor() {
-    super(t('banner.menu.name'), ApplicationCommandType.User);
-
-    this.data.setNameLocalizations(tMap('banner.menu.name'));
+    super('Lấy ảnh bìa', ApplicationCommandType.User);
 
     this.advancedOptions.cooldown = 10000;
   }
 
   async run(interaction: UserContextMenuCommandInteraction): Promise<void> {
-    const locale = interaction.locale;
-
     const client = interaction.client as ExtendedClient;
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const memberEmoji = await client.api.emojiAPI.getEmojiByName('member');
 
-    const loadingContainer = StatusContainer.loading(locale, loadingEmoji);
+    const loadingContainer = StatusContainer.loading(loadingEmoji);
     await interaction.reply({
       components: [loadingContainer],
       flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
@@ -55,7 +50,7 @@ export default class BannerMenu extends ContextMenuCommand {
     if (!globalBanner) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        t('banner.failed', locale, {user: userMention(targetUser.id)}),
+        `${userMention(targetUser.id)} không có ảnh bìa.`,
       );
       await interaction.editReply({
         components: [errorContainer],
@@ -85,7 +80,6 @@ export default class BannerMenu extends ContextMenuCommand {
         globalBanner,
         guildBanner,
         componentIds,
-        locale,
       );
 
       await interaction.editReply({
@@ -105,7 +99,6 @@ export default class BannerMenu extends ContextMenuCommand {
               globalBanner,
               guildBanner,
               componentIds,
-              locale,
             );
 
             await interaction.update({components: [bannerContainer]});
@@ -125,7 +118,6 @@ export default class BannerMenu extends ContextMenuCommand {
               globalBanner,
               guildBanner,
               componentIds,
-              locale,
             );
 
             await interaction.update({components: [bannerContainer]});
@@ -144,7 +136,6 @@ export default class BannerMenu extends ContextMenuCommand {
         globalBanner,
         undefined,
         [],
-        locale,
       );
 
       await interaction.editReply({
@@ -163,13 +154,12 @@ export default class BannerMenu extends ContextMenuCommand {
     globalBanner: string,
     guildBanner: string | undefined,
     componentIds: string[],
-    locale: string,
   ): ContainerBuilder {
     const isGuild = active === 'guild' && hasGuildBanner;
     const bannerUrl = isGuild ? guildBanner! : globalBanner;
 
-    const titleText = `## ${memberEmoji} ${t('banner.title', locale, {user: userMention(userId)})}`;
-    const typeText = `**${t('banner.type_label', locale)}** ${inlineCode(isGuild ? t('banner.type.guild', locale) : t('banner.type.global', locale))}`;
+    const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
+    const typeText = `**Loại:** ${inlineCode(isGuild ? 'Ảnh bìa trong máy chủ' : 'Ảnh bìa toàn Discord')}`;
 
     if (hasGuildBanner && componentIds.length === 2) {
       return new ContainerBuilder()
@@ -192,8 +182,8 @@ export default class BannerMenu extends ContextMenuCommand {
               textDisplay.setContent(
                 subtext(
                   active === 'global'
-                    ? t('banner.switch_to_guild')
-                    : t('banner.switch_to_global'),
+                    ? 'Bấm vào đây để hiển thị ảnh bìa trong máy chủ'
+                    : 'Bấm vào đây để hiển thị ảnh bìa toàn Discord',
                 ),
               ),
             )
@@ -202,7 +192,7 @@ export default class BannerMenu extends ContextMenuCommand {
                 .setCustomId(
                   active === 'global' ? componentIds[1] : componentIds[0],
                 )
-                .setLabel(t('banner.switch_button'))
+                .setLabel('Đổi loại ảnh bìa')
                 .setStyle(ButtonStyle.Success),
             ),
         )
@@ -210,11 +200,11 @@ export default class BannerMenu extends ContextMenuCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext(t('banner.download_hint'))),
+              textDisplay.setContent(subtext('Bấm vào đây để tải ảnh bìa')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel(t('banner.download_button'))
+                .setLabel('Tải xuống')
                 .setStyle(ButtonStyle.Link)
                 .setURL(bannerUrl),
             ),
@@ -238,12 +228,12 @@ export default class BannerMenu extends ContextMenuCommand {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                subtext(t('banner.download_hint', locale)),
+                subtext('Bấm vào đây để tải ảnh bìa'),
               ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel(t('banner.download_button', locale))
+                .setLabel('Tải xuống')
                 .setURL(bannerUrl)
                 .setStyle(ButtonStyle.Link),
             ),
