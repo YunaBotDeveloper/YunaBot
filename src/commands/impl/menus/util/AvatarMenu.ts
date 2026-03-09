@@ -103,7 +103,9 @@ export default class AvatarMenu extends ContextMenuCommand {
             ),
         )
         .addSeparatorComponents(separator => separator)
-        .addTextDisplayComponents(textDisplay => textDisplay.setContent('\u200b'))
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent('\u200b'),
+        )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(

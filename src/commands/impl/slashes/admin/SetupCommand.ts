@@ -30,15 +30,11 @@ export default class SetupCommand extends Command {
     this.advancedOptions.cooldown = 30000;
 
     this.data.addSubcommand(subcommand =>
-      subcommand
-        .setName('log')
-        .setDescription('Cài đặt kênh nhật ký'),
+      subcommand.setName('log').setDescription('Cài đặt kênh nhật ký'),
     );
 
     this.data.addSubcommand(subcommand =>
-      subcommand
-        .setName('prefix')
-        .setDescription('Cài đặt prefix'),
+      subcommand.setName('prefix').setDescription('Cài đặt prefix'),
     );
 
     this.data.addSubcommand(subcommand =>

@@ -58,7 +58,6 @@ class Config {
     if (!this.config.bot.token) {
       throw new Error('Missing "bot.token" in config.yaml');
     }
-
   }
 
   private createExampleConfig(targetPath: string): void {

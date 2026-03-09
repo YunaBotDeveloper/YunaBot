@@ -116,10 +116,14 @@ export default class BannerMenu extends ContextMenuCommand {
             ),
         )
         .addSeparatorComponents(separator => separator)
-        .addTextDisplayComponents(textDisplay => textDisplay.setContent('\u200b'))
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent('\u200b'),
+        )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(`**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`),
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`,
+          ),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -158,9 +162,7 @@ export default class BannerMenu extends ContextMenuCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh bìa'),
-              ),
+              textDisplay.setContent(subtext('Bấm vào đây để tải ảnh bìa')),
             )
             .setButtonAccessory(button =>
               button

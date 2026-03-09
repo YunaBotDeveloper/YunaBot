@@ -1,46 +1,104 @@
-import {Command} from '../../../Command';
 import {
   ButtonStyle,
-  ChatInputCommandInteraction,
   ContainerBuilder,
   inlineCode,
+  Message,
   MessageFlags,
   subtext,
   time,
   TimestampStyles,
   userMention,
 } from 'discord.js';
+import {PrefixCommand} from '../../../PrefixCommand';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
 
-export default class AvatarCommand extends Command {
+export default class AvatarCommand extends PrefixCommand {
   constructor() {
-    super('avatar', 'Lấy ảnh đại diện');
+    super('avatar', ['av']);
 
-    this.advancedOptions.cooldown = 10000;
-
-    this.data.addUserOption(option =>
-      option
-        .setName('user')
-        .setDescription('Người dùng bạn chỉ định')
-        .setRequired(false),
-    );
+    this.cooldown = 10000;
   }
 
-  async run(interaction: ChatInputCommandInteraction): Promise<void> {
-    const client = interaction.client as ExtendedClient;
+  async run(
+    args: string[],
+    context: {message: Message; client: ExtendedClient},
+  ) {
+    const {message, client} = context;
+
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const memberEmoji = await client.api.emojiAPI.getEmojiByName('member');
+    const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
+
     const loadingContainer = StatusContainer.loading(loadingEmoji);
-    await interaction.reply({
+
+    const ogmessage = await message.reply({
+      content: '',
       components: [loadingContainer],
       flags: [MessageFlags.IsComponentsV2],
     });
 
-    const targetUser = interaction.options.getUser('user') || interaction.user;
-    const member = interaction.guild?.members.cache.get(targetUser.id);
+    let targetUserId: string | undefined;
+    const userInput = args[0];
+
+    if (userInput) {
+      const mentionMatch = userInput.match(/^<@!?(\d+)>$/);
+      if (mentionMatch) {
+        targetUserId = mentionMatch[1];
+      } else if (/^\d+$/.test(userInput)) {
+        targetUserId = userInput;
+      } else if (message.guild) {
+        const normalizedInput = userInput.toLowerCase();
+        const foundMember = message.guild.members.cache.find(
+          member =>
+            member.user.username.toLowerCase() === normalizedInput ||
+            member.user.tag.toLowerCase() === normalizedInput ||
+            member.displayName.toLowerCase() === normalizedInput,
+        );
+        if (foundMember) {
+          targetUserId = foundMember.user.id;
+        }
+      }
+
+      if (!targetUserId) {
+        const errorContainer = StatusContainer.failed(
+          failedEmoji,
+          'Người dùng không hợp lệ!',
+        );
+
+        await ogmessage.edit({
+          components: [errorContainer],
+          flags: [MessageFlags.IsComponentsV2],
+        });
+
+        setTimeout(async () => {
+            await ogmessage.delete().catch(() => null);
+        }, 10000);
+
+        return;
+      }
+    } else {
+      targetUserId = message.author.id;
+    }
+
+    const targetUser = await client.users.fetch(targetUserId).catch(() => null);
+    if (!targetUser) {
+      const errorContainer = StatusContainer.failed(
+        failedEmoji,
+        'Người dùng không hợp lệ!',
+      );
+
+      await ogmessage.edit({
+        components: [errorContainer],
+        flags: [MessageFlags.IsComponentsV2],
+      });
+
+      return;
+    }
+
+    const member = message.guild?.members.cache.get(targetUser.id);
 
     const isGlobalAvatarAnimated = targetUser.avatar?.startsWith('a_');
     const isGuildAvatarAnimated = member?.avatar?.startsWith('a_');
@@ -69,13 +127,15 @@ export default class AvatarCommand extends Command {
       deleteAt,
     );
 
-    const message = await interaction.editReply({
+    const replyMessage = await ogmessage.edit({
+      content: '',
       components: [avatarContainer],
+      flags: [MessageFlags.IsComponentsV2],
       allowedMentions: {},
     });
 
     setTimeout(async () => {
-      await message.delete().catch(() => null);
+      await replyMessage.delete().catch(() => null);
     }, 60000);
   }
 
@@ -148,43 +208,41 @@ export default class AvatarCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(subtext(deleteText)),
-        );
-    } else {
-      const typeText = `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`;
-
-      return new ContainerBuilder()
-        .setAccentColor(EmbedColors.random())
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(titleText),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(typeText),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(globalAvatar)),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addSectionComponents(section =>
-          section
-            .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
-              ),
-            )
-            .setButtonAccessory(button =>
-              button
-                .setLabel('Tải xuống')
-                .setURL(globalAvatar)
-                .setStyle(ButtonStyle.Link),
-            ),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(subtext(deleteText)),
+          textDisplay.setContent(deleteText),
         );
     }
+
+    return new ContainerBuilder()
+      .setAccentColor(EmbedColors.random())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(titleText),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
+        ),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addMediaGalleryComponents(gallery =>
+        gallery.addItems(item => item.setURL(globalAvatar)),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext('Tải ảnh đại diện toàn Discord')),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setLabel('Tải xuống')
+              .setStyle(ButtonStyle.Link)
+              .setURL(globalAvatar),
+          ),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(deleteText),
+      );
   }
 }

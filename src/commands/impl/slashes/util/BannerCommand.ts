@@ -141,10 +141,14 @@ export default class BannerCommand extends Command {
             ),
         )
         .addSeparatorComponents(separator => separator)
-        .addTextDisplayComponents(textDisplay => textDisplay.setContent('\u200b'))
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent('\u200b'),
+        )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(`**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`),
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`,
+          ),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -187,9 +191,7 @@ export default class BannerCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh bìa'),
-              ),
+              textDisplay.setContent(subtext('Bấm vào đây để tải ảnh bìa')),
             )
             .setButtonAccessory(button =>
               button

@@ -47,7 +47,9 @@ export default class PrefixCommand extends Command {
       const embed = new EmbedBuilder()
         .setColor(EmbedColors.green())
         .setTitle('✅ Đã đặt lại Prefix')
-        .setDescription(`Prefix đã được đặt lại về mặc định: \`${defaultPrefix}\``)
+        .setDescription(
+          `Prefix đã được đặt lại về mặc định: \`${defaultPrefix}\``,
+        )
         .setFooter({text: interaction.user.tag})
         .setTimestamp();
 
@@ -80,7 +82,9 @@ export default class PrefixCommand extends Command {
     const embed = new EmbedBuilder()
       .setColor(EmbedColors.blue())
       .setTitle('📝 Prefix máy chủ')
-      .setDescription(`Prefix hiện tại của máy chủ này là: \`${currentPrefix}\``)
+      .setDescription(
+        `Prefix hiện tại của máy chủ này là: \`${currentPrefix}\``,
+      )
       .addFields(
         {
           name: 'Prefix mặc định',
