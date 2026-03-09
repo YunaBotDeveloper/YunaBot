@@ -1,6 +1,5 @@
 import {
   ApplicationCommandType,
-  ButtonInteraction,
   ButtonStyle,
   ContainerBuilder,
   inlineCode,
@@ -13,8 +12,6 @@ import {ContextMenuCommand} from '../../../ContextMenuCommand';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
-import ComponentManager from '../../../../component/manager/ComponentManager';
-import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 export default class AvatarMenu extends ContextMenuCommand {
   constructor() {
@@ -53,102 +50,30 @@ export default class AvatarMenu extends ContextMenuCommand {
     const hasGuildAvatar =
       member && guildAvatar && guildAvatar !== globalAvatar;
 
-    if (hasGuildAvatar) {
-      const componentIds: string[] = [
-        `avatar_global_${interaction.id}`,
-        `avatar_guild_${interaction.id}`,
-      ];
-      const avatarContainer = this.avatarContainer(
-        infoEmoji,
-        memberEmoji,
-        targetUser.id,
-        true,
-        'guild',
-        globalAvatar,
-        guildAvatar,
-        componentIds,
-      );
+    const avatarContainer = this.avatarContainer(
+      infoEmoji,
+      memberEmoji,
+      targetUser.id,
+      globalAvatar,
+      hasGuildAvatar ? guildAvatar : undefined,
+    );
 
-      await interaction.editReply({
-        components: [avatarContainer],
-      });
-
-      ComponentManager.getComponentManager().register([
-        {
-          customId: componentIds[0],
-          handler: async (interaction: ButtonInteraction) => {
-            const avatarContainer = this.avatarContainer(
-              infoEmoji,
-              memberEmoji,
-              targetUser.id,
-              true,
-              'global',
-              globalAvatar,
-              guildAvatar,
-              componentIds,
-            );
-
-            await interaction.update({components: [avatarContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [interaction.user.id],
-        },
-        {
-          customId: componentIds[1],
-          handler: async (interaction: ButtonInteraction) => {
-            const avatarContainer = this.avatarContainer(
-              infoEmoji,
-              memberEmoji,
-              targetUser.id,
-              true,
-              'guild',
-              globalAvatar,
-              guildAvatar,
-              componentIds,
-            );
-
-            await interaction.update({components: [avatarContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [interaction.user.id],
-        },
-      ]);
-    } else {
-      const avatarContainer = this.avatarContainer(
-        infoEmoji,
-        memberEmoji,
-        targetUser.id,
-        false,
-        'global',
-        globalAvatar,
-        undefined,
-        [],
-      );
-
-      await interaction.editReply({
-        components: [avatarContainer],
-        allowedMentions: {},
-      });
-    }
+    await interaction.editReply({
+      components: [avatarContainer],
+      allowedMentions: {},
+    });
   }
 
   private avatarContainer(
     infoEmoji: unknown,
     memberEmoji: unknown,
     userId: string,
-    hasGuildAvatar: boolean,
-    active: 'global' | 'guild',
     globalAvatar: string,
     guildAvatar: string | undefined,
-    componentIds: string[],
   ): ContainerBuilder {
-    const isGuild = active === 'guild' && hasGuildAvatar;
-    const avatarUrl = isGuild ? guildAvatar! : globalAvatar;
-
     const titleText = `## ${memberEmoji} Ảnh đại diện của ${userMention(userId)}`;
-    const typeText = `**Loại:** ${inlineCode(isGuild ? 'Ảnh đại diện trong máy chủ' : 'Ảnh đại diện toàn Discord')}`;
 
-    if (hasGuildAvatar && componentIds.length === 2) {
+    if (guildAvatar) {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -156,49 +81,55 @@ export default class AvatarMenu extends ContextMenuCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(typeText),
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
+          ),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(avatarUrl)),
+          gallery.addItems(item => item.setURL(globalAvatar)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext(
-                  active === 'global'
-                    ? 'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ'
-                    : 'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
-                ),
-              ),
-            )
-            .setButtonAccessory(button =>
-              button
-                .setCustomId(
-                  active === 'global' ? componentIds[1] : componentIds[0],
-                )
-                .setLabel('Đổi loại ảnh đại diện')
-                .setStyle(ButtonStyle.Success),
-            ),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addSectionComponents(section =>
-          section
-            .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
-              ),
+              textDisplay.setContent(subtext('Tải ảnh đại diện toàn Discord')),
             )
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
                 .setStyle(ButtonStyle.Link)
-                .setURL(avatarUrl),
+                .setURL(globalAvatar),
+            ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay => textDisplay.setContent('\u200b'))
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh đại diện trong máy chủ')}`,
+          ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addMediaGalleryComponents(gallery =>
+          gallery.addItems(item => item.setURL(guildAvatar)),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addSectionComponents(section =>
+          section
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(subtext('Tải ảnh đại diện trong máy chủ')),
+            )
+            .setButtonAccessory(button =>
+              button
+                .setLabel('Tải xuống')
+                .setStyle(ButtonStyle.Link)
+                .setURL(guildAvatar),
             ),
         );
     } else {
+      const typeText = `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`;
+
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -210,7 +141,7 @@ export default class AvatarMenu extends ContextMenuCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(avatarUrl)),
+          gallery.addItems(item => item.setURL(globalAvatar)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
@@ -223,7 +154,7 @@ export default class AvatarMenu extends ContextMenuCommand {
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
-                .setURL(avatarUrl)
+                .setURL(globalAvatar)
                 .setStyle(ButtonStyle.Link),
             ),
         );

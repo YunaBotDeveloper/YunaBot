@@ -1,5 +1,4 @@
 import {
-  ButtonInteraction,
   ButtonStyle,
   ChatInputCommandInteraction,
   ContainerBuilder,
@@ -13,8 +12,6 @@ import {
 import {Command} from '../../../Command';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
-import ComponentManager from '../../../../component/manager/ComponentManager';
-import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class BannerCommand extends Command {
@@ -36,7 +33,7 @@ export default class BannerCommand extends Command {
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
     const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
-    const memberEmoji = await client.api.emojiAPI.getEmojiByName('memberEmoji');
+    const memberEmoji = await client.api.emojiAPI.getEmojiByName('member');
 
     const loadingContainer = StatusContainer.loading(loadingEmoji);
     await interaction.reply({
@@ -82,140 +79,39 @@ export default class BannerCommand extends Command {
     const hasGuildBanner =
       member && guildBanner && guildBanner !== globalBanner;
 
-    let deleteAt = new Date(Date.now() + 60000);
+    const deleteAt = new Date(Date.now() + 60000);
 
-    if (hasGuildBanner) {
-      const componentIds: string[] = [
-        `banner_global_${interaction.id}`,
-        `banner_guild_${interaction.id}`,
-      ];
-      const bannerContainer = this.bannerContainer(
-        infoEmoji,
-        memberEmoji,
-        targetUser.id,
-        true,
-        'guild',
-        globalBanner,
-        guildBanner,
-        componentIds,
-        deleteAt,
-      );
+    const bannerContainer = this.bannerContainer(
+      infoEmoji,
+      memberEmoji,
+      targetUser.id,
+      globalBanner,
+      hasGuildBanner ? guildBanner : undefined,
+      deleteAt,
+    );
 
-      const message = await interaction.editReply({
-        components: [bannerContainer],
-      });
+    const message = await interaction.editReply({
+      components: [bannerContainer],
+      allowedMentions: {},
+    });
 
-      ComponentManager.getComponentManager().register([
-        {
-          customId: componentIds[0],
-          timeout: 60000,
-          onTimeout: async () => {
-            ComponentManager.getComponentManager().unregisterMany([
-              componentIds[0],
-              componentIds[1],
-            ]);
-
-            await message.delete().catch(() => null);
-          },
-          handler: async (interaction: ButtonInteraction) => {
-            ComponentManager.getComponentManager().unregister(componentIds[1]);
-
-            deleteAt = new Date(Date.now() + 60000);
-
-            const bannerContainer = this.bannerContainer(
-              infoEmoji,
-              memberEmoji,
-              targetUser.id,
-              true,
-              'global',
-              globalBanner,
-              guildBanner,
-              componentIds,
-              deleteAt,
-            );
-
-            await interaction.update({components: [bannerContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [interaction.user.id],
-        },
-        {
-          customId: componentIds[1],
-          timeout: 60000,
-          onTimeout: async () => {
-            ComponentManager.getComponentManager().unregisterMany([
-              componentIds[0],
-              componentIds[1],
-            ]);
-
-            await message.delete().catch(() => null);
-          },
-          handler: async (interaction: ButtonInteraction) => {
-            ComponentManager.getComponentManager().unregister(componentIds[0]);
-
-            deleteAt = new Date(Date.now() + 60000);
-
-            const bannerContainer = this.bannerContainer(
-              infoEmoji,
-              memberEmoji,
-              targetUser.id,
-              true,
-              'guild',
-              globalBanner,
-              guildBanner,
-              componentIds,
-              deleteAt,
-            );
-
-            await interaction.update({components: [bannerContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [interaction.user.id],
-        },
-      ]);
-    } else {
-      const bannerContainer = this.bannerContainer(
-        infoEmoji,
-        memberEmoji,
-        targetUser.id,
-        false,
-        'global',
-        globalBanner,
-        undefined,
-        [],
-        deleteAt,
-      );
-
-      const message = await interaction.editReply({
-        components: [bannerContainer],
-        allowedMentions: {},
-      });
-
-      setTimeout(async () => {
-        await message.delete().catch(() => null);
-      }, 60000);
-    }
+    setTimeout(async () => {
+      await message.delete().catch(() => null);
+    }, 60000);
   }
 
   private bannerContainer(
     infoEmoji: unknown,
     memberEmoji: unknown,
     userId: string,
-    hasGuildBanner: boolean,
-    active: 'global' | 'guild',
     globalBanner: string,
     guildBanner: string | undefined,
-    componentIds: string[],
     deleteAt: Date,
   ): ContainerBuilder {
-    const isGuild = active === 'guild' && hasGuildBanner;
-    const bannerUrl = isGuild ? guildBanner! : globalBanner;
-
     const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
-    const typeText = `**Loại:** ${inlineCode(isGuild ? 'Ảnh bìa trong máy chủ' : 'Ảnh bìa toàn Discord')}`;
     const deleteText = `${String(infoEmoji)} Tin nhắn này sẽ tự động xoá trong ${time(deleteAt, TimestampStyles.RelativeTime)}`;
 
-    if (hasGuildBanner && componentIds.length === 2) {
+    if (guildBanner) {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -223,46 +119,48 @@ export default class BannerCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(typeText),
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`,
+          ),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(bannerUrl)),
+          gallery.addItems(item => item.setURL(globalBanner)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext(
-                  active === 'global'
-                    ? 'Bấm vào đây để hiển thị ảnh bìa trong máy chủ'
-                    : 'Bấm vào đây để hiển thị ảnh bìa toàn Discord',
-                ),
-              ),
-            )
-            .setButtonAccessory(button =>
-              button
-                .setCustomId(
-                  active === 'global' ? componentIds[1] : componentIds[0],
-                )
-                .setLabel('Đổi loại ảnh bìa')
-                .setStyle(ButtonStyle.Success),
-            ),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addSectionComponents(section =>
-          section
-            .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh bìa'),
-              ),
+              textDisplay.setContent(subtext('Tải ảnh bìa toàn Discord')),
             )
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
                 .setStyle(ButtonStyle.Link)
-                .setURL(bannerUrl),
+                .setURL(globalBanner),
+            ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay => textDisplay.setContent('\u200b'))
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(`**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addMediaGalleryComponents(gallery =>
+          gallery.addItems(item => item.setURL(guildBanner)),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addSectionComponents(section =>
+          section
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(subtext('Tải ảnh bìa trong máy chủ')),
+            )
+            .setButtonAccessory(button =>
+              button
+                .setLabel('Tải xuống')
+                .setStyle(ButtonStyle.Link)
+                .setURL(guildBanner),
             ),
         )
         .addSeparatorComponents(separator => separator)
@@ -270,6 +168,8 @@ export default class BannerCommand extends Command {
           textDisplay.setContent(deleteText),
         );
     } else {
+      const typeText = `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`;
+
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -281,7 +181,7 @@ export default class BannerCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(bannerUrl)),
+          gallery.addItems(item => item.setURL(globalBanner)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
@@ -294,13 +194,13 @@ export default class BannerCommand extends Command {
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
-                .setURL(bannerUrl)
+                .setURL(globalBanner)
                 .setStyle(ButtonStyle.Link),
             ),
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(deleteText),
+          textDisplay.setContent(subtext(deleteText)),
         );
     }
   }

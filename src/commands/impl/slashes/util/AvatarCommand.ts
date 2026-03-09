@@ -1,6 +1,5 @@
 import {Command} from '../../../Command';
 import {
-  ButtonInteraction,
   ButtonStyle,
   ChatInputCommandInteraction,
   ContainerBuilder,
@@ -13,8 +12,6 @@ import {
 } from 'discord.js';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
-import ComponentManager from '../../../../component/manager/ComponentManager';
-import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class AvatarCommand extends Command {
@@ -61,139 +58,39 @@ export default class AvatarCommand extends Command {
     const hasGuildAvatar =
       member && guildAvatar && guildAvatar !== globalAvatar;
 
-    let deleteAt = new Date(Date.now() + 60000);
+    const deleteAt = new Date(Date.now() + 60000);
 
-    if (hasGuildAvatar) {
-      const componentIds: string[] = [
-        `avatar_global_${interaction.id}`,
-        `avatar_guild_${interaction.id}`,
-      ];
+    const avatarContainer = this.avatarContainer(
+      infoEmoji,
+      memberEmoji,
+      targetUser.id,
+      globalAvatar,
+      hasGuildAvatar ? guildAvatar : undefined,
+      deleteAt,
+    );
 
-      const avatarContainer = this.avatarContainer(
-        infoEmoji,
-        memberEmoji,
-        targetUser.id,
-        true,
-        'guild',
-        globalAvatar,
-        guildAvatar,
-        componentIds,
-        deleteAt,
-      );
+    const message = await interaction.editReply({
+      components: [avatarContainer],
+      allowedMentions: {},
+    });
 
-      const message = await interaction.editReply({
-        components: [avatarContainer],
-      });
-
-      ComponentManager.getComponentManager().register([
-        {
-          customId: componentIds[0],
-          timeout: 60000,
-          onTimeout: async (): Promise<void> => {
-            ComponentManager.getComponentManager().unregisterMany([
-              componentIds[0],
-              componentIds[1],
-            ]);
-            await message.delete().catch(() => null);
-          },
-          handler: async (interaction: ButtonInteraction): Promise<void> => {
-            ComponentManager.getComponentManager().unregister(componentIds[1]);
-
-            deleteAt = new Date(Date.now() + 60000);
-
-            const avatarContainer = this.avatarContainer(
-              infoEmoji,
-              memberEmoji,
-              targetUser.id,
-              true,
-              'global',
-              globalAvatar,
-              guildAvatar,
-              componentIds,
-              deleteAt,
-            );
-
-            await interaction.update({components: [avatarContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [interaction.user.id],
-        },
-        {
-          customId: componentIds[1],
-          timeout: 60000,
-          onTimeout: async (): Promise<void> => {
-            ComponentManager.getComponentManager().unregisterMany([
-              componentIds[0],
-              componentIds[1],
-            ]);
-            await message.delete().catch(() => null);
-          },
-          handler: async (interaction: ButtonInteraction) => {
-            ComponentManager.getComponentManager().unregister(componentIds[0]);
-
-            deleteAt = new Date(Date.now() + 60000);
-
-            const avatarContainer = this.avatarContainer(
-              infoEmoji,
-              memberEmoji,
-              targetUser.id,
-              true,
-              'guild',
-              globalAvatar,
-              guildAvatar,
-              componentIds,
-              deleteAt,
-            );
-
-            await interaction.update({components: [avatarContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [interaction.user.id],
-        },
-      ]);
-    } else {
-      const avatarContainer = this.avatarContainer(
-        infoEmoji,
-        memberEmoji,
-        targetUser.id,
-        false,
-        'global',
-        globalAvatar,
-        undefined,
-        [],
-        deleteAt,
-      );
-
-      const message = await interaction.editReply({
-        components: [avatarContainer],
-        allowedMentions: {},
-      });
-
-      setTimeout(async () => {
-        await message.delete().catch(() => null);
-      }, 60000);
-    }
+    setTimeout(async () => {
+      await message.delete().catch(() => null);
+    }, 60000);
   }
 
   private avatarContainer(
     infoEmoji: unknown,
     memberEmoji: unknown,
     userId: string,
-    hasGuildAvatar: boolean,
-    active: 'global' | 'guild',
     globalAvatar: string,
     guildAvatar: string | undefined,
-    componentIds: string[],
     deleteAt: Date,
   ): ContainerBuilder {
-    const isGuild = active === 'guild' && hasGuildAvatar;
-    const avatarUrl = isGuild ? guildAvatar! : globalAvatar;
-
     const titleText = `## ${memberEmoji} Ảnh đại diện của ${userMention(userId)}`;
-    const typeText = `**Loại:** ${inlineCode(isGuild ? 'Ảnh đại diện trong máy chủ' : 'Ảnh đại diện toàn Discord')}`;
     const deleteText = `${String(infoEmoji)} Tin nhắn này sẽ tự động xoá trong ${time(deleteAt, TimestampStyles.RelativeTime)}`;
 
-    if (hasGuildAvatar && componentIds.length === 2) {
+    if (guildAvatar) {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -201,46 +98,50 @@ export default class AvatarCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(typeText),
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
+          ),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(avatarUrl)),
+          gallery.addItems(item => item.setURL(globalAvatar)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext(
-                  active === 'global'
-                    ? 'Bấm vào đây để hiển thị ảnh đại diện trong máy chủ'
-                    : 'Bấm vào đây để hiển thị ảnh đại diện toàn Discord',
-                ),
-              ),
-            )
-            .setButtonAccessory(button =>
-              button
-                .setCustomId(
-                  active === 'global' ? componentIds[1] : componentIds[0],
-                )
-                .setLabel('Đổi loại ảnh đại diện')
-                .setStyle(ButtonStyle.Success),
-            ),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addSectionComponents(section =>
-          section
-            .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
-              ),
+              textDisplay.setContent(subtext('Tải ảnh đại diện toàn Discord')),
             )
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
                 .setStyle(ButtonStyle.Link)
-                .setURL(avatarUrl),
+                .setURL(globalAvatar),
+            ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay => textDisplay.setContent('\u200b'))
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh đại diện trong máy chủ')}`,
+          ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addMediaGalleryComponents(gallery =>
+          gallery.addItems(item => item.setURL(guildAvatar)),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addSectionComponents(section =>
+          section
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(subtext('Tải ảnh đại diện trong máy chủ')),
+            )
+            .setButtonAccessory(button =>
+              button
+                .setLabel('Tải xuống')
+                .setStyle(ButtonStyle.Link)
+                .setURL(guildAvatar),
             ),
         )
         .addSeparatorComponents(separator => separator)
@@ -248,6 +149,8 @@ export default class AvatarCommand extends Command {
           textDisplay.setContent(subtext(deleteText)),
         );
     } else {
+      const typeText = `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`;
+
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -259,7 +162,7 @@ export default class AvatarCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(avatarUrl)),
+          gallery.addItems(item => item.setURL(globalAvatar)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
@@ -272,7 +175,7 @@ export default class AvatarCommand extends Command {
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
-                .setURL(avatarUrl)
+                .setURL(globalAvatar)
                 .setStyle(ButtonStyle.Link),
             ),
         )

@@ -1,6 +1,5 @@
 import {
   ApplicationCommandType,
-  ButtonInteraction,
   ButtonStyle,
   ContainerBuilder,
   inlineCode,
@@ -13,8 +12,6 @@ import {ContextMenuCommand} from '../../../ContextMenuCommand';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
-import ComponentManager from '../../../../component/manager/ComponentManager';
-import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 export default class BannerMenu extends ContextMenuCommand {
   constructor() {
@@ -66,102 +63,30 @@ export default class BannerMenu extends ContextMenuCommand {
     const hasGuildBanner =
       member && guildBanner && guildBanner !== globalBanner;
 
-    if (hasGuildBanner) {
-      const componentIds: string[] = [
-        `banner_global_${interaction.id}`,
-        `banner_guild_${interaction.id}`,
-      ];
-      const bannerContainer = this.bannerContainer(
-        infoEmoji,
-        memberEmoji,
-        targetUser.id,
-        true,
-        'guild',
-        globalBanner,
-        guildBanner,
-        componentIds,
-      );
+    const bannerContainer = this.bannerContainer(
+      infoEmoji,
+      memberEmoji,
+      targetUser.id,
+      globalBanner,
+      hasGuildBanner ? guildBanner : undefined,
+    );
 
-      await interaction.editReply({
-        components: [bannerContainer],
-      });
-
-      ComponentManager.getComponentManager().register([
-        {
-          customId: componentIds[0],
-          handler: async (interaction: ButtonInteraction) => {
-            const bannerContainer = this.bannerContainer(
-              infoEmoji,
-              memberEmoji,
-              targetUser.id,
-              true,
-              'global',
-              globalBanner,
-              guildBanner,
-              componentIds,
-            );
-
-            await interaction.update({components: [bannerContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [interaction.user.id],
-        },
-        {
-          customId: componentIds[1],
-          handler: async (interaction: ButtonInteraction) => {
-            const bannerContainer = this.bannerContainer(
-              infoEmoji,
-              memberEmoji,
-              targetUser.id,
-              true,
-              'guild',
-              globalBanner,
-              guildBanner,
-              componentIds,
-            );
-
-            await interaction.update({components: [bannerContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [interaction.user.id],
-        },
-      ]);
-    } else {
-      const bannerContainer = this.bannerContainer(
-        infoEmoji,
-        memberEmoji,
-        targetUser.id,
-        false,
-        'global',
-        globalBanner,
-        undefined,
-        [],
-      );
-
-      await interaction.editReply({
-        components: [bannerContainer],
-        allowedMentions: {},
-      });
-    }
+    await interaction.editReply({
+      components: [bannerContainer],
+      allowedMentions: {},
+    });
   }
 
   private bannerContainer(
     infoEmoji: unknown,
     memberEmoji: unknown,
     userId: string,
-    hasGuildBanner: boolean,
-    active: 'global' | 'guild',
     globalBanner: string,
     guildBanner: string | undefined,
-    componentIds: string[],
   ): ContainerBuilder {
-    const isGuild = active === 'guild' && hasGuildBanner;
-    const bannerUrl = isGuild ? guildBanner! : globalBanner;
-
     const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
-    const typeText = `**Loại:** ${inlineCode(isGuild ? 'Ảnh bìa trong máy chủ' : 'Ảnh bìa toàn Discord')}`;
 
-    if (hasGuildBanner && componentIds.length === 2) {
+    if (guildBanner) {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -169,47 +94,53 @@ export default class BannerMenu extends ContextMenuCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(typeText),
+          textDisplay.setContent(
+            `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`,
+          ),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(bannerUrl)),
+          gallery.addItems(item => item.setURL(globalBanner)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext(
-                  active === 'global'
-                    ? 'Bấm vào đây để hiển thị ảnh bìa trong máy chủ'
-                    : 'Bấm vào đây để hiển thị ảnh bìa toàn Discord',
-                ),
-              ),
-            )
-            .setButtonAccessory(button =>
-              button
-                .setCustomId(
-                  active === 'global' ? componentIds[1] : componentIds[0],
-                )
-                .setLabel('Đổi loại ảnh bìa')
-                .setStyle(ButtonStyle.Success),
-            ),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addSectionComponents(section =>
-          section
-            .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để tải ảnh bìa')),
+              textDisplay.setContent(subtext('Tải ảnh bìa toàn Discord')),
             )
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
                 .setStyle(ButtonStyle.Link)
-                .setURL(bannerUrl),
+                .setURL(globalBanner),
+            ),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay => textDisplay.setContent('\u200b'))
+        .addSeparatorComponents(separator => separator)
+        .addTextDisplayComponents(textDisplay =>
+          textDisplay.setContent(`**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addMediaGalleryComponents(gallery =>
+          gallery.addItems(item => item.setURL(guildBanner)),
+        )
+        .addSeparatorComponents(separator => separator)
+        .addSectionComponents(section =>
+          section
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(subtext('Tải ảnh bìa trong máy chủ')),
+            )
+            .setButtonAccessory(button =>
+              button
+                .setLabel('Tải xuống')
+                .setStyle(ButtonStyle.Link)
+                .setURL(guildBanner),
             ),
         );
     } else {
+      const typeText = `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`;
+
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -221,7 +152,7 @@ export default class BannerMenu extends ContextMenuCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(bannerUrl)),
+          gallery.addItems(item => item.setURL(globalBanner)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
@@ -234,7 +165,7 @@ export default class BannerMenu extends ContextMenuCommand {
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
-                .setURL(bannerUrl)
+                .setURL(globalBanner)
                 .setStyle(ButtonStyle.Link),
             ),
         );

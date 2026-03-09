@@ -118,7 +118,7 @@ export default class NukeCommand extends PrefixCommand {
     await channel.sendTyping();
 
     const reason =
-      args.slice(isChannelSpecified ? 1 : 0).join(' ') ||
+      args.slice(isChannelSpecified ? 1 : 0).join('\u200b') ||
       `Tạo lại kênh | Người thực hiện: ${message.author.displayName} (${message.author.id})`;
 
     if (message.author.bot) {
