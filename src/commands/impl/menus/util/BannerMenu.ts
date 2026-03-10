@@ -34,7 +34,11 @@ export default class BannerMenu extends ContextMenuCommand {
     });
 
     const targetUser = await interaction.targetUser.fetch(true);
-    const member = interaction.guild?.members.cache.get(targetUser.id);
+    const member = interaction.guild
+      ? await interaction.guild.members
+          .fetch({user: targetUser.id, force: true})
+          .catch(() => null)
+      : null;
 
     const isGlobalBannerAnimated = targetUser.banner?.startsWith('a_');
     const isGuildBannerAnimated = member?.banner?.startsWith('a_');

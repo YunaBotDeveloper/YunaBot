@@ -14,11 +14,11 @@ import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
 
-export default class AvatarCommand extends PrefixCommand {
+export default class BannerCommand extends PrefixCommand {
   constructor() {
-    super('avatar', ['av']);
+    super('banner', ['b']);
 
-    this.cooldown = 10000;
+    this.cooldown = 5000;
   }
 
   async run(
@@ -83,7 +83,9 @@ export default class AvatarCommand extends PrefixCommand {
       targetUserId = message.author.id;
     }
 
-    const targetUser = await client.users.fetch(targetUserId).catch(() => null);
+    const targetUser = await client.users
+      .fetch(targetUserId, {force: true})
+      .catch(() => null);
     if (!targetUser) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
@@ -102,38 +104,60 @@ export default class AvatarCommand extends PrefixCommand {
       return;
     }
 
-    const member = message.guild?.members.cache.get(targetUser.id);
+    const member = message.guild
+      ? await message.guild.members
+          .fetch({user: targetUser.id, force: true})
+          .catch(() => null)
+      : null;
 
-    const isGlobalAvatarAnimated = targetUser.avatar?.startsWith('a_');
-    const isGuildAvatarAnimated = member?.avatar?.startsWith('a_');
+    const isGlobalBannerAnimated = targetUser.banner?.startsWith('a_');
+    const isGuildBannerAnimated = member?.banner?.startsWith('a_');
 
-    const globalAvatar = targetUser.displayAvatarURL({
+    const globalBanner = targetUser.bannerURL({
       size: 4096,
-      extension: isGlobalAvatarAnimated ? 'gif' : 'png',
+      extension: isGlobalBannerAnimated ? 'gif' : 'png',
     });
 
-    const guildAvatar = member?.displayAvatarURL({
+    const guildBanner = member?.bannerURL({
       size: 4096,
-      extension: isGuildAvatarAnimated ? 'gif' : 'png',
+      extension: isGuildBannerAnimated ? 'gif' : 'png',
     });
 
-    const hasGuildAvatar =
-      member && guildAvatar && guildAvatar !== globalAvatar;
+    if (!globalBanner && !guildBanner) {
+      const errorContainer = StatusContainer.failed(
+        failedEmoji,
+        `${userMention(targetUser.id)} không có ảnh bìa.`,
+      );
+      await ogmessage.edit({
+        content: '',
+        components: [errorContainer],
+        flags: [MessageFlags.IsComponentsV2],
+      });
+
+      setTimeout(async () => {
+        await ogmessage.delete().catch(() => null);
+      }, 5000);
+
+      return;
+    }
+
+    const hasGuildBanner =
+      member && guildBanner && guildBanner !== globalBanner;
 
     const deleteAt = new Date(Date.now() + 60000);
 
-    const avatarContainer = this.avatarContainer(
+    const bannerContainer = this.bannerContainer(
       infoEmoji,
       memberEmoji,
       targetUser.id,
-      globalAvatar,
-      hasGuildAvatar ? guildAvatar : undefined,
+      globalBanner ?? undefined,
+      hasGuildBanner ? guildBanner : undefined,
       deleteAt,
     );
 
     const replyMessage = await ogmessage.edit({
       content: '',
-      components: [avatarContainer],
+      components: [bannerContainer],
       flags: [MessageFlags.IsComponentsV2],
       allowedMentions: {},
     });
@@ -143,18 +167,18 @@ export default class AvatarCommand extends PrefixCommand {
     }, 60000);
   }
 
-  private avatarContainer(
+  private bannerContainer(
     infoEmoji: unknown,
     memberEmoji: unknown,
     userId: string,
-    globalAvatar: string,
-    guildAvatar: string | undefined,
+    globalBanner: string | undefined,
+    guildBanner: string | undefined,
     deleteAt: Date,
   ): ContainerBuilder {
-    const titleText = `## ${memberEmoji} Ảnh đại diện của ${userMention(userId)}`;
+    const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
     const deleteText = `${String(infoEmoji)} Tin nhắn này sẽ tự động xoá trong ${time(deleteAt, TimestampStyles.RelativeTime)}`;
 
-    if (guildAvatar) {
+    if (guildBanner && globalBanner) {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -163,24 +187,24 @@ export default class AvatarCommand extends PrefixCommand {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
+            `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(globalAvatar)),
+          gallery.addItems(item => item.setURL(globalBanner)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh đại diện toàn Discord')),
+              textDisplay.setContent(subtext('Tải ảnh bìa toàn Discord')),
             )
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
                 .setStyle(ButtonStyle.Link)
-                .setURL(globalAvatar),
+                .setURL(globalBanner),
             ),
         )
         .addSeparatorComponents(separator => separator)
@@ -190,24 +214,24 @@ export default class AvatarCommand extends PrefixCommand {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh đại diện trong máy chủ')}`,
+            `**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(guildAvatar)),
+          gallery.addItems(item => item.setURL(guildBanner)),
         )
         .addSeparatorComponents(separator => separator)
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh đại diện trong máy chủ')),
+              textDisplay.setContent(subtext('Tải ảnh bìa trong máy chủ')),
             )
             .setButtonAccessory(button =>
               button
                 .setLabel('Tải xuống')
                 .setStyle(ButtonStyle.Link)
-                .setURL(guildAvatar),
+                .setURL(guildBanner),
             ),
         )
         .addSeparatorComponents(separator => separator)
@@ -216,6 +240,14 @@ export default class AvatarCommand extends PrefixCommand {
         );
     }
 
+    const singleBanner = guildBanner ?? globalBanner;
+    const singleBannerType = guildBanner
+      ? 'Ảnh bìa trong máy chủ'
+      : 'Ảnh bìa toàn Discord';
+    const singleBannerDownload = guildBanner
+      ? 'Tải ảnh bìa trong máy chủ'
+      : 'Tải ảnh bìa toàn Discord';
+
     return new ContainerBuilder()
       .setAccentColor(EmbedColors.random())
       .addTextDisplayComponents(textDisplay =>
@@ -223,25 +255,23 @@ export default class AvatarCommand extends PrefixCommand {
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
-        ),
+        textDisplay.setContent(`**Loại:** ${inlineCode(singleBannerType)}`),
       )
       .addSeparatorComponents(separator => separator)
       .addMediaGalleryComponents(gallery =>
-        gallery.addItems(item => item.setURL(globalAvatar)),
+        gallery.addItems(item => item.setURL(singleBanner!)),
       )
       .addSeparatorComponents(separator => separator)
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Tải ảnh đại diện toàn Discord')),
+            textDisplay.setContent(subtext(singleBannerDownload)),
           )
           .setButtonAccessory(button =>
             button
               .setLabel('Tải xuống')
               .setStyle(ButtonStyle.Link)
-              .setURL(globalAvatar),
+              .setURL(singleBanner!),
           ),
       )
       .addSeparatorComponents(separator => separator)
