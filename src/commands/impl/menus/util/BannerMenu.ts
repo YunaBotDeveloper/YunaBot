@@ -48,7 +48,12 @@ export default class BannerMenu extends ContextMenuCommand {
       extension: isGlobalBannerAnimated ? 'gif' : 'png',
     });
 
-    if (!globalBanner) {
+    const guildBanner = member?.bannerURL({
+      size: 4096,
+      extension: isGuildBannerAnimated ? 'gif' : 'png',
+    });
+
+    if (!globalBanner && !guildBanner) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
         `${userMention(targetUser.id)} không có ảnh bìa.`,
@@ -59,11 +64,6 @@ export default class BannerMenu extends ContextMenuCommand {
       return;
     }
 
-    const guildBanner = member?.bannerURL({
-      size: 4096,
-      extension: isGuildBannerAnimated ? 'gif' : 'png',
-    });
-
     const hasGuildBanner =
       member && guildBanner && guildBanner !== globalBanner;
 
@@ -71,7 +71,7 @@ export default class BannerMenu extends ContextMenuCommand {
       infoEmoji,
       memberEmoji,
       targetUser.id,
-      globalBanner,
+      globalBanner ?? undefined,
       hasGuildBanner ? guildBanner : undefined,
     );
 
@@ -85,12 +85,12 @@ export default class BannerMenu extends ContextMenuCommand {
     infoEmoji: unknown,
     memberEmoji: unknown,
     userId: string,
-    globalBanner: string,
+    globalBanner: string | undefined,
     guildBanner: string | undefined,
   ): ContainerBuilder {
     const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
 
-    if (guildBanner) {
+    if (guildBanner && globalBanner) {
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
         .addTextDisplayComponents(textDisplay =>
@@ -146,35 +146,41 @@ export default class BannerMenu extends ContextMenuCommand {
                 .setURL(guildBanner),
             ),
         );
-    } else {
-      const typeText = `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`;
-
-      return new ContainerBuilder()
-        .setAccentColor(EmbedColors.random())
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(titleText),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(typeText),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addMediaGalleryComponents(gallery =>
-          gallery.addItems(item => item.setURL(globalBanner)),
-        )
-        .addSeparatorComponents(separator => separator)
-        .addSectionComponents(section =>
-          section
-            .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để tải ảnh bìa')),
-            )
-            .setButtonAccessory(button =>
-              button
-                .setLabel('Tải xuống')
-                .setURL(globalBanner)
-                .setStyle(ButtonStyle.Link),
-            ),
-        );
     }
+
+    const singleBanner = guildBanner ?? globalBanner;
+    const singleBannerType = guildBanner
+      ? 'Ảnh bìa trong máy chủ'
+      : 'Ảnh bìa toàn Discord';
+    const singleBannerDownload = guildBanner
+      ? 'Tải ảnh bìa trong máy chủ'
+      : 'Tải ảnh bìa toàn Discord';
+
+    return new ContainerBuilder()
+      .setAccentColor(EmbedColors.random())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(titleText),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`**Loại:** ${inlineCode(singleBannerType)}`),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addMediaGalleryComponents(gallery =>
+        gallery.addItems(item => item.setURL(singleBanner!)),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext(singleBannerDownload)),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setLabel('Tải xuống')
+              .setURL(singleBanner!)
+              .setStyle(ButtonStyle.Link),
+          ),
+      );
   }
 }
