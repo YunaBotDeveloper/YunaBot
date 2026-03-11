@@ -75,7 +75,7 @@ export default class BanCommand extends Command {
     if (!interaction.guild || !client.user) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Lệnh này chỉ có thể sử dụng trong server!',
+        'Lệnh này chỉ có thể sử dụng trong máy chủ!',
       );
 
       await interaction.editReply({
