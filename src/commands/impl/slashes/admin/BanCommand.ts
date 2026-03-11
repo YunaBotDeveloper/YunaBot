@@ -235,10 +235,10 @@ export default class BanCommand extends Command {
 
           return;
         },
-        handler: async (buttonInteraction: ButtonInteraction) => {
+        handler: async (interaction: ButtonInteraction) => {
           ComponentManager.getComponentManager().unregisterMany(componentsId);
 
-          await buttonInteraction.update({
+          await interaction.update({
             components: [loadingContainer],
           });
 

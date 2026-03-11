@@ -8,11 +8,14 @@ import {
   TimestampStyles,
   userMention,
   time,
+  ButtonInteraction,
 } from 'discord.js';
 import {PrefixCommand} from '../../../PrefixCommand';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
+import ComponentManager from '../../../../component/manager/ComponentManager';
+import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 export default class BanCommand extends PrefixCommand {
   constructor() {
@@ -230,6 +233,109 @@ export default class BanCommand extends PrefixCommand {
           ),
         ),
       );
+
+    ComponentManager.getComponentManager().register([
+      {
+        customId: componentsId[0],
+        timeout: 10000,
+        onTimeout: async () => {
+          ComponentManager.getComponentManager().unregisterMany(componentsId);
+
+          const errorContainer = StatusContainer.failed(
+            failedEmoji,
+            'Đã hết thời gian chờ! Vui lòng thử lại!',
+          );
+
+          await ogmessage.edit({
+            components: [errorContainer],
+          });
+
+          return;
+        },
+        handler: async (interaction: ButtonInteraction) => {
+          ComponentManager.getComponentManager().unregisterMany(componentsId);
+
+          await interaction.update({
+            components: [loadingContainer],
+          });
+
+          try {
+            await interaction.guild!.bans.create(targetUser.id, {
+              reason,
+            });
+
+            const successContainer = StatusContainer.success(
+              successEmoji,
+              `Đã cấm ${userMention(targetUser.id)} khỏi máy chủ thành công!`,
+            );
+
+            await interaction.editReply({
+              components: [successContainer],
+            });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } catch (error: any) {
+            let errorMessage = `Đã có lỗi xảy ra khi cấm ${userMention(targetUser.id)}!`;
+
+            if (error.code === 50013) {
+              errorMessage = 'Bot không có quyền hạn để cấm người dùng này!';
+            } else if (error.message) {
+              errorMessage = error.message;
+            }
+
+            const errorContainer = StatusContainer.failed(
+              failedEmoji,
+              errorMessage,
+            );
+
+            await interaction.editReply({
+              components: [errorContainer],
+            });
+          }
+
+          return;
+        },
+        type: ComponentEnum.BUTTON,
+        userCheck: [message.author.id],
+      },
+      {
+        customId: componentsId[1],
+        timeout: 10000,
+        onTimeout: async () => {
+          ComponentManager.getComponentManager().unregisterMany(componentsId);
+
+          const errorContainer = StatusContainer.failed(
+            failedEmoji,
+            'Đã hết thời gian chờ! Vui lòng thử lại!',
+          );
+
+          await ogmessage.edit({
+            components: [errorContainer],
+          });
+
+          return;
+        },
+        handler: async (interaction: ButtonInteraction) => {
+          ComponentManager.getComponentManager().unregisterMany(componentsId);
+
+          await interaction.update({
+            components: [loadingContainer],
+          });
+
+          const successContainer = StatusContainer.success(
+            successEmoji,
+            'Đã huỷ hành động thành công!',
+          );
+
+          await interaction.editReply({
+            components: [successContainer],
+          });
+
+          return;
+        },
+        type: ComponentEnum.BUTTON,
+        userCheck: [message.author.id],
+      },
+    ]);
 
     await ogmessage.edit({
       components: [banConfirmContainer],
