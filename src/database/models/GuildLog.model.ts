@@ -15,7 +15,8 @@ class GuildLog extends Model<
   declare guildId: string;
   declare nukeLogId: string | null;
   declare nukeLogWebhookURL: string | null;
-  declare messageDeleteLogId: string | null;
+  declare banLogId: string | null;
+  declare banLogWebhookURL: string | null;
 }
 
 export function initGuildLogModel(sequelizeInstance: Sequelize): void {
@@ -37,7 +38,12 @@ export function initGuildLogModel(sequelizeInstance: Sequelize): void {
         allowNull: true,
         defaultValue: null,
       },
-      messageDeleteLogId: {
+      banLogId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
+      },
+      banLogWebhookURL: {
         type: DataTypes.STRING,
         allowNull: true,
         defaultValue: null,
