@@ -4,21 +4,22 @@
   "workspaces": {
     "": {
       "dependencies": {
-        "axios": "latest",
-        "bufferutil": "latest",
-        "discord-html-transcripts": "latest",
-        "discord.js": "latest",
-        "nanoid": "latest",
-        "sequelize": "latest",
-        "sharp": "latest",
-        "sqlite3": "latest",
-        "tsx": "latest",
-        "typescript": "latest",
-        "yaml": "latest",
+        "axios": "^1.13.6",
+        "bufferutil": "^4.1.0",
+        "discord-html-transcripts": "^3.3.0",
+        "discord.js": "^14.25.1",
+        "nanoid": "^5.1.7",
+        "sequelize": "^6.37.8",
+        "sharp": "^0.34.5",
+        "sqlite3": "^6.0.1",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3",
+        "uuid": "^13.0.0",
+        "yaml": "^2.8.2",
       },
       "devDependencies": {
-        "@types/node": "latest",
-        "gts": "latest",
+        "@types/node": "^25.5.0",
+        "gts": "^7.0.0",
       },
     },
   },
@@ -828,7 +829,7 @@
 
     "util-deprecate": ["util-deprecate@1.0.2", "", {}, "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw=="],
 
-    "uuid": ["uuid@8.3.2", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg=="],
+    "uuid": ["uuid@13.0.0", "", { "bin": { "uuid": "dist-node/bin/uuid" } }, "sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w=="],
 
     "validate-npm-package-license": ["validate-npm-package-license@3.0.4", "", { "dependencies": { "spdx-correct": "^3.0.0", "spdx-expression-parse": "^3.0.0" } }, "sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew=="],
 
@@ -913,6 +914,8 @@
     "read-pkg-up/type-fest": ["type-fest@0.8.1", "", {}, "sha512-4dbzIzqvjtgiM5rw1k5rEHtBANKmdudhGyBEajN01fEyhaAIhsoKNy6y7+IN93IfpFtwY9iqi7kD+xwKhQsNJA=="],
 
     "rxjs/tslib": ["tslib@1.14.1", "", {}, "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="],
+
+    "sequelize/uuid": ["uuid@8.3.2", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg=="],
 
     "tar-fs/chownr": ["chownr@1.1.4", "", {}, "sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg=="],
 
