@@ -10,6 +10,7 @@ import {
   MessageFlags,
   PermissionFlagsBits,
   subtext,
+  TextChannel,
   time,
   TimestampStyles,
   User,
@@ -18,7 +19,6 @@ import {
 } from 'discord.js';
 import {Command} from '../../../Command';
 import ExtendedClient from '../../../../classes/ExtendedClient';
-import Log4TS from '../../../../logger/Log4TS';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import {humanizeDuration} from '../../../../util/HumanizeDuration';
@@ -192,6 +192,26 @@ export default class BanCommand extends Command {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
         'Lệnh này chỉ có thể sử dụng trong máy chủ!',
+      );
+
+      await message.edit({
+        components: [errorContainer],
+      });
+
+      setTimeout(async () => {
+        await message.delete().catch(() => null);
+      }, 5000);
+
+      return;
+    }
+
+    const banList = await interaction.guild.bans.fetch();
+    const targetId = banList.get(targetUser.id)?.user;
+
+    if (targetId) {
+      const errorContainer = StatusContainer.failed(
+        failedEmoji,
+        `${userMention(targetId.id)} đã bị cấm khỏi máy chủ rồi!`,
       );
 
       await message.edit({
@@ -440,37 +460,63 @@ export default class BanCommand extends Command {
               where: {guildId: interaction.guild.id},
             });
 
-            if (!guildLog || !guildLog.banLogWebhookURL) {
+            if (!guildLog || !guildLog.banLogId) {
               return;
             }
 
-            const webhookClient = new WebhookClient({
-              url: guildLog.banLogWebhookURL,
-            });
+            const channel = await interaction.guild.channels
+              .fetch(guildLog.banLogId)
+              .catch(() => null);
+
+            if (!channel || !(channel instanceof TextChannel)) {
+              await guildLog.update({banLogId: null, banLogWebhookURL: null});
+              return;
+            }
+
+            let webhookURL = guildLog.banLogWebhookURL;
+
+            if (!webhookURL) {
+              const webhook = await channel.createWebhook({
+                name: client.user!.displayName,
+                avatar: client.user?.avatarURL(),
+              });
+
+              webhookURL = webhook.url;
+              await guildLog.update({banLogWebhookURL: webhookURL});
+            }
+
+            const isValidWebhook = await fetch(webhookURL, {method: 'GET'})
+              .then(res => res.ok)
+              .catch(() => false);
+
+            if (!isValidWebhook) {
+              await guildLog.update({banLogId: null, banLogWebhookURL: null});
+              return;
+            }
+
+            const webhookClient = new WebhookClient({url: webhookURL});
 
             const banLogContainer = this.banLogContainer(
-              infoEmoji,
+              '✅',
               banId,
               interaction.user,
               targetUser,
               reason,
-              {durationS, durationString},
+              {
+                durationS,
+                durationString,
+              },
               proof,
               shouldDm,
               timeCreate,
             );
 
-            await webhookClient
-              .send({
-                content: '',
-                components: [banLogContainer],
-                flags: MessageFlags.IsComponentsV2,
-              })
-              .catch(err =>
-                Log4TS.getLogger().error(
-                  `Failed to send ban log webhook: ${err}`,
-                ),
-              );
+            await webhookClient.send({
+              components: [banLogContainer],
+              withComponents: true,
+              flags: [MessageFlags.IsComponentsV2],
+              allowedMentions: {},
+            });
 
             return;
           } catch {
