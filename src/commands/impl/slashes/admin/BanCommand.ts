@@ -9,15 +9,16 @@ import {
   inlineCode,
   MessageFlags,
   PermissionFlagsBits,
-  quote,
   subtext,
   time,
   TimestampStyles,
   User,
   userMention,
+  WebhookClient,
 } from 'discord.js';
 import {Command} from '../../../Command';
 import ExtendedClient from '../../../../classes/ExtendedClient';
+import Log4TS from '../../../../logger/Log4TS';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import {humanizeDuration} from '../../../../util/HumanizeDuration';
@@ -26,6 +27,7 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {v4 as uuidv4} from 'uuid';
 import BanLog from '../../../../database/models/BanLog.model';
+import GuildLog from '../../../../database/models/GuildLog.model';
 
 export default class BanCommand extends Command {
   constructor() {
@@ -434,6 +436,42 @@ export default class BanCommand extends Command {
               components: [banSuccessContainer],
             });
 
+            const guildLog = await GuildLog.findOne({
+              where: {guildId: interaction.guild.id},
+            });
+
+            if (!guildLog || !guildLog.banLogWebhookURL) {
+              return;
+            }
+
+            const webhookClient = new WebhookClient({
+              url: guildLog.banLogWebhookURL,
+            });
+
+            const banLogContainer = this.banLogContainer(
+              infoEmoji,
+              banId,
+              interaction.user,
+              targetUser,
+              reason,
+              {durationS, durationString},
+              proof,
+              shouldDm,
+              timeCreate,
+            );
+
+            await webhookClient
+              .send({
+                content: '',
+                components: [banLogContainer],
+                flags: MessageFlags.IsComponentsV2,
+              })
+              .catch(err =>
+                Log4TS.getLogger().error(
+                  `Failed to send ban log webhook: ${err}`,
+                ),
+              );
+
             return;
           } catch {
             const errorContainer = StatusContainer.failed(
@@ -632,6 +670,59 @@ export default class BanCommand extends Command {
     );
 
     return banSuccessContainer;
+  }
+
+  banLogContainer(
+    infoEmoji: unknown,
+    banId: string,
+    userExcute: User,
+    targetUser: User,
+    reason: string,
+    duration: {
+      durationS: number | null;
+      durationString: string;
+    },
+    proof: Attachment | null,
+    dm: boolean,
+    timeCreate: number,
+  ): ContainerBuilder {
+    const container = new ContainerBuilder()
+      .setAccentColor(EmbedColors.red())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(`## ${infoEmoji} Người dùng bị cấm`),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `${bold('Ban ID:')} ${inlineCode(banId)}\n` +
+            `${bold('Người dùng bị cấm:')} ${userMention(targetUser.id)}\n` +
+            `${bold('Người thực hiện:')} ${userMention(userExcute.id)}\n` +
+            `${bold('Lý do cấm:')} ${reason}\n` +
+            `${bold('Thời gian cấm:')} ${duration.durationString} ${duration.durationS ? `(${time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime)})` : ''}\n` +
+            `${bold('Thông báo người dùng bị cấm:')} ${dm ? '✅' : '❌'}`,
+        ),
+      );
+
+    if (proof) {
+      container.addSeparatorComponents(separator => separator);
+      container.addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(bold('Bằng chứng:')),
+      );
+      container.addMediaGalleryComponents(gallery =>
+        gallery.addItems(item => item.setURL(proof.url)),
+      );
+    }
+
+    container.addSeparatorComponents(separator => separator);
+    container.addTextDisplayComponents(textDisplay =>
+      textDisplay.setContent(
+        subtext(
+          `Thực hiện vào ${time(timeCreate, TimestampStyles.FullDateShortTime)}`,
+        ),
+      ),
+    );
+
+    return container;
   }
 
   banConfirmContainer(
