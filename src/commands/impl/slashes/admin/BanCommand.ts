@@ -497,7 +497,7 @@ export default class BanCommand extends Command {
             const webhookClient = new WebhookClient({url: webhookURL});
 
             const banLogContainer = this.banLogContainer(
-              '✅',
+              '🔨',
               banId,
               interaction.user,
               targetUser,
