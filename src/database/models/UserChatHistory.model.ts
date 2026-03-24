@@ -7,7 +7,6 @@ import {
   DataTypes,
 } from 'sequelize';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let sequelize: Sequelize | null = null;
 
 class UserChatHistory extends Model<
@@ -18,6 +17,7 @@ class UserChatHistory extends Model<
   declare userId: string;
   declare role: 'user' | 'assistant';
   declare content: string;
+  declare readonly createdAt: CreationOptional<Date>;
 }
 
 export function initUserChatHistoryModel(sequelizeInstance: Sequelize): void {
@@ -41,9 +41,10 @@ export function initUserChatHistoryModel(sequelizeInstance: Sequelize): void {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      createdAt: DataTypes.DATE,
     },
     {
-      sequelize: sequelizeInstance,
+      sequelize,
       tableName: 'UserChatHistory',
       timestamps: true,
       updatedAt: false,
