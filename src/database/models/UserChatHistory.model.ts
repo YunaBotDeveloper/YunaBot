@@ -18,7 +18,6 @@ class UserChatHistory extends Model<
   declare userId: string;
   declare role: 'user' | 'assistant';
   declare content: string;
-  declare readonly createdAt: CreationOptional<Date>;
 }
 
 export function initUserChatHistoryModel(sequelizeInstance: Sequelize): void {
@@ -40,10 +39,6 @@ export function initUserChatHistoryModel(sequelizeInstance: Sequelize): void {
       },
       content: {
         type: DataTypes.TEXT,
-        allowNull: false,
-      },
-      createdAt: {
-        type: DataTypes.DATE,
         allowNull: false,
       },
     },
