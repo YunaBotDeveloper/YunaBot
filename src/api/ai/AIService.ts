@@ -29,6 +29,9 @@ interface EnvelopeResponse {
   facts: Fact[];
 }
 
+const MAX_HISTORY_PER_USER = 50;
+const MAX_FACTS_PER_USER = 20;
+
 const FORMAT_INSTRUCTION = `
 
 ## Định dạng trả lời
@@ -201,7 +204,7 @@ class AIService {
       const isNew = !factsMap.has(key);
 
       // Enforce 20-fact cap before inserting a genuinely new key
-      if (isNew && factsMap.size >= 20) {
+      if (isNew && factsMap.size >= MAX_FACTS_PER_USER) {
         const arbitraryKey = factsMap.keys().next().value;
         if (arbitraryKey !== undefined) {
           factsMap.delete(arbitraryKey);
@@ -246,7 +249,7 @@ class AIService {
 
       // Loop-delete oldest rows until count is within cap
       let count = await UserChatHistory.count({where: {userId}});
-      while (count > 50) {
+      while (count > MAX_HISTORY_PER_USER) {
         const oldest = await UserChatHistory.findOne({
           where: {userId},
           order: [['id', 'ASC']],
@@ -261,7 +264,7 @@ class AIService {
     }
 
     // Mirror cap on in-memory array
-    while (history.length > 50) {
+    while (history.length > MAX_HISTORY_PER_USER) {
       history.shift();
     }
   }
@@ -285,12 +288,12 @@ class AIService {
     await this.ensureLoaded(userId);
 
     const systemPrompt = this.buildSystemPrompt(userId);
-    await this.appendHistory(userId, 'user', userMessage);
 
     const history = this.userMemory.get(userId)!;
     const messages: ChatMessage[] = [
       {role: 'system', content: systemPrompt},
       ...history,
+      {role: 'user', content: userMessage},
     ];
 
     let rawReply: string;
@@ -317,6 +320,7 @@ class AIService {
       return 'ah sorry, my brain just lagged for a moment 💀 try again?';
     }
 
+    await this.appendHistory(userId, 'user', userMessage);
     const {reply, facts} = this.parseEnvelope(rawReply);
     await this.upsertFacts(userId, facts);
     await this.appendHistory(userId, 'assistant', reply);
