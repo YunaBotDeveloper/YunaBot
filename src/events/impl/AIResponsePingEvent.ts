@@ -30,7 +30,10 @@ export default class AIResponsePingEvent extends Event {
       .trim();
 
     if (!userInput) {
-      await message.reply({content: "hey! what's up? 👋"});
+      await message.reply({
+        content: "hey! what's up? 👋",
+        allowedMentions: {users: [message.author.id]},
+      });
       return;
     }
 
