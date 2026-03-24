@@ -3,17 +3,10 @@ import * as path from 'path';
 import {parse} from 'yaml';
 import Log4TS from '../logger/Log4TS';
 
-export interface AIConfig {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-}
-
 export interface BotConfig {
   bot: {
     token: string;
   };
-  ai: AIConfig;
 }
 
 class Config {
@@ -54,10 +47,6 @@ class Config {
     return this.config.bot.token;
   }
 
-  public get ai(): AIConfig {
-    return this.config.ai;
-  }
-
   public getConfig(): BotConfig {
     return this.config;
   }
@@ -69,22 +58,11 @@ class Config {
     if (!this.config.bot.token) {
       throw new Error('Missing "bot.token" in config.yaml');
     }
-    if (!this.config.ai) {
-      throw new Error('Missing "ai" section in config.yaml');
-    }
-    if (!this.config.ai.apiKey) {
-      throw new Error('Missing "ai.apiKey" in config.yaml');
-    }
   }
 
   private createExampleConfig(targetPath: string): void {
     const exampleConfig = `bot:
   token: "YOUR_BOT_TOKEN_HERE"
-
-ai:
-  apiKey: "YOUR_DASHSCOPE_API_KEY_HERE"
-  baseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-  model: "qwen-plus"
 `;
     // If config.yaml doesn't exist, we might as well write the example directly to it
     // or write to config.example.yaml if preferred.
