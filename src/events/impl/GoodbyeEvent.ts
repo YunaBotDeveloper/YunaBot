@@ -5,9 +5,9 @@ import GuildEvent from '../../database/models/GuildEvent.model';
 import GuildContainer from '../../database/models/GuildContainer';
 import {ComponentParser} from '../../util/ComponentParser';
 
-export default class WelcomeEvent extends Event {
+export default class GoodbyeEvent extends Event {
   constructor() {
-    super(Events.GuildMemberAdd);
+    super(Events.GuildMemberRemove);
   }
 
   async run(client: ExtendedClient, member: GuildMember) {
@@ -20,12 +20,12 @@ export default class WelcomeEvent extends Event {
         },
       });
 
-      if (!config?.welcomeChannelId || !config.welcomeChannelContainer) return;
+      if (!config?.goodbyeChannelId || !config.goodbyeChannelContainer) return;
 
       const container = await GuildContainer.findOne({
         where: {
           guildId: member.guild.id,
-          name: config.welcomeChannelContainer,
+          name: config.goodbyeChannelContainer,
         },
       });
 
@@ -37,7 +37,7 @@ export default class WelcomeEvent extends Event {
       });
 
       const channel = await member.guild.channels
-        .fetch(config.welcomeChannelId)
+        .fetch(config.goodbyeChannelId)
         .catch(() => null);
 
       if (!channel || !(channel instanceof TextChannel)) return;
