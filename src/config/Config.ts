@@ -11,11 +11,10 @@ export interface BotConfig {
 
 class Config {
   private static instance: Config;
-  private config!: BotConfig;
+  private config: BotConfig;
   private logging = Log4TS.getLogger();
 
   private constructor() {
-    // Resolve config.yaml from the project root (CWD)
     const configPath = path.join(process.cwd(), 'config.yaml');
 
     if (!fs.existsSync(configPath)) {
@@ -64,9 +63,6 @@ class Config {
     const exampleConfig = `bot:
   token: "YOUR_BOT_TOKEN_HERE"
 `;
-    // If config.yaml doesn't exist, we might as well write the example directly to it
-    // or write to config.example.yaml if preferred.
-    // The previous logic wrote to config.yaml if missing, so we keep that behavior.
     fs.writeFileSync(targetPath, exampleConfig, 'utf8');
   }
 }

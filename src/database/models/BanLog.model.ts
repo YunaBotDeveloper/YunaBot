@@ -12,8 +12,8 @@ class BanLog extends Model<
   InferAttributes<BanLog>,
   InferCreationAttributes<BanLog>
 > {
-  declare banId: string;
   declare guildId: string;
+  declare banId: string;
   declare userExcuteId: string;
   declare userTargetId: string;
   declare reason: string | null;
@@ -27,13 +27,14 @@ export function initBanLogModel(sequelizeInstance: Sequelize): void {
   sequelize = sequelizeInstance;
   BanLog.init(
     {
-      banId: {
+      guildId: {
         type: DataTypes.STRING,
         primaryKey: true,
         allowNull: false,
       },
-      guildId: {
+      banId: {
         type: DataTypes.STRING,
+        primaryKey: true,
         allowNull: false,
       },
       userExcuteId: {

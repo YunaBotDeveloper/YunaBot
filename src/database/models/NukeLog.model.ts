@@ -24,13 +24,14 @@ export function initNukeLogModel(sequelizeInstance: Sequelize): void {
   sequelize = sequelizeInstance;
   NukeLog.init(
     {
-      id: {
+      guildId: {
         type: DataTypes.STRING,
         primaryKey: true,
         allowNull: false,
       },
-      guildId: {
+      id: {
         type: DataTypes.STRING,
+        primaryKey: true,
         allowNull: false,
       },
       channelId: {
