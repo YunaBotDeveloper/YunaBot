@@ -18,6 +18,7 @@ import PrefixManager from '../../../PrefixManager';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
+import axios from 'axios';
 
 export default class SetupCommand extends Command {
   constructor() {
@@ -25,7 +26,7 @@ export default class SetupCommand extends Command {
 
     this.advancedOptions.cooldown = 10000;
 
-    this.data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+    this.data.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
 
     this.data.addSubcommand(subcommand =>
       subcommand
@@ -36,6 +37,30 @@ export default class SetupCommand extends Command {
             .setName('prefix')
             .setDescription('Prefix của bot')
             .setRequired(true),
+        ),
+    );
+
+    this.data.addSubcommandGroup(group =>
+      group
+        .setName('container')
+        .setDescription('Cài đạt các mẫu container của máy chủ')
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('add')
+            .setDescription('Thêm hoặc cập nhật một mẫu container')
+            .addStringOption(option =>
+              option
+                .setName('name')
+                .setDescription('Tên mẫu container')
+                .setRequired(true)
+                .setMaxLength(100),
+            )
+            .addAttachmentOption(option =>
+              option
+                .setName('json')
+                .setDescription('File JSON chứa container')
+                .setRequired(true),
+            ),
         ),
     );
   }
@@ -56,9 +81,74 @@ export default class SetupCommand extends Command {
       flags: [MessageFlags.IsComponentsV2],
     });
 
-    const subcommand = interaction.options.getSubcommand(true);
+    const subcommandGroup = interaction.options.getSubcommandGroup();
+    const subCommand = interaction.options.getSubcommand();
 
-    switch (subcommand) {
+    if (subcommandGroup === 'container') {
+      switch (subCommand) {
+        case 'add': {
+          const name = interaction.options.getString('name', true);
+          const attachment = interaction.options.getAttachment('json', true);
+
+          let isJSON = false;
+          if (
+            attachment.contentType &&
+            attachment.contentType.startsWith('application/json')
+          ) {
+            isJSON = true;
+          } else if (attachment.url) {
+            const url = attachment.url.toLowerCase().split('?')[0];
+            isJSON = url.endsWith('.json');
+
+            if (!isJSON) {
+              const errorContainer = StatusContainer.failed(
+                failedEmoji,
+                'Sai định dạng container! Vui lòng thử lại!',
+              );
+
+              await message.edit({
+                components: [errorContainer],
+              });
+
+              setTimeout(async () => {
+                await message.delete().catch(() => null);
+              }, 5000);
+
+              return;
+            }
+          }
+
+          let jsonText: string;
+
+          try {
+            const response = await axios.get<string>(attachment.url, {
+              responseType: 'text',
+            });
+
+            jsonText = response.data;
+            JSON.parse(jsonText);
+          } catch {
+            const errorContainer = StatusContainer.failed(
+              failedEmoji,
+              'Tệp JSON không hợp lệ',
+            );
+
+            await message.edit({
+              components: [errorContainer],
+            });
+
+            setTimeout(async () => {
+              await message.delete().catch(() => null);
+            }, 5000);
+
+            return;
+          }
+        }
+      }
+      return;
+    }
+
+    switch (subCommand) {
       case 'prefix': {
         const prefixManager = PrefixManager.getInstance();
 
@@ -119,8 +209,6 @@ export default class SetupCommand extends Command {
               setTimeout(async () => {
                 await message.delete().catch(() => null);
               }, 5000);
-
-              return;
             },
             handler: async (interaction: ButtonInteraction) => {
               ComponentManager.getComponentManager().unregisterMany([
@@ -146,8 +234,6 @@ export default class SetupCommand extends Command {
               setTimeout(async () => {
                 await message.delete().catch(() => null);
               }, 5000);
-
-              return;
             },
             type: ComponentEnum.BUTTON,
             userCheck: [interaction.user.id],
@@ -173,8 +259,6 @@ export default class SetupCommand extends Command {
               setTimeout(async () => {
                 await message.delete().catch(() => null);
               }, 5000);
-
-              return;
             },
             handler: async (interaction: ButtonInteraction) => {
               ComponentManager.getComponentManager().unregisterMany([
@@ -198,8 +282,6 @@ export default class SetupCommand extends Command {
               setTimeout(async () => {
                 await message.delete().catch(() => null);
               }, 5000);
-
-              return;
             },
             type: ComponentEnum.BUTTON,
             userCheck: [interaction.user.id],
@@ -209,6 +291,7 @@ export default class SetupCommand extends Command {
         await message.edit({
           components: [prefixConfirmContainer],
         });
+        break;
       }
     }
   }
