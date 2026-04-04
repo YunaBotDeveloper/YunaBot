@@ -355,4 +355,8 @@ export default class SetupCommand extends Command {
         ),
       );
   }
+
+  containerAddConfirmContainer(): ContainerBuilder {
+    return new ContainerBuilder();
+  }
 }

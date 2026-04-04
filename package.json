@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "axios": "^1.13.6",
+    "axios": "^1.14.0",
     "bufferutil": "^4.1.0",
     "discord-html-transcripts": "^3.3.0",
-    "discord.js": "^14.25.1",
+    "discord.js": "^14.26.2",
     "nanoid": "^5.1.7",
     "sequelize": "^6.37.8",
     "sharp": "^0.34.5",
@@ -11,10 +11,10 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "gts": "^7.0.0"
   },
   "trustedDependencies": [
