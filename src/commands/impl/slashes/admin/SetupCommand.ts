@@ -10,6 +10,7 @@ import {
   time,
   PermissionFlagsBits,
   ButtonInteraction,
+  TextDisplayBuilder,
 } from 'discord.js';
 import {Command} from '../../../Command';
 import ExtendedClient from '../../../../classes/ExtendedClient';
@@ -20,7 +21,7 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import axios from 'axios';
 import {ComponentParser} from '../../../../util/ComponentParser';
-import GuildContainer from '../../../../database/models/GuildContainer';
+import GuildContainer from '../../../../database/models/GuildContainer.model';
 
 export default class SetupCommand extends Command {
   constructor() {
@@ -175,6 +176,8 @@ export default class SetupCommand extends Command {
             confirmContainerAddCustomId: `confirmContainer_${interaction.id}`,
             cancelContainerAddCustomId: `cancelContainer_${interaction.id}`,
           };
+
+          const previewText = new TextDisplayBuilder().setContent('Preview:');
 
           let containers;
           try {
@@ -331,7 +334,7 @@ export default class SetupCommand extends Command {
           });
 
           await interaction.followUp({
-            components: containers,
+            components: [previewText, ...containers],
             flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
           });
         }
@@ -560,7 +563,7 @@ export default class SetupCommand extends Command {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn chắc chắn muốn thêm container ${containerName}?`,
+          `## ${infoEmoji} Bạn chắc chắn muốn thêm container ${inlineCode(containerName)}?`,
         ),
       )
       .addSeparatorComponents(separator => separator)

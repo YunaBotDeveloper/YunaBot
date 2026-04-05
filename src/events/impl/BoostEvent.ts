@@ -2,7 +2,7 @@ import {Events, GuildMember, MessageFlags, TextChannel} from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
 import GuildEvent from '../../database/models/GuildEvent.model';
-import GuildContainer from '../../database/models/GuildContainer';
+import GuildContainer from '../../database/models/GuildContainer.model';
 import {ComponentParser} from '../../util/ComponentParser';
 
 export default class BoostEvent extends Event {
