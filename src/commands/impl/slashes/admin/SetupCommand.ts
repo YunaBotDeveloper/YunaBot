@@ -19,6 +19,7 @@ import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import axios from 'axios';
+import {ComponentParser} from '../../../../util/ComponentParser';
 
 export default class SetupCommand extends Command {
   constructor() {
@@ -143,6 +144,36 @@ export default class SetupCommand extends Command {
 
             return;
           }
+
+          const componentIds = {
+            confirmContainerAddCustomId: `confirmContainer_${interaction.id}`,
+            cancelContainerAddCustomId: `cancelContainer_${interaction.id}`,
+          };
+
+          const containers = ComponentParser.parse(jsonText, {
+            user: interaction.user,
+            guild: interaction.guild,
+          });
+
+          const timeCreate = Math.round(Date.now() / 1000);
+
+          const containerAddConfirmContainer =
+            this.containerAddConfirmContainer(
+              infoEmoji,
+              name,
+              componentIds,
+              timeCreate,
+            );
+
+          await message.edit({
+            components: [containerAddConfirmContainer],
+            flags: MessageFlags.IsComponentsV2,
+          });
+
+          await interaction.followUp({
+            components: containers,
+            flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
+          });
         }
       }
       return;
@@ -337,7 +368,7 @@ export default class SetupCommand extends Command {
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này huỷ bỏ')),
+            textDisplay.setContent(subtext('Vui lòng bấm nút này để huỷ bỏ')),
           )
           .setButtonAccessory(button =>
             button
@@ -356,7 +387,54 @@ export default class SetupCommand extends Command {
       );
   }
 
-  containerAddConfirmContainer(): ContainerBuilder {
-    return new ContainerBuilder();
+  containerAddConfirmContainer(
+    infoEmoji: unknown,
+    containerName: string,
+    componentIds: {
+      confirmContainerAddCustomId: string;
+      cancelContainerAddCustomId: string;
+    },
+    timeCreate: number,
+  ): ContainerBuilder {
+    return new ContainerBuilder()
+      .setAccentColor(EmbedColors.yellow())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `## ${infoEmoji} Bạn chắc chắn muốn thêm container ${containerName}?`,
+        ),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext('Vui lòng bấm nút này để xác nhận')),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setCustomId(componentIds.confirmContainerAddCustomId)
+              .setLabel('✅')
+              .setStyle(ButtonStyle.Danger),
+          ),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext('Vui lòng bấm nút này để huỷ bỏ')),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setCustomId(componentIds.cancelContainerAddCustomId)
+              .setLabel('❌')
+              .setStyle(ButtonStyle.Success),
+          ),
+      )
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          subtext(
+            `${infoEmoji} Yêu cầu sẽ tự động hết hạn sau ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
+          ),
+        ),
+      );
   }
 }
