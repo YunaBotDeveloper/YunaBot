@@ -22,39 +22,42 @@ function isAttachmentUrl(url: unknown): boolean {
   return typeof url === 'string' && url.startsWith('attachment://');
 }
 
-function patchComponent(component: RawComponent): RawComponent | null {
-  if (INTERACTIVE_TYPES.has(component.type ?? -1)) return null;
+function patchComponent(component: unknown): RawComponent | null {
+  // Guard: skip null / non-object values that may appear in untrusted JSON
+  if (typeof component !== 'object' || component === null) return null;
+
+  const c = component as RawComponent;
+
+  if (INTERACTIVE_TYPES.has(c.type ?? -1)) return null;
 
   // File component (type 13): drop if it references a local attachment
-  if (component.type === 13) {
-    const file = component.file as {url?: unknown} | undefined;
+  if (c.type === 13) {
+    const file = c.file as {url?: unknown} | undefined;
     if (isAttachmentUrl(file?.url)) return null;
   }
 
-  const result: RawComponent = {...component};
+  const result: RawComponent = {...c};
 
-  if (Array.isArray(component.components)) {
-    result.components = component.components
+  if (Array.isArray(c.components)) {
+    result.components = c.components
       .map(patchComponent)
-      .filter((c): c is RawComponent => c !== null);
+      .filter((child): child is RawComponent => child !== null);
 
     // Drop empty action rows after stripping
-    if (component.type === 1 && result.components.length === 0) return null;
+    if (c.type === 1 && result.components.length === 0) return null;
   }
 
   // Media gallery (type 12): filter out items with attachment:// URLs
-  if (component.type === 12) {
-    const items = component.items as
-      | Array<{media?: {url?: unknown}}>
-      | undefined;
+  if (c.type === 12) {
+    const items = c.items as Array<{media?: {url?: unknown}}> | undefined;
     if (Array.isArray(items)) {
       result.items = items.filter(item => !isAttachmentUrl(item?.media?.url));
       if ((result.items as unknown[]).length === 0) return null;
     }
   }
 
-  if (component.accessory) {
-    result.accessory = patchComponent(component.accessory) ?? undefined;
+  if (c.accessory) {
+    result.accessory = patchComponent(c.accessory) ?? undefined;
   }
 
   return result;
@@ -62,12 +65,17 @@ function patchComponent(component: RawComponent): RawComponent | null {
 
 export class ComponentParser {
   /**
-   * Strips interactive components (buttons, select menus) from raw parsed JSON.
-   * Only top-level Container (type 17) items are kept.
-   * Returns the patched JSON string.
+   * Strips interactive components (buttons, select menus), file components
+   * with attachment:// URLs, and empty media galleries from raw JSON.
+   * Returns the patched JSON string ready for storage.
    */
   static patch(json: string): string {
-    const parsed: unknown = JSON.parse(json);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      throw new Error('Tệp JSON không hợp lệ, vui lòng kiểm tra lại định dạng');
+    }
 
     if (!Array.isArray(parsed)) {
       throw new Error('Tệp JSON phải là một mảng');

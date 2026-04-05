@@ -33,7 +33,18 @@ export default class BannerMenu extends ContextMenuCommand {
       flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
     });
 
-    const targetUser = await interaction.targetUser.fetch(true);
+    let targetUser;
+    try {
+      targetUser = await interaction.targetUser.fetch(true);
+    } catch {
+      const errorContainer = StatusContainer.failed(
+        failedEmoji,
+        'Không thể lấy thông tin người dùng!',
+      );
+      await interaction.editReply({components: [errorContainer]});
+      return;
+    }
+
     const member = interaction.guild
       ? await interaction.guild.members
           .fetch({user: targetUser.id, force: true})

@@ -176,10 +176,23 @@ export default class SetupCommand extends Command {
             cancelContainerAddCustomId: `cancelContainer_${interaction.id}`,
           };
 
-          const containers = ComponentParser.parse(jsonText, {
-            user: interaction.user,
-            guild: interaction.guild,
-          });
+          let containers;
+          try {
+            containers = ComponentParser.parse(jsonText, {
+              user: interaction.user,
+              guild: interaction.guild,
+            });
+          } catch {
+            const errorContainer = StatusContainer.failed(
+              failedEmoji,
+              'Không thể phân tích tệp JSON!',
+            );
+            await message.edit({components: [errorContainer]});
+            setTimeout(async () => {
+              await message.delete().catch(() => null);
+            }, 5000);
+            return;
+          }
 
           const timeCreate = Math.round(Date.now() / 1000);
 
@@ -226,11 +239,23 @@ export default class SetupCommand extends Command {
                   componentIds.cancelContainerAddCustomId,
                 ]);
 
-                await GuildContainer.upsert({
-                  guildId: interaction.guild!.id,
-                  name,
-                  json: jsonText,
-                });
+                try {
+                  await GuildContainer.upsert({
+                    guildId: interaction.guild!.id,
+                    name,
+                    json: jsonText,
+                  });
+                } catch {
+                  const errorContainer = StatusContainer.failed(
+                    failedEmoji,
+                    'Đã có lỗi xảy ra khi lưu container!',
+                  );
+                  await interaction.editReply({components: [errorContainer]});
+                  setTimeout(async () => {
+                    await message.delete().catch(() => null);
+                  }, 5000);
+                  return;
+                }
 
                 const successContainer = StatusContainer.success(
                   successEmoji,
