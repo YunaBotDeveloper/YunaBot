@@ -20,6 +20,7 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import axios from 'axios';
 import {ComponentParser} from '../../../../util/ComponentParser';
+import GuildContainer from '../../../../database/models/GuildContainer';
 
 export default class SetupCommand extends Command {
   constructor() {
@@ -91,6 +92,30 @@ export default class SetupCommand extends Command {
           const name = interaction.options.getString('name', true);
           const attachment = interaction.options.getAttachment('json', true);
 
+          const guildContainer = await GuildContainer.findOne({
+            where: {
+              guildId: interaction.guild!.id,
+              name,
+            },
+          });
+
+          if (guildContainer) {
+            const errorContainer = StatusContainer.failed(
+              failedEmoji,
+              'Máy chủ đã có container này rồi!',
+            );
+
+            await message.edit({
+              components: [errorContainer],
+            });
+
+            setTimeout(async () => {
+              await message.delete().catch(() => null);
+            }, 5000);
+
+            return;
+          }
+
           let isJSON = false;
           if (
             attachment.contentType &&
@@ -126,12 +151,13 @@ export default class SetupCommand extends Command {
               responseType: 'text',
             });
 
-            jsonText = response.data;
-            JSON.parse(jsonText);
-          } catch {
+            jsonText = ComponentParser.patch(response.data);
+          } catch (err) {
+            const errorMsg =
+              err instanceof Error ? err.message : 'Tệp JSON không hợp lệ';
             const errorContainer = StatusContainer.failed(
               failedEmoji,
-              'Tệp JSON không hợp lệ',
+              errorMsg,
             );
 
             await message.edit({
@@ -164,6 +190,115 @@ export default class SetupCommand extends Command {
               componentIds,
               timeCreate,
             );
+
+          ComponentManager.getComponentManager().register([
+            {
+              customId: componentIds.confirmContainerAddCustomId,
+              timeout: 10000,
+              onTimeout: async () => {
+                ComponentManager.getComponentManager().unregisterMany([
+                  componentIds.confirmContainerAddCustomId,
+                  componentIds.cancelContainerAddCustomId,
+                ]);
+
+                const errorContainer = StatusContainer.failed(
+                  failedEmoji,
+                  'Yêu cầu này đã hết hạn! Vui lòng thử lại!',
+                );
+
+                await message.edit({
+                  components: [errorContainer],
+                });
+
+                setTimeout(async () => {
+                  await message.delete().catch(() => null);
+                }, 5000);
+
+                return;
+              },
+              handler: async (interaction: ButtonInteraction) => {
+                await interaction.update({
+                  components: [loadingContainer],
+                });
+
+                ComponentManager.getComponentManager().unregisterMany([
+                  componentIds.confirmContainerAddCustomId,
+                  componentIds.cancelContainerAddCustomId,
+                ]);
+
+                await GuildContainer.upsert({
+                  guildId: interaction.guild!.id,
+                  name,
+                  json: jsonText,
+                });
+
+                const successContainer = StatusContainer.success(
+                  successEmoji,
+                  `Container ${inlineCode(name)} đã được thêm vào máy chủ thành công!`,
+                );
+
+                await interaction.editReply({
+                  components: [successContainer],
+                });
+
+                setTimeout(async () => {
+                  await message.delete().catch(() => null);
+                }, 5000);
+              },
+              type: ComponentEnum.BUTTON,
+              userCheck: [interaction.user.id],
+            },
+            {
+              customId: componentIds.cancelContainerAddCustomId,
+              timeout: 10000,
+              onTimeout: async () => {
+                ComponentManager.getComponentManager().unregisterMany([
+                  componentIds.confirmContainerAddCustomId,
+                  componentIds.cancelContainerAddCustomId,
+                ]);
+
+                const errorContainer = StatusContainer.failed(
+                  failedEmoji,
+                  'Yêu cầu này đã hết hạn! Vui lòng thử lại!',
+                );
+
+                await message.edit({
+                  components: [errorContainer],
+                });
+
+                setTimeout(async () => {
+                  await message.delete().catch(() => null);
+                }, 5000);
+
+                return;
+              },
+              handler: async (interaction: ButtonInteraction) => {
+                ComponentManager.getComponentManager().unregisterMany([
+                  componentIds.confirmContainerAddCustomId,
+                  componentIds.cancelContainerAddCustomId,
+                ]);
+
+                await interaction.update({
+                  components: [loadingContainer],
+                });
+
+                const successContainer = StatusContainer.success(
+                  successEmoji,
+                  'Đã huỷ yêu cầu thành công!',
+                );
+
+                await interaction.editReply({
+                  components: [successContainer],
+                });
+
+                setTimeout(async () => {
+                  await message.delete().catch(() => null);
+                }, 5000);
+              },
+              type: ComponentEnum.BUTTON,
+              userCheck: [interaction.user.id],
+            },
+          ]);
 
           await message.edit({
             components: [containerAddConfirmContainer],
@@ -230,7 +365,7 @@ export default class SetupCommand extends Command {
 
               const errorContainer = StatusContainer.failed(
                 failedEmoji,
-                'Yêu cầu này đã hết hạn! Vui lòng thử lại',
+                'Yêu cầu này đã hết hạn! Vui lòng thử lại!',
               );
 
               await message.edit({
@@ -429,6 +564,7 @@ export default class SetupCommand extends Command {
               .setStyle(ButtonStyle.Success),
           ),
       )
+      .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           subtext(
