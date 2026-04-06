@@ -21,7 +21,7 @@ class GuildEvent extends Model<
   declare boostChannelContainer: string | null;
 }
 
-export function initGuildEvent(sequelizeInstance: Sequelize): void {
+export function initGuildEventModel(sequelizeInstance: Sequelize): void {
   sequelize = sequelizeInstance;
   GuildEvent.init(
     {

@@ -11,6 +11,7 @@ import {
   PermissionFlagsBits,
   ButtonInteraction,
   TextDisplayBuilder,
+  AutocompleteInteraction,
 } from 'discord.js';
 import {Command} from '../../../Command';
 import ExtendedClient from '../../../../classes/ExtendedClient';
@@ -50,7 +51,7 @@ export default class SetupCommand extends Command {
         .addSubcommand(subcommand =>
           subcommand
             .setName('add')
-            .setDescription('Thêm hoặc cập nhật một mẫu container')
+            .setDescription('Thêm một mẫu container')
             .addStringOption(option =>
               option
                 .setName('name')
@@ -64,8 +65,50 @@ export default class SetupCommand extends Command {
                 .setDescription('File JSON chứa container')
                 .setRequired(true),
             ),
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('remove')
+            .setDescription('Xoá mẫu container')
+            .addStringOption(option =>
+              option
+                .setName('name')
+                .setDescription('Tên mẫu container')
+                .setRequired(true)
+                .setAutocomplete(true),
+            ),
         ),
     );
+  }
+
+  async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
+    const subcommandGroup = interaction.options.getSubcommandGroup(true);
+    const subcommand = interaction.options.getSubcommand(true);
+    const focusedValue = interaction.options.getFocused().toLowerCase();
+
+    if (subcommandGroup === 'container') {
+      switch (subcommand) {
+        case 'remove': {
+          const containers = await GuildContainer.findAll({
+            where: {guildId: interaction.guildId!},
+          });
+
+          const choices = containers
+            .filter(c => c.name.toLowerCase().includes(focusedValue))
+            .slice(0, 25)
+            .map(c => ({name: c.name, value: c.name}));
+
+          await interaction.respond(choices);
+          break;
+        }
+      }
+    }
+
+    switch (subcommand) {
+      default: {
+        //
+      }
+    }
   }
 
   async run(interaction: ChatInputCommandInteraction) {
@@ -272,6 +315,8 @@ export default class SetupCommand extends Command {
                 setTimeout(async () => {
                   await message.delete().catch(() => null);
                 }, 5000);
+
+                return;
               },
               type: ComponentEnum.BUTTON,
               userCheck: [interaction.user.id],
@@ -322,6 +367,8 @@ export default class SetupCommand extends Command {
                 setTimeout(async () => {
                   await message.delete().catch(() => null);
                 }, 5000);
+
+                return;
               },
               type: ComponentEnum.BUTTON,
               userCheck: [interaction.user.id],
@@ -337,6 +384,36 @@ export default class SetupCommand extends Command {
             components: [previewText, ...containers],
             flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
           });
+
+          return;
+        }
+
+        case 'remove': {
+          const name = interaction.options.getString('name', true);
+
+          const guildContainer = await GuildContainer.findOne({
+            where: {
+              guildId: interaction.guild!.id,
+              name,
+            },
+          });
+
+          if (!guildContainer) {
+            const errorContainer = StatusContainer.failed(
+              failedEmoji,
+              `Máy chủ này không có container nào tên ${inlineCode(name)}!`,
+            );
+
+            await message.edit({
+              components: [errorContainer],
+            });
+
+            setTimeout(async () => {
+              await message.delete().catch(() => null);
+            }, 5000);
+
+            return;
+          }
         }
       }
       return;
@@ -590,6 +667,58 @@ export default class SetupCommand extends Command {
               .setCustomId(componentIds.cancelContainerAddCustomId)
               .setLabel('❌')
               .setStyle(ButtonStyle.Success),
+          ),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          subtext(
+            `${infoEmoji} Yêu cầu sẽ tự động hết hạn sau ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
+          ),
+        ),
+      );
+  }
+
+  containerRemoveConfirmContainer(
+    infoEmoji: unknown,
+    containerName: string,
+    componentIds: {
+      confirmContainerRemoveCustomId: string;
+      cancelContainerRemoveCustomId: string;
+    },
+    timeCreate: number,
+  ): ContainerBuilder {
+    return new ContainerBuilder()
+      .setAccentColor(EmbedColors.yellow())
+      .addTextDisplayComponents(textDisplay =>
+        textDisplay.setContent(
+          `## ${infoEmoji} Bạn chắc chắn muốn xoá container ${inlineCode(containerName)}?`,
+        ),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext('Vui lòng bấm nút này để xác nhận')),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setCustomId(componentIds.confirmContainerRemoveCustomId)
+              .setLabel('✅')
+              .setStyle(ButtonStyle.Danger),
+          ),
+      )
+      .addSeparatorComponents(separator => separator)
+      .addSectionComponents(section =>
+        section
+          .addTextDisplayComponents(textDisplay =>
+            textDisplay.setContent(subtext('Vui lòng bấm nút này để huỷ bỏ')),
+          )
+          .setButtonAccessory(button =>
+            button
+              .setCustomId(componentIds.cancelContainerRemoveCustomId)
+              .setLabel('❌')
+              .setStyle(ButtonStyle.Danger),
           ),
       )
       .addSeparatorComponents(separator => separator)

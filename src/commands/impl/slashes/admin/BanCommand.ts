@@ -441,7 +441,7 @@ export default class BanCommand extends Command {
             const banLog = new BanLog({
               banId: banId,
               guildId: interaction.guild.id,
-              userExcuteId: interaction.user.id,
+              userExecuteId: interaction.user.id,
               userTargetId: targetUser.id,
               reason: reason,
               duration: durationS,

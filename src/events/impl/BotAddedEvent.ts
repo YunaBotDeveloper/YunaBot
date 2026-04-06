@@ -2,6 +2,7 @@ import ExtendedClient from '../../classes/ExtendedClient';
 import GuildLog from '../../database/models/GuildLog.model';
 import GuildPrefix from '../../database/models/GuildPrefix.model';
 import Log4TS from '../../logger/Log4TS';
+import {MemberSyncService} from '../../services/MemberSyncService';
 import {EmbedColors} from '../../util/EmbedColors';
 import Event from '../Event';
 import {
@@ -25,6 +26,12 @@ export default class BotAddedEvent extends Event {
     const guildLog = new GuildLog({guildId: guild.id, nukeLogId: ''});
     await guildPrefix.save();
     await guildLog.save();
+
+    MemberSyncService.getInstance()
+      .syncGuild(guild)
+      .catch(err =>
+        logger.error(`[MemberSync] Failed to sync new guild: ${err}`),
+      );
 
     const bot = await guild.members.fetchMe();
 

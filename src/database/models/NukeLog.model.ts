@@ -47,7 +47,7 @@ export function initNukeLogModel(sequelizeInstance: Sequelize): void {
         allowNull: false,
       },
       time: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.BIGINT,
         allowNull: false,
       },
     },

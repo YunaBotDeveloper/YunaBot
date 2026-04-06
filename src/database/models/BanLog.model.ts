@@ -14,7 +14,7 @@ class BanLog extends Model<
 > {
   declare guildId: string;
   declare banId: string;
-  declare userExcuteId: string;
+  declare userExecuteId: string;
   declare userTargetId: string;
   declare reason: string | null;
   declare duration: number | null;
@@ -37,7 +37,7 @@ export function initBanLogModel(sequelizeInstance: Sequelize): void {
         primaryKey: true,
         allowNull: false,
       },
-      userExcuteId: {
+      userExecuteId: {
         type: DataTypes.STRING,
         allowNull: false,
       },
@@ -51,7 +51,7 @@ export function initBanLogModel(sequelizeInstance: Sequelize): void {
         defaultValue: null,
       },
       duration: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.INTEGER,
         allowNull: true,
         defaultValue: null,
       },
@@ -62,9 +62,11 @@ export function initBanLogModel(sequelizeInstance: Sequelize): void {
       },
       shouldDm: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
       time: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.BIGINT,
         allowNull: false,
       },
     },

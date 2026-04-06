@@ -1,5 +1,6 @@
 import ExtendedClient from '../../classes/ExtendedClient';
 import Log4TS from '../../logger/Log4TS';
+import {MemberSyncService} from '../../services/MemberSyncService';
 import Event from '../Event';
 import {Events} from 'discord.js';
 
@@ -10,5 +11,11 @@ export default class ReadyEvent extends Event {
   }
   async run(client: ExtendedClient) {
     logger.success(client.user?.username + ' is now ready');
+
+    const sync = MemberSyncService.getInstance();
+    sync.startPeriodicSync(client);
+    sync
+      .syncAll(client)
+      .catch(err => logger.error(`[MemberSync] Initial sync error: ${err}`));
   }
 }
