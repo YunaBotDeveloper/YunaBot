@@ -79,6 +79,8 @@ export default class SetupCommand extends Command {
             ),
         ),
     );
+
+    this.data.addSubcommandGroup(group => group.setName(''));
   }
 
   async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
