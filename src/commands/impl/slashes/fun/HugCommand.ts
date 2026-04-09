@@ -11,7 +11,7 @@ import {
 import {Command} from '../../../Command';
 import ExtendedClient from '../../../../classes/ExtendedClient';
 import {StatusContainer} from '../../../../util/StatusContainer';
-import KissCount from '../../../../database/models/KissCount.model';
+import HugCount from '../../../../database/models/HugCount.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
@@ -21,44 +21,44 @@ import {
   formatCooldown,
 } from '../../../../util/CoupleHelper';
 
-const KISS_QUOTES = [
-  'Một nụ hôn nói lên nghìn điều mà lời nói không thể diễn đạt.',
-  'Hôn là ngôn ngữ của trái tim.',
-  'Mỗi nụ hôn là một lời hứa không cần lời.',
-  'Yêu là khi nụ hôn của họ khiến tim bạn tan chảy.',
-  'Không có khoảng cách nào xa khi trái tim ở gần.',
+const HUG_QUOTES = [
+  'Một cái ôm có thể chữa lành những điều mà lời nói không thể.',
+  'Ôm nhau đi, cuộc đời ngắn lắm!',
+  'Vòng tay ấm áp là liều thuốc tốt nhất.',
+  'Đôi khi tất cả những gì bạn cần là một cái ôm thật chặt.',
+  'Ôm là ngôn ngữ của trái tim không cần dịch.',
 ];
 
-const SELF_KISS_QUOTES = [
-  'Yêu bản thân là bước đầu tiên của một cuộc tình vĩnh cửu.',
-  'Đôi khi bạn chỉ cần tự hôn mình thôi!',
-  'Người duy nhất luôn ở bên bạn... chính là bạn.',
-  'Tự yêu mình không phải ích kỷ, đó là cần thiết.',
-  'Hôn gió cũng tốt chứ sao!',
+const SELF_HUG_QUOTES = [
+  'Tự ôm mình cũng là một cách yêu thương bản thân!',
+  'Đôi khi bạn cần tự ôm lấy chính mình.',
+  'Bạn xứng đáng được ôm, dù là tự ôm!',
+  'Không ai có thể ôm bạn tốt hơn chính bạn.',
+  'Hãy yêu thương bản thân mỗi ngày.',
 ];
 
-const KISS_BACK_QUOTES = [
-  'Tình yêu là con đường hai chiều!',
-  'Hôn qua, hôn lại, trái tim rộn ràng.',
-  'Khi hai trái tim đồng điệu...',
-  'Không ai muốn chịu thiệt cả!',
-  'Đáp lại một nụ hôn bằng một nụ hôn!',
+const HUG_BACK_QUOTES = [
+  'Ôm qua ôm lại, tình thân ngày càng bền chặt!',
+  'Khi yêu thương được chia sẻ, nó nhân lên gấp đôi.',
+  'Lan truyền sự ấm áp đi khắp nơi!',
+  'Không ai chịu thua trong cuộc chiến yêu thương!',
+  'Hạnh phúc là khi được ôm và được ôm lại.',
 ];
 
 function randomQuote(pool: string[]): string {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export default class KissCommand extends Command {
+export default class HugCommand extends Command {
   constructor() {
-    super('kiss', 'Hôn một người dùng nào đó');
+    super('hug', 'Ôm một người dùng nào đó');
 
     this.advancedOptions.cooldown = 5000;
 
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription('Người bạn muốn hôn')
+        .setDescription('Người bạn muốn ôm')
         .setRequired(true),
     );
 
@@ -91,31 +91,26 @@ export default class KissCommand extends Command {
     const shouldHideName = interaction.options.getBoolean('hide') ?? false;
 
     if (targetUser.bot) {
-      const errorContainer = StatusContainer.failed(
-        failedEmoji,
-        'Bạn không thể hôn bot!',
-      );
-
       await interaction.editReply({
-        components: [errorContainer],
+        components: [
+          StatusContainer.failed(failedEmoji, 'Bạn không thể ôm bot!'),
+        ],
       });
-
       return;
     }
 
     let gifUrl: string;
     try {
       const response = await fetch(
-        'https://api.purrbot.site/v2/img/sfw/kiss/gif',
+        'https://api.purrbot.site/v2/img/sfw/hug/gif',
       );
       const data = (await response.json()) as {link: string; error: boolean};
       if (data.error || !data.link) throw new Error('API error');
       gifUrl = data.link;
     } catch {
-      const failEmoji = await client.api.emojiAPI.getEmojiByName('failed');
       await interaction.editReply({
         components: [
-          StatusContainer.failed(failEmoji, 'yeah it throw an error'),
+          StatusContainer.failed(failedEmoji, 'yeah it throw an error'),
         ],
       });
       return;
@@ -126,41 +121,41 @@ export default class KissCommand extends Command {
       user2: targetUser.id,
     };
 
-    let kissCount = 0;
+    let hugCount = 0;
     let coupleExpResult: ExpAwardResult | null = null;
     if (targetUser.id !== interaction.user.id) {
-      const [kissRecord] = await KissCount.findOrCreate({
+      const [hugRecord] = await HugCount.findOrCreate({
         where: {userId: targetUser.id, guildId: interaction.guild!.id},
         defaults: {
           userId: targetUser.id,
           guildId: interaction.guild!.id,
-          kissCount: 0,
+          hugCount: 0,
         },
       });
-      await kissRecord.increment('kissCount');
-      kissCount = kissRecord.kissCount + 1;
+      await hugRecord.increment('hugCount');
+      hugCount = hugRecord.hugCount + 1;
 
       coupleExpResult = await tryAwardCoupleExp(
         interaction.user.id,
         targetUser.id,
         interaction.guild!.id,
-        'kiss',
+        'hug',
       );
     }
 
-    let kissBackCustomId: string | null =
+    let hugBackCustomId: string | null =
       shouldHideName || targetUser.id === interaction.user.id
         ? null
-        : `kissBack_${interaction.id}`;
+        : `hugBack_${interaction.id}`;
 
-    const kissContainer = this.kissContainer(
+    const hugContainer = this.hugContainer(
       userIds,
       gifUrl,
-      kissBackCustomId,
+      hugBackCustomId,
       false,
       false,
       shouldHideName,
-      kissCount,
+      hugCount,
       coupleExpResult,
     );
 
@@ -174,24 +169,24 @@ export default class KissCommand extends Command {
     });
 
     const sentMessage = await (interaction.channel as TextChannel).send({
-      components: [kissContainer],
+      components: [hugContainer],
       flags: [MessageFlags.IsComponentsV2],
     });
 
-    if (kissBackCustomId) {
+    if (hugBackCustomId) {
       ComponentManager.getComponentManager().register([
         {
-          customId: kissBackCustomId,
+          customId: hugBackCustomId,
           timeout: 60000,
           onTimeout: async () => {
-            const timedOutContainer = this.kissContainer(
+            const timedOutContainer = this.hugContainer(
               userIds,
               gifUrl,
-              kissBackCustomId,
+              hugBackCustomId,
               false,
               true,
               shouldHideName,
-              kissCount,
+              hugCount,
               null,
             );
             await sentMessage.edit({components: [timedOutContainer]});
@@ -199,36 +194,36 @@ export default class KissCommand extends Command {
           handler: async (btnInteraction: ButtonInteraction) => {
             await btnInteraction.update({components: [loadingContainer]});
 
-            const [backRecord] = await KissCount.findOrCreate({
+            const [backRecord] = await HugCount.findOrCreate({
               where: {userId: userIds.user1, guildId: interaction.guild!.id},
               defaults: {
                 userId: userIds.user1,
                 guildId: interaction.guild!.id,
-                kissCount: 0,
+                hugCount: 0,
               },
             });
-            await backRecord.increment('kissCount');
-            kissCount = backRecord.kissCount + 1;
-            kissBackCustomId = null;
+            await backRecord.increment('hugCount');
+            hugCount = backRecord.hugCount + 1;
+            hugBackCustomId = null;
 
             await tryAwardCoupleExp(
               targetUser.id,
               interaction.user.id,
               interaction.guild!.id,
-              'kiss',
+              'hug',
             );
 
-            const kissBackContainer = this.kissContainer(
+            const hugBackContainer = this.hugContainer(
               userIds,
               gifUrl,
               null,
               true,
               true,
               shouldHideName,
-              kissCount,
+              hugCount,
               null,
             );
-            await btnInteraction.editReply({components: [kissBackContainer]});
+            await btnInteraction.editReply({components: [hugBackContainer]});
           },
           type: ComponentEnum.BUTTON,
           userCheck: [targetUser.id],
@@ -239,53 +234,51 @@ export default class KissCommand extends Command {
     return;
   }
 
-  kissContainer(
+  hugContainer(
     userIds: {user1: string; user2: string},
     gifURL: string,
-    kissBackCustomId: string | null,
-    isKissBack: boolean,
-    disabledKissBackButton: boolean,
+    hugBackCustomId: string | null,
+    isHugBack: boolean,
+    disabledHugBackButton: boolean,
     shouldHideName: boolean,
-    kissCount: number,
+    hugCount: number,
     coupleExp: ExpAwardResult | null,
   ): ContainerBuilder {
     const container = new ContainerBuilder().setAccentColor(
       EmbedColors.random(),
     );
 
-    const isSelfKiss = userIds.user1 === userIds.user2;
+    const isSelfHug = userIds.user1 === userIds.user2;
 
-    if (isKissBack) {
+    if (isHugBack) {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user2)} đã hôn lại ${userMention(userIds.user1)}!`,
+          `## ${userMention(userIds.user2)} đã ôm lại ${userMention(userIds.user1)}!`,
         ),
       );
     } else if (shouldHideName) {
       container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `## Ai đó đã hôn ${userMention(userIds.user2)}!`,
-        ),
+        textDisplay.setContent(`## Ai đó đã ôm ${userMention(userIds.user2)}!`),
       );
     } else {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user1)} vừa hôn ${userMention(userIds.user2)}`,
+          `## ${userMention(userIds.user1)} vừa ôm ${userMention(userIds.user2)}`,
         ),
       );
     }
 
-    const quote = isKissBack
-      ? randomQuote(KISS_BACK_QUOTES)
-      : isSelfKiss
-        ? randomQuote(SELF_KISS_QUOTES)
-        : randomQuote(KISS_QUOTES);
+    const quote = isHugBack
+      ? randomQuote(HUG_BACK_QUOTES)
+      : isSelfHug
+        ? randomQuote(SELF_HUG_QUOTES)
+        : randomQuote(HUG_QUOTES);
 
     container.addTextDisplayComponents(textDisplay =>
       textDisplay.setContent(subtext(`"${quote}"`)),
     );
 
-    const kissedUserId = isKissBack ? userIds.user1 : userIds.user2;
+    const huggedUserId = isHugBack ? userIds.user1 : userIds.user2;
 
     container
       .addSeparatorComponents(separator => separator)
@@ -293,14 +286,12 @@ export default class KissCommand extends Command {
         gallery.addItems(item => item.setURL(gifURL)),
       );
 
-    if (kissCount > 0) {
+    if (hugCount > 0) {
       container
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            subtext(
-              `${userMention(kissedUserId)} đã được hôn ${kissCount} lần!`,
-            ),
+            subtext(`${userMention(huggedUserId)} đã được ôm ${hugCount} lần!`),
           ),
         );
     }
@@ -320,16 +311,16 @@ export default class KissCommand extends Command {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           subtext(
-            `⏳ Cooldown kiss: còn ${formatCooldown(coupleExp.cooldownRemainingMs!)} nữa`,
+            `⏳ Cooldown ôm: còn ${formatCooldown(coupleExp.cooldownRemainingMs!)} nữa`,
           ),
         ),
       );
     }
 
-    if (kissBackCustomId) {
+    if (hugBackCustomId) {
       container.addSeparatorComponents(separator => separator);
 
-      if (disabledKissBackButton) {
+      if (disabledHugBackButton) {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
@@ -337,8 +328,8 @@ export default class KissCommand extends Command {
             )
             .setButtonAccessory(button =>
               button
-                .setCustomId(kissBackCustomId!)
-                .setLabel('Hôn lại')
+                .setCustomId(hugBackCustomId!)
+                .setLabel('Ôm lại')
                 .setDisabled(true)
                 .setStyle(ButtonStyle.Primary),
             ),
@@ -347,12 +338,12 @@ export default class KissCommand extends Command {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để hôn lại họ')),
+              textDisplay.setContent(subtext('Bấm vào đây để ôm lại họ')),
             )
             .setButtonAccessory(button =>
               button
-                .setCustomId(kissBackCustomId!)
-                .setLabel('Hôn lại')
+                .setCustomId(hugBackCustomId!)
+                .setLabel('Ôm lại')
                 .setStyle(ButtonStyle.Primary),
             ),
         );

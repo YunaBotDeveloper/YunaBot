@@ -16,7 +16,7 @@ class GuildMember extends Model<
   declare guildId: string;
   declare username: string;
   declare displayName: string;
-  declare roles: string; // JSON-serialized string[]
+  declare roles: string;
   declare joinedAt: string | null;
   declare isBot: boolean;
 }

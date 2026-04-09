@@ -31,7 +31,6 @@ export class MemberSyncService {
     return MemberSyncService.instance;
   }
 
-  /** Fetch all members for a single guild and upsert into DB. */
   public async syncGuild(guild: Guild): Promise<void> {
     try {
       const members = await guild.members.fetch();
@@ -41,7 +40,6 @@ export class MemberSyncService {
         await GuildMember.upsert(row);
       }
 
-      // Remove members who left while bot was offline
       const fetchedIds = new Set(rows.map(r => r.userId));
       const stored = await GuildMember.findAll({where: {guildId: guild.id}});
       const stale = stored.filter(s => !fetchedIds.has(s.userId));
@@ -57,7 +55,6 @@ export class MemberSyncService {
     }
   }
 
-  /** Sync all guilds the bot is in. Rate limit is per-guild, so fetch all in parallel. */
   public async syncAll(client: Client): Promise<void> {
     const guilds = [...client.guilds.cache.values()];
     logger.info(`[MemberSync] Starting sync for ${guilds.length} guild(s)`);
@@ -67,7 +64,6 @@ export class MemberSyncService {
     logger.success('[MemberSync] All guilds synced');
   }
 
-  /** Start the 15-minute periodic sync. Safe to call multiple times (only one interval runs). */
   public startPeriodicSync(client: Client): void {
     if (this.intervalHandle) return;
 
@@ -87,7 +83,6 @@ export class MemberSyncService {
     }
   }
 
-  /** Upsert a single member (called from event handlers). */
   public async upsertMember(member: DiscordGuildMember): Promise<void> {
     try {
       await GuildMember.upsert(memberToRow(member));

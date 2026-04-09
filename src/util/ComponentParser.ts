@@ -14,8 +14,6 @@ type RawComponent = {
   [key: string]: unknown;
 };
 
-// Button (2), String Select (3), User Select (5), Role Select (6),
-// Mentionable Select (7), Channel Select (8)
 const INTERACTIVE_TYPES = new Set([2, 3, 5, 6, 7, 8]);
 
 function isAttachmentUrl(url: unknown): boolean {
@@ -23,14 +21,12 @@ function isAttachmentUrl(url: unknown): boolean {
 }
 
 function patchComponent(component: unknown): RawComponent | null {
-  // Guard: skip null / non-object values that may appear in untrusted JSON
   if (typeof component !== 'object' || component === null) return null;
 
   const c = component as RawComponent;
 
   if (INTERACTIVE_TYPES.has(c.type ?? -1)) return null;
 
-  // File component (type 13): drop if it references a local attachment
   if (c.type === 13) {
     const file = c.file as {url?: unknown} | undefined;
     if (isAttachmentUrl(file?.url)) return null;
@@ -43,11 +39,9 @@ function patchComponent(component: unknown): RawComponent | null {
       .map(patchComponent)
       .filter((child): child is RawComponent => child !== null);
 
-    // Drop empty action rows after stripping
     if (c.type === 1 && result.components.length === 0) return null;
   }
 
-  // Media gallery (type 12): filter out items with attachment:// URLs
   if (c.type === 12) {
     const items = c.items as Array<{media?: {url?: unknown}}> | undefined;
     if (Array.isArray(items)) {
@@ -64,11 +58,6 @@ function patchComponent(component: unknown): RawComponent | null {
 }
 
 export class ComponentParser {
-  /**
-   * Strips interactive components (buttons, select menus), file components
-   * with attachment:// URLs, and empty media galleries from raw JSON.
-   * Returns the patched JSON string ready for storage.
-   */
   static patch(json: string): string {
     let parsed: unknown;
     try {

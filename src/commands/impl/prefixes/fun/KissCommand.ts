@@ -1,25 +1,19 @@
 import {
   ButtonInteraction,
   ButtonStyle,
-  ChatInputCommandInteraction,
   ContainerBuilder,
+  Message,
   MessageFlags,
   subtext,
-  TextChannel,
   userMention,
 } from 'discord.js';
-import {Command} from '../../../Command';
 import ExtendedClient from '../../../../classes/ExtendedClient';
+import {PrefixCommand} from '../../../PrefixCommand';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import KissCount from '../../../../database/models/KissCount.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
-import {
-  tryAwardCoupleExp,
-  ExpAwardResult,
-  formatCooldown,
-} from '../../../../util/CoupleHelper';
 
 const KISS_QUOTES = [
   'Một nụ hôn nói lên nghìn điều mà lời nói không thể diễn đạt.',
@@ -49,57 +43,89 @@ function randomQuote(pool: string[]): string {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export default class KissCommand extends Command {
+export default class KissCommand extends PrefixCommand {
   constructor() {
-    super('kiss', 'Hôn một người dùng nào đó');
-
-    this.advancedOptions.cooldown = 5000;
-
-    this.data.addUserOption(option =>
-      option
-        .setName('user')
-        .setDescription('Người bạn muốn hôn')
-        .setRequired(true),
-    );
-
-    this.data.addBooleanOption(option =>
-      option
-        .setName('hide')
-        .setDescription('Bạn muốn ẩn tên bạn không?')
-        .setRequired(false),
-    );
+    super('kiss', [], 5000);
   }
 
-  async run(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({
-      flags: [MessageFlags.Ephemeral],
-    });
+  async run(
+    args: string[],
+    context: {message: Message; client: ExtendedClient},
+  ) {
+    const {message, client} = context;
+    const guild = message.guild;
 
-    const client = interaction.client as ExtendedClient;
+    if (!guild) return;
+
     const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
-    const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
     const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
     const loadingContainer = StatusContainer.loading(loadingEmoji);
 
-    await interaction.editReply({
+    const ogMessage = await message.reply({
+      content: '',
       components: [loadingContainer],
       flags: [MessageFlags.IsComponentsV2],
+      allowedMentions: {},
     });
 
-    const targetUser = interaction.options.getUser('user', true);
+    let targetUserId: string | undefined;
+    const userInput = args[0];
 
-    const shouldHideName = interaction.options.getBoolean('hide') ?? false;
+    if (userInput) {
+      const mentionMatch = userInput.match(/^<@!?(\d+)>$/);
+      if (mentionMatch) {
+        targetUserId = mentionMatch[1];
+      } else if (/^\d+$/.test(userInput)) {
+        targetUserId = userInput;
+      } else {
+        const normalizedInput = userInput.toLowerCase();
+        const foundMember = guild.members.cache.find(
+          member =>
+            member.user.username.toLowerCase() === normalizedInput ||
+            member.user.tag.toLowerCase() === normalizedInput ||
+            member.displayName.toLowerCase() === normalizedInput,
+        );
+        if (foundMember) targetUserId = foundMember.user.id;
+      }
+
+      if (!targetUserId) {
+        await ogMessage.edit({
+          components: [
+            StatusContainer.failed(failedEmoji, 'Người dùng không hợp lệ!'),
+          ],
+          flags: [MessageFlags.IsComponentsV2],
+        });
+        setTimeout(() => ogMessage.delete().catch(() => null), 5000);
+        return;
+      }
+    }
+
+    const targetUser = targetUserId
+      ? ((await guild.members.fetch(targetUserId).catch(() => null))?.user ??
+        null)
+      : message.author;
+
+    if (!targetUser) return;
+
+    if (targetUserId && !targetUser) {
+      await ogMessage.edit({
+        components: [
+          StatusContainer.failed(failedEmoji, 'Người dùng không hợp lệ!'),
+        ],
+        flags: [MessageFlags.IsComponentsV2],
+      });
+      setTimeout(() => ogMessage.delete().catch(() => null), 5000);
+      return;
+    }
 
     if (targetUser.bot) {
-      const errorContainer = StatusContainer.failed(
-        failedEmoji,
-        'Bạn không thể hôn bot!',
-      );
-
-      await interaction.editReply({
-        components: [errorContainer],
+      await ogMessage.edit({
+        components: [
+          StatusContainer.failed(failedEmoji, 'Bạn không thể hôn bot!'),
+        ],
+        flags: [MessageFlags.IsComponentsV2],
       });
-
+      setTimeout(() => ogMessage.delete().catch(() => null), 5000);
       return;
     }
 
@@ -112,46 +138,29 @@ export default class KissCommand extends Command {
       if (data.error || !data.link) throw new Error('API error');
       gifUrl = data.link;
     } catch {
-      const failEmoji = await client.api.emojiAPI.getEmojiByName('failed');
-      await interaction.editReply({
+      await ogMessage.edit({
         components: [
-          StatusContainer.failed(failEmoji, 'yeah it throw an error'),
+          StatusContainer.failed(failedEmoji, 'yeah it throw an error'),
         ],
+        flags: [MessageFlags.IsComponentsV2],
       });
       return;
     }
 
-    const userIds = {
-      user1: interaction.user.id,
-      user2: targetUser.id,
-    };
+    const userIds = {user1: message.author.id, user2: targetUser.id};
 
     let kissCount = 0;
-    let coupleExpResult: ExpAwardResult | null = null;
-    if (targetUser.id !== interaction.user.id) {
+    if (targetUser.id !== message.author.id) {
       const [kissRecord] = await KissCount.findOrCreate({
-        where: {userId: targetUser.id, guildId: interaction.guild!.id},
-        defaults: {
-          userId: targetUser.id,
-          guildId: interaction.guild!.id,
-          kissCount: 0,
-        },
+        where: {userId: targetUser.id, guildId: guild.id},
+        defaults: {userId: targetUser.id, guildId: guild.id, kissCount: 0},
       });
       await kissRecord.increment('kissCount');
       kissCount = kissRecord.kissCount + 1;
-
-      coupleExpResult = await tryAwardCoupleExp(
-        interaction.user.id,
-        targetUser.id,
-        interaction.guild!.id,
-        'kiss',
-      );
     }
 
     let kissBackCustomId: string | null =
-      shouldHideName || targetUser.id === interaction.user.id
-        ? null
-        : `kissBack_${interaction.id}`;
+      targetUser.id === message.author.id ? null : `kissBack_${message.id}`;
 
     const kissContainer = this.kissContainer(
       userIds,
@@ -159,84 +168,56 @@ export default class KissCommand extends Command {
       kissBackCustomId,
       false,
       false,
-      shouldHideName,
       kissCount,
-      coupleExpResult,
     );
 
-    const successContainer = StatusContainer.success(
-      successEmoji,
-      'Gửi thành công!',
-    );
-
-    await interaction.editReply({
-      components: [successContainer],
-    });
-
-    const sentMessage = await (interaction.channel as TextChannel).send({
+    await ogMessage.edit({
       components: [kissContainer],
       flags: [MessageFlags.IsComponentsV2],
     });
 
-    if (kissBackCustomId) {
-      ComponentManager.getComponentManager().register([
-        {
-          customId: kissBackCustomId,
-          timeout: 60000,
-          onTimeout: async () => {
-            const timedOutContainer = this.kissContainer(
-              userIds,
-              gifUrl,
-              kissBackCustomId,
-              false,
-              true,
-              shouldHideName,
-              kissCount,
-              null,
-            );
-            await sentMessage.edit({components: [timedOutContainer]});
-          },
-          handler: async (btnInteraction: ButtonInteraction) => {
-            await btnInteraction.update({components: [loadingContainer]});
+    if (!kissBackCustomId) return;
 
-            const [backRecord] = await KissCount.findOrCreate({
-              where: {userId: userIds.user1, guildId: interaction.guild!.id},
-              defaults: {
-                userId: userIds.user1,
-                guildId: interaction.guild!.id,
-                kissCount: 0,
-              },
-            });
-            await backRecord.increment('kissCount');
-            kissCount = backRecord.kissCount + 1;
-            kissBackCustomId = null;
-
-            await tryAwardCoupleExp(
-              targetUser.id,
-              interaction.user.id,
-              interaction.guild!.id,
-              'kiss',
-            );
-
-            const kissBackContainer = this.kissContainer(
-              userIds,
-              gifUrl,
-              null,
-              true,
-              true,
-              shouldHideName,
-              kissCount,
-              null,
-            );
-            await btnInteraction.editReply({components: [kissBackContainer]});
-          },
-          type: ComponentEnum.BUTTON,
-          userCheck: [targetUser.id],
+    ComponentManager.getComponentManager().register([
+      {
+        customId: kissBackCustomId,
+        timeout: 60000,
+        onTimeout: async () => {
+          const timedOutContainer = this.kissContainer(
+            userIds,
+            gifUrl,
+            kissBackCustomId,
+            false,
+            true,
+            kissCount,
+          );
+          await ogMessage.edit({components: [timedOutContainer]});
         },
-      ]);
-    }
+        handler: async (btnInteraction: ButtonInteraction) => {
+          await btnInteraction.update({components: [loadingContainer]});
 
-    return;
+          const [backRecord] = await KissCount.findOrCreate({
+            where: {userId: userIds.user1, guildId: guild.id},
+            defaults: {userId: userIds.user1, guildId: guild.id, kissCount: 0},
+          });
+          await backRecord.increment('kissCount');
+          kissCount = backRecord.kissCount + 1;
+          kissBackCustomId = null;
+
+          const kissBackContainer = this.kissContainer(
+            userIds,
+            gifUrl,
+            null,
+            true,
+            true,
+            kissCount,
+          );
+          await btnInteraction.editReply({components: [kissBackContainer]});
+        },
+        type: ComponentEnum.BUTTON,
+        userCheck: [targetUser.id],
+      },
+    ]);
   }
 
   kissContainer(
@@ -245,9 +226,7 @@ export default class KissCommand extends Command {
     kissBackCustomId: string | null,
     isKissBack: boolean,
     disabledKissBackButton: boolean,
-    shouldHideName: boolean,
     kissCount: number,
-    coupleExp: ExpAwardResult | null,
   ): ContainerBuilder {
     const container = new ContainerBuilder().setAccentColor(
       EmbedColors.random(),
@@ -259,12 +238,6 @@ export default class KissCommand extends Command {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           `## ${userMention(userIds.user2)} đã hôn lại ${userMention(userIds.user1)}!`,
-        ),
-      );
-    } else if (shouldHideName) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `## Ai đó đã hôn ${userMention(userIds.user2)}!`,
         ),
       );
     } else {
@@ -303,27 +276,6 @@ export default class KissCommand extends Command {
             ),
           ),
         );
-    }
-
-    if (coupleExp?.awarded) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          subtext(
-            `💑 +${coupleExp.expGained} EXP couple! (Tổng: ${coupleExp.totalExp} • Cấp ${coupleExp.level})`,
-          ),
-        ),
-      );
-    } else if (
-      coupleExp?.reason === 'cooldown' &&
-      coupleExp.cooldownRemainingMs
-    ) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          subtext(
-            `⏳ Cooldown kiss: còn ${formatCooldown(coupleExp.cooldownRemainingMs!)} nữa`,
-          ),
-        ),
-      );
     }
 
     if (kissBackCustomId) {

@@ -8,7 +8,7 @@ export default class MemberAddEvent extends Event {
     super(Events.GuildMemberAdd);
   }
 
-  async run(_client: ExtendedClient, member: GuildMember): Promise<void> {
+  async run(client: ExtendedClient, member: GuildMember): Promise<void> {
     await MemberSyncService.getInstance().upsertMember(member);
   }
 }
