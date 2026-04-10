@@ -79,8 +79,6 @@ export default class SetupCommand extends Command {
             ),
         ),
     );
-
-    this.data.addSubcommandGroup(group => group.setName(''));
   }
 
   async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
@@ -387,7 +385,7 @@ export default class SetupCommand extends Command {
             flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
           });
 
-          return;
+          break;
         }
 
         case 'remove': {
@@ -416,6 +414,8 @@ export default class SetupCommand extends Command {
 
             return;
           }
+
+          
         }
       }
       return;

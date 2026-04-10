@@ -15,11 +15,6 @@ import PatCount from '../../../../database/models/PatCount.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
-import {
-  tryAwardCoupleExp,
-  ExpAwardResult,
-  formatCooldown,
-} from '../../../../util/CoupleHelper';
 
 const PAT_QUOTES = [
   'Một cái xoa đầu đôi khi còn ý nghĩa hơn ngàn lời nói.',
@@ -122,7 +117,6 @@ export default class PatCommand extends Command {
     };
 
     let patCount = 0;
-    let coupleExpResult: ExpAwardResult | null = null;
     if (targetUser.id !== interaction.user.id) {
       const [patRecord] = await PatCount.findOrCreate({
         where: {userId: targetUser.id, guildId: interaction.guild!.id},
@@ -134,13 +128,6 @@ export default class PatCommand extends Command {
       });
       await patRecord.increment('patCount');
       patCount = patRecord.patCount + 1;
-
-      coupleExpResult = await tryAwardCoupleExp(
-        interaction.user.id,
-        targetUser.id,
-        interaction.guild!.id,
-        'pat',
-      );
     }
 
     let patBackCustomId: string | null =
@@ -156,7 +143,6 @@ export default class PatCommand extends Command {
       false,
       shouldHideName,
       patCount,
-      coupleExpResult,
     );
 
     const successContainer = StatusContainer.success(
@@ -187,7 +173,6 @@ export default class PatCommand extends Command {
               true,
               shouldHideName,
               patCount,
-              null,
             );
             await sentMessage.edit({components: [timedOutContainer]});
           },
@@ -206,13 +191,6 @@ export default class PatCommand extends Command {
             patCount = backRecord.patCount + 1;
             patBackCustomId = null;
 
-            await tryAwardCoupleExp(
-              targetUser.id,
-              interaction.user.id,
-              interaction.guild!.id,
-              'pat',
-            );
-
             const patBackContainer = this.patContainer(
               userIds,
               gifUrl,
@@ -221,7 +199,6 @@ export default class PatCommand extends Command {
               true,
               shouldHideName,
               patCount,
-              null,
             );
             await btnInteraction.editReply({components: [patBackContainer]});
           },
@@ -242,7 +219,6 @@ export default class PatCommand extends Command {
     disabledPatBackButton: boolean,
     shouldHideName: boolean,
     patCount: number,
-    coupleExp: ExpAwardResult | null,
   ): ContainerBuilder {
     const container = new ContainerBuilder().setAccentColor(
       EmbedColors.random(),
@@ -298,27 +274,6 @@ export default class PatCommand extends Command {
             ),
           ),
         );
-    }
-
-    if (coupleExp?.awarded) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          subtext(
-            `💑 +${coupleExp.expGained} EXP couple! (Tổng: ${coupleExp.totalExp} • Cấp ${coupleExp.level})`,
-          ),
-        ),
-      );
-    } else if (
-      coupleExp?.reason === 'cooldown' &&
-      coupleExp.cooldownRemainingMs
-    ) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          subtext(
-            `⏳ Cooldown xoa đầu: còn ${formatCooldown(coupleExp.cooldownRemainingMs!)} nữa`,
-          ),
-        ),
-      );
     }
 
     if (patBackCustomId) {

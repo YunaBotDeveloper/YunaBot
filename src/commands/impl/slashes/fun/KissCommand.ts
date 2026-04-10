@@ -15,11 +15,6 @@ import KissCount from '../../../../database/models/KissCount.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
-import {
-  tryAwardCoupleExp,
-  ExpAwardResult,
-  formatCooldown,
-} from '../../../../util/CoupleHelper';
 
 const KISS_QUOTES = [
   'Một nụ hôn nói lên nghìn điều mà lời nói không thể diễn đạt.',
@@ -127,7 +122,6 @@ export default class KissCommand extends Command {
     };
 
     let kissCount = 0;
-    let coupleExpResult: ExpAwardResult | null = null;
     if (targetUser.id !== interaction.user.id) {
       const [kissRecord] = await KissCount.findOrCreate({
         where: {userId: targetUser.id, guildId: interaction.guild!.id},
@@ -139,13 +133,6 @@ export default class KissCommand extends Command {
       });
       await kissRecord.increment('kissCount');
       kissCount = kissRecord.kissCount + 1;
-
-      coupleExpResult = await tryAwardCoupleExp(
-        interaction.user.id,
-        targetUser.id,
-        interaction.guild!.id,
-        'kiss',
-      );
     }
 
     let kissBackCustomId: string | null =
@@ -161,7 +148,6 @@ export default class KissCommand extends Command {
       false,
       shouldHideName,
       kissCount,
-      coupleExpResult,
     );
 
     const successContainer = StatusContainer.success(
@@ -192,7 +178,6 @@ export default class KissCommand extends Command {
               true,
               shouldHideName,
               kissCount,
-              null,
             );
             await sentMessage.edit({components: [timedOutContainer]});
           },
@@ -211,13 +196,6 @@ export default class KissCommand extends Command {
             kissCount = backRecord.kissCount + 1;
             kissBackCustomId = null;
 
-            await tryAwardCoupleExp(
-              targetUser.id,
-              interaction.user.id,
-              interaction.guild!.id,
-              'kiss',
-            );
-
             const kissBackContainer = this.kissContainer(
               userIds,
               gifUrl,
@@ -226,7 +204,6 @@ export default class KissCommand extends Command {
               true,
               shouldHideName,
               kissCount,
-              null,
             );
             await btnInteraction.editReply({components: [kissBackContainer]});
           },
@@ -247,7 +224,6 @@ export default class KissCommand extends Command {
     disabledKissBackButton: boolean,
     shouldHideName: boolean,
     kissCount: number,
-    coupleExp: ExpAwardResult | null,
   ): ContainerBuilder {
     const container = new ContainerBuilder().setAccentColor(
       EmbedColors.random(),
@@ -303,27 +279,6 @@ export default class KissCommand extends Command {
             ),
           ),
         );
-    }
-
-    if (coupleExp?.awarded) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          subtext(
-            `💑 +${coupleExp.expGained} EXP couple! (Tổng: ${coupleExp.totalExp} • Cấp ${coupleExp.level})`,
-          ),
-        ),
-      );
-    } else if (
-      coupleExp?.reason === 'cooldown' &&
-      coupleExp.cooldownRemainingMs
-    ) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          subtext(
-            `⏳ Cooldown kiss: còn ${formatCooldown(coupleExp.cooldownRemainingMs!)} nữa`,
-          ),
-        ),
-      );
     }
 
     if (kissBackCustomId) {

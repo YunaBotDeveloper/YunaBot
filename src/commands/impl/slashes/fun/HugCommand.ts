@@ -15,11 +15,6 @@ import HugCount from '../../../../database/models/HugCount.model';
 import {EmbedColors} from '../../../../util/EmbedColors';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
-import {
-  tryAwardCoupleExp,
-  ExpAwardResult,
-  formatCooldown,
-} from '../../../../util/CoupleHelper';
 
 const HUG_QUOTES = [
   'Một cái ôm có thể chữa lành những điều mà lời nói không thể.',
@@ -122,7 +117,6 @@ export default class HugCommand extends Command {
     };
 
     let hugCount = 0;
-    let coupleExpResult: ExpAwardResult | null = null;
     if (targetUser.id !== interaction.user.id) {
       const [hugRecord] = await HugCount.findOrCreate({
         where: {userId: targetUser.id, guildId: interaction.guild!.id},
@@ -134,13 +128,6 @@ export default class HugCommand extends Command {
       });
       await hugRecord.increment('hugCount');
       hugCount = hugRecord.hugCount + 1;
-
-      coupleExpResult = await tryAwardCoupleExp(
-        interaction.user.id,
-        targetUser.id,
-        interaction.guild!.id,
-        'hug',
-      );
     }
 
     let hugBackCustomId: string | null =
@@ -156,7 +143,6 @@ export default class HugCommand extends Command {
       false,
       shouldHideName,
       hugCount,
-      coupleExpResult,
     );
 
     const successContainer = StatusContainer.success(
@@ -187,7 +173,6 @@ export default class HugCommand extends Command {
               true,
               shouldHideName,
               hugCount,
-              null,
             );
             await sentMessage.edit({components: [timedOutContainer]});
           },
@@ -206,13 +191,6 @@ export default class HugCommand extends Command {
             hugCount = backRecord.hugCount + 1;
             hugBackCustomId = null;
 
-            await tryAwardCoupleExp(
-              targetUser.id,
-              interaction.user.id,
-              interaction.guild!.id,
-              'hug',
-            );
-
             const hugBackContainer = this.hugContainer(
               userIds,
               gifUrl,
@@ -221,7 +199,6 @@ export default class HugCommand extends Command {
               true,
               shouldHideName,
               hugCount,
-              null,
             );
             await btnInteraction.editReply({components: [hugBackContainer]});
           },
@@ -242,7 +219,6 @@ export default class HugCommand extends Command {
     disabledHugBackButton: boolean,
     shouldHideName: boolean,
     hugCount: number,
-    coupleExp: ExpAwardResult | null,
   ): ContainerBuilder {
     const container = new ContainerBuilder().setAccentColor(
       EmbedColors.random(),
@@ -294,27 +270,6 @@ export default class HugCommand extends Command {
             subtext(`${userMention(huggedUserId)} đã được ôm ${hugCount} lần!`),
           ),
         );
-    }
-
-    if (coupleExp?.awarded) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          subtext(
-            `💑 +${coupleExp.expGained} EXP couple! (Tổng: ${coupleExp.totalExp} • Cấp ${coupleExp.level})`,
-          ),
-        ),
-      );
-    } else if (
-      coupleExp?.reason === 'cooldown' &&
-      coupleExp.cooldownRemainingMs
-    ) {
-      container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          subtext(
-            `⏳ Cooldown ôm: còn ${formatCooldown(coupleExp.cooldownRemainingMs!)} nữa`,
-          ),
-        ),
-      );
     }
 
     if (hugBackCustomId) {
