@@ -415,7 +415,58 @@ export default class SetupCommand extends Command {
             return;
           }
 
-          
+          const componentIds = {
+            confirmContainerRemoveCustomId: `confirmContainer_${interaction.id}`,
+            cancelContainerRemoveCustomId: `cancelContainer_${interaction.id}`,
+          };
+
+          const previewText = new TextDisplayBuilder().setContent('Preview:');
+
+          const containers = ComponentParser.parse(guildContainer.json, {
+            user: interaction.user,
+            guild: interaction.guild,
+          });
+
+          const timeCreate = Math.round(Date.now() / 1000);
+
+          ComponentManager.getComponentManager().register([
+            {
+              customId: componentIds.confirmContainerRemoveCustomId,
+              timeout: 10000,
+              onTimeout: async () => {},
+              handler: async (interaction: ButtonInteraction) => {},
+              type: ComponentEnum.BUTTON,
+              userCheck: [interaction.user.id],
+            },
+            {
+              customId: componentIds.cancelContainerRemoveCustomId,
+              timeout: 10000,
+              onTimeout: async () => {},
+              handler: async (interaction: ButtonInteraction) => {},
+              type: ComponentEnum.BUTTON,
+              userCheck: [interaction.user.id],
+            },
+          ]);
+
+          const containerRemoveConfirmContainer =
+            this.containerRemoveConfirmContainer(
+              infoEmoji,
+              name,
+              componentIds,
+              timeCreate,
+            );
+
+          await message.edit({
+            components: [containerRemoveConfirmContainer],
+            flags: MessageFlags.IsComponentsV2,
+          });
+
+          await interaction.followUp({
+            components: [previewText, ...containers],
+            flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
+          });
+
+          break;
         }
       }
       return;
