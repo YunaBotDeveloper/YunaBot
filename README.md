@@ -1,21 +1,22 @@
-# ManagerBot (YunaBot v3.0)
+# ManagerBot
 
-A feature-rich Discord server management bot built with **discord.js v14**, **TypeScript**, and **SQLite** — supporting slash commands, prefix commands, and context menu interactions with a fully modular architecture.
+A modular Discord server management bot built with **discord.js v14**, **TypeScript**, and **SQLite**. Supports slash commands, prefix commands, and context menu interactions with a fully extensible architecture.
 
 ---
 
 ## Features
 
-- **Slash Commands** — Modern Discord interactions with full validation and per-command cooldowns
+- **Slash Commands** — Modern Discord interactions with input validation and per-command cooldowns
 - **Prefix Commands** — Traditional text-based commands with per-guild custom prefix support
 - **Context Menu Commands** — Right-click user actions for quick moderation
-- **Component Interaction Manager** — Button/modal/select menu handling with timeout and user-lock support
-- **Discord Components V2** — Uses the latest Discord UI container system
-- **Welcome / Goodbye / Boost Events** — Fully customizable JSON-driven container messages for server events
-- **Moderation Logging** — Webhook-based ban logs sent to a configurable channel
+- **Interactive Components** — Button, modal, and select menu handling with timeout and user-lock support
+- **Discord Components V2** — Built with the latest Discord UI container system
+- **Welcome / Goodbye / Boost Messages** — Fully customizable JSON-driven container templates for server events
+- **Moderation Logging** — Webhook-based ban and channel nuke logs sent to configurable channels
 - **SQLite Database** — Lightweight persistent storage via Sequelize ORM
 - **Cooldown System** — Per-user, per-command configurable cooldowns
 - **Custom Emoji API** — Application emoji integration for rich status responses
+- **Fun Commands** — Hug, kiss, and pat commands with counters and embedded media
 
 ---
 
@@ -26,21 +27,24 @@ A feature-rich Discord server management bot built with **discord.js v14**, **Ty
 | Command | Category | Description |
 |---------|----------|-------------|
 | `/ban` | Admin | Ban a user with reason, duration, proof, optional DM notification, and confirmation prompt |
-| `/nuke` | Admin | Delete and recreate a channel (nuke) |
-| `/setup prefix` | Admin | Set a custom prefix for the server |
-| `/setup container add` | Admin | Upload a JSON container template for server events |
+| `/setup` | Admin | Configure prefix, container templates, and other server settings |
 | `/avatar` | Util | Display a user's avatar |
 | `/banner` | Util | Display a user's banner |
+| `/hug` | Fun | Hug a user |
+| `/kiss` | Fun | Kiss a user |
+| `/pat` | Fun | Pat a user |
 
 ### Prefix Commands
 
 | Command | Aliases | Category | Description |
 |---------|---------|----------|-------------|
 | `ban` | — | Admin | Ban a user |
-| `nuke` | — | Admin | Nuke a channel |
+| `help` | `h` | Info | List all available commands |
 | `avatar` | — | Util | Display a user's avatar |
 | `banner` | — | Util | Display a user's banner |
-| `help` | `h` | Info | List all available commands |
+| `hug` | — | Fun | Hug a user |
+| `kiss` | — | Fun | Kiss a user |
+| `pat` | — | Fun | Pat a user |
 
 ### Context Menu Commands
 
@@ -73,10 +77,10 @@ Server event messages (welcome, goodbye, boost) are driven by JSON container tem
 
 ---
 
-## Requirements
+## Prerequisites
 
 - [Bun](https://bun.sh) >= 1.0
-- Node.js >= 18 (for compiled output)
+- Node.js >= 18 (for compiled production output)
 - A Discord bot token with the following intents: `Guilds`, `GuildMembers`, `GuildMessages`, `MessageContent`
 
 ---
@@ -98,7 +102,7 @@ bun install
 
 **3. Configure the bot**
 
-Create a `config.yaml` at the project root:
+Create a `config.yaml` file at the project root:
 
 ```yaml
 bot:
@@ -118,7 +122,7 @@ node build/index.js
 
 ---
 
-## Scripts
+## Available Scripts
 
 | Script | Description |
 |--------|-------------|
@@ -130,63 +134,17 @@ node build/index.js
 
 ---
 
-## Project Structure
+## Architecture
 
-```
-src/
-├── index.ts                        # Entry point
-├── classes/
-│   └── ExtendedClient.ts           # Custom Discord client (singleton)
-├── commands/
-│   ├── Command.ts                  # Base slash command class
-│   ├── PrefixCommand.ts            # Base prefix command class
-│   ├── ContextMenuCommand.ts       # Base context menu command class
-│   ├── CommandManager.ts           # Auto-discovery & registry
-│   ├── CooldownManager.ts          # Per-user, per-command cooldowns
-│   ├── PrefixManager.ts            # Per-guild prefix overrides (DB-backed)
-│   └── impl/
-│       ├── slashes/                # Slash command implementations
-│       ├── prefixes/               # Prefix command implementations
-│       └── menus/                  # Context menu implementations
-├── component/
-│   ├── api/ComponentBuilder.ts     # Component factory
-│   ├── builders/                   # Button / Modal / SelectMenu builders
-│   └── manager/ComponentManager.ts # Interaction registry with timeout & user-lock
-├── events/
-│   ├── EventManager.ts             # Dynamic event handler loader
-│   └── impl/
-│       ├── SlashCommandHandler.ts  # Slash + component dispatch
-│       ├── PrefixCommandHandler.ts # Prefix command dispatch
-│       ├── WelcomeEvent.ts         # Member join → container message
-│       ├── GoodbyeEvent.ts         # Member leave → container message
-│       ├── BoostEvent.ts           # Server boost → container message
-│       ├── ReadyEvent.ts
-│       ├── BotAddedEvent.ts
-│       └── BotRemovedEvent.ts
-├── database/
-│   ├── SQLize.ts                   # Sequelize/SQLite singleton
-│   └── models/
-│       ├── GuildPrefix.model.ts    # Per-guild prefix overrides
-│       ├── GuildEvent.model.ts     # Welcome/goodbye/boost channel config
-│       ├── GuildContainer.ts       # JSON container templates
-│       ├── GuildLog.model.ts       # Log channel configuration
-│       ├── BanLog.model.ts         # Ban audit log
-│       └── NukeLog.model.ts        # Nuke audit log
-├── api/
-│   └── discord/ApplicationEmoji.ts # Custom emoji fetcher
-├── config/Config.ts                # YAML config loader (singleton)
-├── logger/Log4TS.ts                # Logger (info/error/debug/warning/success)
-└── util/
-    ├── StatusContainer.ts          # Pre-built success/failed/loading containers
-    ├── ComponentParser.ts          # JSON → ContainerBuilder with token substitution
-    ├── VariableRegistry.ts         # Template token definitions
-    ├── EmbedColors.ts              # Predefined hex colors + random()
-    ├── HumanizeDuration.ts         # Duration formatting
-    ├── ParseDuration.ts            # Duration string parser
-    ├── NumberFormat.ts             # Number formatting
-    ├── Sleep.ts                    # Async delay helper
-    └── ASCIIColors.ts              # Terminal color codes
-```
+The bot uses a modular singleton-based architecture:
+
+- **`ExtendedClient`** — Custom discord.js client that bootstraps the database, events, login, and command registration
+- **`CommandManager`** — Auto-discovers and loads all command files from `src/commands/impl/`
+- **`EventManager`** — Dynamically loads event handlers from `src/events/impl/`
+- **`ComponentManager`** — Registers interactive components (buttons, modals, select menus) with unique IDs, user-lock, and timeouts
+- **`SQLize`** — Sequelize + SQLite singleton that auto-loads all database models
+
+See the [full project structure](QWEN.md) for a detailed breakdown.
 
 ---
 
@@ -198,7 +156,7 @@ src/
 | TypeScript 5 | Type-safe development |
 | Bun | Fast runtime & package manager |
 | Sequelize + SQLite | Database ORM |
-| Axios | HTTP client (JSON template fetching) |
+| Axios | HTTP client |
 | sharp | Image processing |
 | nanoid / uuid | Unique ID generation |
 | YAML | Bot configuration |
@@ -208,4 +166,4 @@ src/
 
 ## License
 
-This project is private and not licensed for public distribution.
+This project is open source and available under the [MIT License](LICENSE).

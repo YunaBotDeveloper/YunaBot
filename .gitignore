@@ -21,3 +21,5 @@ config.yaml
 # OS
 .DS_Store
 Thumbs.db
+src/data/scam_hashes.json
+src/data/scam_keywords.json
