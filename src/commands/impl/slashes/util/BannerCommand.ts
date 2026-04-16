@@ -119,9 +119,7 @@ export default class BannerCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Type:** ${inlineCode('Global banner')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Global banner')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -146,9 +144,7 @@ export default class BannerCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Type:** ${inlineCode('Server banner')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Server banner')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>

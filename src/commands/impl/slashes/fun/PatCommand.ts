@@ -234,7 +234,9 @@ export default class PatCommand extends Command {
       );
     } else if (shouldHideName) {
       container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## Someone patted ${userMention(userIds.user2)}!`),
+        textDisplay.setContent(
+          `## Someone patted ${userMention(userIds.user2)}!`,
+        ),
       );
     } else {
       container.addTextDisplayComponents(textDisplay =>

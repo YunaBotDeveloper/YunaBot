@@ -109,9 +109,7 @@ export default class BannerMenu extends ContextMenuCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Type:** ${inlineCode('Global banner')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Global banner')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -136,9 +134,7 @@ export default class BannerMenu extends ContextMenuCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Type:** ${inlineCode('Server banner')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Server banner')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -160,9 +156,7 @@ export default class BannerMenu extends ContextMenuCommand {
     }
 
     const singleBanner = guildBanner ?? globalBanner;
-    const singleBannerType = guildBanner
-      ? 'Server banner'
-      : 'Global banner';
+    const singleBannerType = guildBanner ? 'Server banner' : 'Global banner';
     const singleBannerDownload = guildBanner
       ? 'Download server banner'
       : 'Download global banner';

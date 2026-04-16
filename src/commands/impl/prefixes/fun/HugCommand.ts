@@ -90,9 +90,7 @@ export default class HugCommand extends PrefixCommand {
 
       if (!targetUserId) {
         await ogMessage.edit({
-          components: [
-            StatusContainer.failed(failedEmoji, 'Invalid user!'),
-          ],
+          components: [StatusContainer.failed(failedEmoji, 'Invalid user!')],
           flags: [MessageFlags.IsComponentsV2],
         });
         setTimeout(() => ogMessage.delete().catch(() => null), 5000);
@@ -109,9 +107,7 @@ export default class HugCommand extends PrefixCommand {
 
     if (targetUserId && !targetUser) {
       await ogMessage.edit({
-        components: [
-          StatusContainer.failed(failedEmoji, 'Invalid user!'),
-        ],
+        components: [StatusContainer.failed(failedEmoji, 'Invalid user!')],
         flags: [MessageFlags.IsComponentsV2],
       });
       setTimeout(() => ogMessage.delete().catch(() => null), 5000);
@@ -271,7 +267,9 @@ export default class HugCommand extends PrefixCommand {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            subtext(`${userMention(huggedUserId)} has been hugged ${hugCount} times!`),
+            subtext(
+              `${userMention(huggedUserId)} has been hugged ${hugCount} times!`,
+            ),
           ),
         );
     }

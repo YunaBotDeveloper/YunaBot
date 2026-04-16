@@ -98,9 +98,7 @@ export default class AvatarCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Type:** ${inlineCode('Global avatar')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Global avatar')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -125,9 +123,7 @@ export default class AvatarCommand extends Command {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Type:** ${inlineCode('Server avatar')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Server avatar')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -170,9 +166,7 @@ export default class AvatarCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext('Click here to download avatar'),
-              ),
+              textDisplay.setContent(subtext('Click here to download avatar')),
             )
             .setButtonAccessory(button =>
               button

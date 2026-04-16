@@ -239,7 +239,9 @@ export default class KissCommand extends Command {
       );
     } else if (shouldHideName) {
       container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## Someone kissed ${userMention(userIds.user2)}!`),
+        textDisplay.setContent(
+          `## Someone kissed ${userMention(userIds.user2)}!`,
+        ),
       );
     } else {
       container.addTextDisplayComponents(textDisplay =>

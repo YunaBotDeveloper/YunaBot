@@ -819,7 +819,9 @@ export default class BanCommand extends Command {
     banConfirmContainer.addSectionComponents(section =>
       section
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(subtext('Please click this button to confirm')),
+          textDisplay.setContent(
+            subtext('Please click this button to confirm'),
+          ),
         )
         .setButtonAccessory(button =>
           button

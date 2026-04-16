@@ -222,7 +222,9 @@ export default class BanCommand extends PrefixCommand {
               .setStyle(ButtonStyle.Success),
           )
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Please click this button to cancel.')),
+            textDisplay.setContent(
+              subtext('Please click this button to cancel.'),
+            ),
           ),
       )
       .addSeparatorComponents(separator => separator)
@@ -277,7 +279,8 @@ export default class BanCommand extends PrefixCommand {
             let errorMessage = `An error occurred while banning ${userMention(targetUser.id)}!`;
 
             if (error.code === 50013) {
-              errorMessage = 'The bot does not have permission to ban this user!';
+              errorMessage =
+                'The bot does not have permission to ban this user!';
             } else if (error.message) {
               errorMessage = error.message;
             }

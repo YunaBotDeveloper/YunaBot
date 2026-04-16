@@ -162,9 +162,7 @@ export default class AvatarCommand extends PrefixCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Type:** ${inlineCode('Global avatar')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Global avatar')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -189,9 +187,7 @@ export default class AvatarCommand extends PrefixCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Type:** ${inlineCode('Server avatar')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Server avatar')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -223,9 +219,7 @@ export default class AvatarCommand extends PrefixCommand {
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `**Type:** ${inlineCode('Global avatar')}`,
-        ),
+        textDisplay.setContent(`**Type:** ${inlineCode('Global avatar')}`),
       )
       .addSeparatorComponents(separator => separator)
       .addMediaGalleryComponents(gallery =>

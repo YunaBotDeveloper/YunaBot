@@ -234,7 +234,9 @@ export default class HugCommand extends Command {
       );
     } else if (shouldHideName) {
       container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## Someone hugged ${userMention(userIds.user2)}!`),
+        textDisplay.setContent(
+          `## Someone hugged ${userMention(userIds.user2)}!`,
+        ),
       );
     } else {
       container.addTextDisplayComponents(textDisplay =>
@@ -267,7 +269,9 @@ export default class HugCommand extends Command {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            subtext(`${userMention(huggedUserId)} has been hugged ${hugCount} times!`),
+            subtext(
+              `${userMention(huggedUserId)} has been hugged ${hugCount} times!`,
+            ),
           ),
         );
     }
