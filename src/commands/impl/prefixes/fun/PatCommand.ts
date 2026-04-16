@@ -16,27 +16,27 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 const PAT_QUOTES = [
-  'Một cái xoa đầu đôi khi còn ý nghĩa hơn ngàn lời nói.',
-  'Đôi tay ấm áp, trái tim bình yên.',
-  'Được vỗ về là cảm giác hạnh phúc nhất.',
-  'Đôi khi tất cả những gì bạn cần là một cái xoa đầu nhẹ nhàng.',
-  'Sự quan tâm nhỏ bé nhưng ý nghĩa lớn lao.',
+  'A pat on the head can mean more than a thousand words.',
+  'Warm hands, peaceful heart.',
+  'Being comforted is pure happiness.',
+  'Sometimes all you need is a gentle head pat.',
+  'A small gesture can mean a lot.',
 ];
 
 const SELF_PAT_QUOTES = [
-  'Tự khen mình cũng không sao, bạn xứng đáng được như vậy!',
-  'Đôi khi bạn cần tự vỗ về chính mình.',
-  'Giỏi lắm! Hãy tự thưởng cho bản thân nào.',
-  'Không ai hiểu bạn hơn chính bạn!',
-  'Tự hào về bản thân là điều tuyệt vời.',
+  'It is okay to praise yourself, you deserve it!',
+  'Sometimes you need to comfort yourself.',
+  'Great job! Treat yourself.',
+  'No one understands you better than you do!',
+  'Being proud of yourself is wonderful.',
 ];
 
 const PAT_BACK_QUOTES = [
-  'Lan truyền sự ấm áp đi khắp nơi!',
-  'Xoa đầu qua lại, tình thân ngày càng bền chặt.',
-  'Khi yêu thương được chia sẻ, nó nhân lên gấp đôi.',
-  'Không ai chịu thua trong cuộc chiến yêu thương!',
-  'Hạnh phúc là khi được vỗ về và được vỗ về lại.',
+  'Spread warmth everywhere!',
+  'Patting back makes bonds stronger.',
+  'When love is shared, it doubles.',
+  'No one loses in a battle of affection!',
+  'Happiness is comforting and being comforted back.',
 ];
 
 function randomQuote(pool: string[]): string {
@@ -91,7 +91,7 @@ export default class PatCommand extends PrefixCommand {
       if (!targetUserId) {
         await ogMessage.edit({
           components: [
-            StatusContainer.failed(failedEmoji, 'Người dùng không hợp lệ!'),
+            StatusContainer.failed(failedEmoji, 'Invalid user!'),
           ],
           flags: [MessageFlags.IsComponentsV2],
         });
@@ -110,7 +110,7 @@ export default class PatCommand extends PrefixCommand {
     if (targetUserId && !targetUser) {
       await ogMessage.edit({
         components: [
-          StatusContainer.failed(failedEmoji, 'Người dùng không hợp lệ!'),
+          StatusContainer.failed(failedEmoji, 'Invalid user!'),
         ],
         flags: [MessageFlags.IsComponentsV2],
       });
@@ -121,7 +121,7 @@ export default class PatCommand extends PrefixCommand {
     if (targetUser.bot) {
       await ogMessage.edit({
         components: [
-          StatusContainer.failed(failedEmoji, 'Bạn không thể xoa đầu bot!'),
+          StatusContainer.failed(failedEmoji, 'You cannot pat the bot.'),
         ],
         flags: [MessageFlags.IsComponentsV2],
       });
@@ -237,13 +237,13 @@ export default class PatCommand extends PrefixCommand {
     if (isPatBack) {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user2)} đã xoa đầu lại ${userMention(userIds.user1)}!`,
+          `## ${userMention(userIds.user2)} patted back ${userMention(userIds.user1)}!`,
         ),
       );
     } else {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user1)} vừa xoa đầu ${userMention(userIds.user2)}`,
+          `## ${userMention(userIds.user1)} patted ${userMention(userIds.user2)}`,
         ),
       );
     }
@@ -272,7 +272,7 @@ export default class PatCommand extends PrefixCommand {
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
             subtext(
-              `${userMention(pattedUserId)} đã được xoa đầu ${patCount} lần!`,
+              `${userMention(pattedUserId)} has been patted ${patCount} times!`,
             ),
           ),
         );
@@ -285,12 +285,12 @@ export default class PatCommand extends PrefixCommand {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Đã hết thời gian chờ')),
+              textDisplay.setContent(subtext('Timeout expired')),
             )
             .setButtonAccessory(button =>
               button
                 .setCustomId(patBackCustomId!)
-                .setLabel('Xoa đầu lại')
+                .setLabel('Pat back')
                 .setDisabled(true)
                 .setStyle(ButtonStyle.Primary),
             ),
@@ -299,12 +299,12 @@ export default class PatCommand extends PrefixCommand {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để xoa đầu lại họ')),
+              textDisplay.setContent(subtext('Click here to pat back')),
             )
             .setButtonAccessory(button =>
               button
                 .setCustomId(patBackCustomId!)
-                .setLabel('Xoa đầu lại')
+                .setLabel('Pat back')
                 .setStyle(ButtonStyle.Primary),
             ),
         );

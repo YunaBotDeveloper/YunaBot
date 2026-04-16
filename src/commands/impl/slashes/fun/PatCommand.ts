@@ -17,27 +17,27 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 const PAT_QUOTES = [
-  'Một cái xoa đầu đôi khi còn ý nghĩa hơn ngàn lời nói.',
-  'Đôi tay ấm áp, trái tim bình yên.',
-  'Được vỗ về là cảm giác hạnh phúc nhất.',
-  'Đôi khi tất cả những gì bạn cần là một cái xoa đầu nhẹ nhàng.',
-  'Sự quan tâm nhỏ bé nhưng ý nghĩa lớn lao.',
+  'A pat on the head can mean more than a thousand words.',
+  'Warm hands, peaceful heart.',
+  'Being comforted is pure happiness.',
+  'Sometimes all you need is a gentle head pat.',
+  'A small gesture can mean a lot.',
 ];
 
 const SELF_PAT_QUOTES = [
-  'Tự khen mình cũng không sao, bạn xứng đáng được như vậy!',
-  'Đôi khi bạn cần tự vỗ về chính mình.',
-  'Giỏi lắm! Hãy tự thưởng cho bản thân nào.',
-  'Không ai hiểu bạn hơn chính bạn!',
-  'Tự hào về bản thân là điều tuyệt vời.',
+  'It is okay to praise yourself, you deserve it!',
+  'Sometimes you need to comfort yourself.',
+  'Great job! Treat yourself.',
+  'No one understands you better than you do!',
+  'Being proud of yourself is wonderful.',
 ];
 
 const PAT_BACK_QUOTES = [
-  'Lan truyền sự ấm áp đi khắp nơi!',
-  'Xoa đầu qua lại, tình thân ngày càng bền chặt.',
-  'Khi yêu thương được chia sẻ, nó nhân lên gấp đôi.',
-  'Không ai chịu thua trong cuộc chiến yêu thương!',
-  'Hạnh phúc là khi được vỗ về và được vỗ về lại.',
+  'Spread warmth everywhere!',
+  'Patting back makes bonds stronger.',
+  'When love is shared, it doubles.',
+  'No one loses in a battle of affection!',
+  'Happiness is comforting and being comforted back.',
 ];
 
 function randomQuote(pool: string[]): string {
@@ -46,21 +46,21 @@ function randomQuote(pool: string[]): string {
 
 export default class PatCommand extends Command {
   constructor() {
-    super('pat', 'Xoa đầu một người dùng nào đó');
+    super('pat', 'Pat a user');
 
     this.advancedOptions.cooldown = 5000;
 
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription('Người bạn muốn xoa đầu')
+        .setDescription('The user you want to pat')
         .setRequired(true),
     );
 
     this.data.addBooleanOption(option =>
       option
         .setName('hide')
-        .setDescription('Bạn muốn ẩn tên bạn không?')
+        .setDescription('Do you want to hide your name?')
         .setRequired(false),
     );
   }
@@ -88,7 +88,7 @@ export default class PatCommand extends Command {
     if (targetUser.bot) {
       await interaction.editReply({
         components: [
-          StatusContainer.failed(failedEmoji, 'Bạn không thể xoa đầu bot!'),
+          StatusContainer.failed(failedEmoji, 'You cannot pat the bot.'),
         ],
       });
       return;
@@ -147,7 +147,7 @@ export default class PatCommand extends Command {
 
     const successContainer = StatusContainer.success(
       successEmoji,
-      'Gửi thành công!',
+      'Sent successfully!',
     );
 
     await interaction.editReply({
@@ -229,19 +229,17 @@ export default class PatCommand extends Command {
     if (isPatBack) {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user2)} đã xoa đầu lại ${userMention(userIds.user1)}!`,
+          `## ${userMention(userIds.user2)} patted back ${userMention(userIds.user1)}!`,
         ),
       );
     } else if (shouldHideName) {
       container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `## Ai đó đã xoa đầu ${userMention(userIds.user2)}!`,
-        ),
+        textDisplay.setContent(`## Someone patted ${userMention(userIds.user2)}!`),
       );
     } else {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user1)} vừa xoa đầu ${userMention(userIds.user2)}`,
+          `## ${userMention(userIds.user1)} patted ${userMention(userIds.user2)}`,
         ),
       );
     }
@@ -270,7 +268,7 @@ export default class PatCommand extends Command {
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
             subtext(
-              `${userMention(pattedUserId)} đã được xoa đầu ${patCount} lần!`,
+              `${userMention(pattedUserId)} has been patted ${patCount} times!`,
             ),
           ),
         );
@@ -283,12 +281,12 @@ export default class PatCommand extends Command {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Đã hết thời gian chờ')),
+              textDisplay.setContent(subtext('Timeout expired')),
             )
             .setButtonAccessory(button =>
               button
                 .setCustomId(patBackCustomId!)
-                .setLabel('Xoa đầu lại')
+                .setLabel('Pat back')
                 .setDisabled(true)
                 .setStyle(ButtonStyle.Primary),
             ),
@@ -297,12 +295,12 @@ export default class PatCommand extends Command {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để xoa đầu lại họ')),
+              textDisplay.setContent(subtext('Click here to pat back')),
             )
             .setButtonAccessory(button =>
               button
                 .setCustomId(patBackCustomId!)
-                .setLabel('Xoa đầu lại')
+                .setLabel('Pat back')
                 .setStyle(ButtonStyle.Primary),
             ),
         );

@@ -22,7 +22,7 @@ export class StatusContainer {
     return new ContainerBuilder()
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## ${emoji ?? '⏳'} Đang xử lý...`),
+        textDisplay.setContent(`## ${emoji ?? '⏳'} Processing...`),
       );
   }
 }

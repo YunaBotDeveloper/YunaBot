@@ -17,27 +17,27 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 const KISS_QUOTES = [
-  'Một nụ hôn nói lên nghìn điều mà lời nói không thể diễn đạt.',
-  'Hôn là ngôn ngữ của trái tim.',
-  'Mỗi nụ hôn là một lời hứa không cần lời.',
-  'Yêu là khi nụ hôn của họ khiến tim bạn tan chảy.',
-  'Không có khoảng cách nào xa khi trái tim ở gần.',
+  'A kiss says what words cannot.',
+  'A kiss is the language of the heart.',
+  'Every kiss is a promise without words.',
+  'Love is when their kiss melts your heart.',
+  'No distance is far when hearts are close.',
 ];
 
 const SELF_KISS_QUOTES = [
-  'Yêu bản thân là bước đầu tiên của một cuộc tình vĩnh cửu.',
-  'Đôi khi bạn chỉ cần tự hôn mình thôi!',
-  'Người duy nhất luôn ở bên bạn... chính là bạn.',
-  'Tự yêu mình không phải ích kỷ, đó là cần thiết.',
-  'Hôn gió cũng tốt chứ sao!',
+  'Self-love is the first step of a lifelong romance.',
+  'Sometimes you just need to kiss yourself!',
+  'The one always by your side is you.',
+  'Loving yourself is not selfish, it is necessary.',
+  'An air kiss counts too!',
 ];
 
 const KISS_BACK_QUOTES = [
-  'Tình yêu là con đường hai chiều!',
-  'Hôn qua, hôn lại, trái tim rộn ràng.',
-  'Khi hai trái tim đồng điệu...',
-  'Không ai muốn chịu thiệt cả!',
-  'Đáp lại một nụ hôn bằng một nụ hôn!',
+  'Love goes both ways!',
+  'Kiss and kiss back, hearts racing.',
+  'When two hearts beat in sync...',
+  'No one wants to miss out!',
+  'Return a kiss with a kiss!',
 ];
 
 function randomQuote(pool: string[]): string {
@@ -46,21 +46,21 @@ function randomQuote(pool: string[]): string {
 
 export default class KissCommand extends Command {
   constructor() {
-    super('kiss', 'Hôn một người dùng nào đó');
+    super('kiss', 'Kiss a user');
 
     this.advancedOptions.cooldown = 5000;
 
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription('Người bạn muốn hôn')
+        .setDescription('The user you want to kiss')
         .setRequired(true),
     );
 
     this.data.addBooleanOption(option =>
       option
         .setName('hide')
-        .setDescription('Bạn muốn ẩn tên bạn không?')
+        .setDescription('Do you want to hide your name?')
         .setRequired(false),
     );
   }
@@ -88,7 +88,7 @@ export default class KissCommand extends Command {
     if (targetUser.bot) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Bạn không thể hôn bot!',
+        'You cannot kiss the bot.',
       );
 
       await interaction.editReply({
@@ -152,7 +152,7 @@ export default class KissCommand extends Command {
 
     const successContainer = StatusContainer.success(
       successEmoji,
-      'Gửi thành công!',
+      'Sent successfully!',
     );
 
     await interaction.editReply({
@@ -234,19 +234,17 @@ export default class KissCommand extends Command {
     if (isKissBack) {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user2)} đã hôn lại ${userMention(userIds.user1)}!`,
+          `## ${userMention(userIds.user2)} kissed back ${userMention(userIds.user1)}!`,
         ),
       );
     } else if (shouldHideName) {
       container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(
-          `## Ai đó đã hôn ${userMention(userIds.user2)}!`,
-        ),
+        textDisplay.setContent(`## Someone kissed ${userMention(userIds.user2)}!`),
       );
     } else {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user1)} vừa hôn ${userMention(userIds.user2)}`,
+          `## ${userMention(userIds.user1)} kissed ${userMention(userIds.user2)}`,
         ),
       );
     }
@@ -275,7 +273,7 @@ export default class KissCommand extends Command {
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
             subtext(
-              `${userMention(kissedUserId)} đã được hôn ${kissCount} lần!`,
+              `${userMention(kissedUserId)} has been kissed ${kissCount} times!`,
             ),
           ),
         );
@@ -288,12 +286,12 @@ export default class KissCommand extends Command {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Đã hết thời gian chờ')),
+              textDisplay.setContent(subtext('Timeout expired')),
             )
             .setButtonAccessory(button =>
               button
                 .setCustomId(kissBackCustomId!)
-                .setLabel('Hôn lại')
+                .setLabel('Kiss back')
                 .setDisabled(true)
                 .setStyle(ButtonStyle.Primary),
             ),
@@ -302,12 +300,12 @@ export default class KissCommand extends Command {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để hôn lại họ')),
+              textDisplay.setContent(subtext('Click here to kiss back')),
             )
             .setButtonAccessory(button =>
               button
                 .setCustomId(kissBackCustomId!)
-                .setLabel('Hôn lại')
+                .setLabel('Kiss back')
                 .setStyle(ButtonStyle.Primary),
             ),
         );

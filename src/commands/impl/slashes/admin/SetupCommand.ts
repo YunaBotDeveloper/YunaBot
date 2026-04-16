@@ -26,7 +26,7 @@ import GuildContainer from '../../../../database/models/GuildContainer.model';
 
 export default class SetupCommand extends Command {
   constructor() {
-    super('setup', 'Cài đặt cho bot');
+    super('setup', 'Bot setup');
 
     this.advancedOptions.cooldown = 10000;
 
@@ -35,11 +35,11 @@ export default class SetupCommand extends Command {
     this.data.addSubcommand(subcommand =>
       subcommand
         .setName('prefix')
-        .setDescription('Cài đặt prefix cho bot')
+        .setDescription('Set bot prefix')
         .addStringOption(option =>
           option
             .setName('prefix')
-            .setDescription('Prefix của bot')
+            .setDescription('Bot prefix')
             .setRequired(true),
         ),
     );
@@ -47,33 +47,33 @@ export default class SetupCommand extends Command {
     this.data.addSubcommandGroup(group =>
       group
         .setName('container')
-        .setDescription('Cài đạt các mẫu container của máy chủ')
+        .setDescription('Manage server container templates')
         .addSubcommand(subcommand =>
           subcommand
             .setName('add')
-            .setDescription('Thêm một mẫu container')
+            .setDescription('Add a container template')
             .addStringOption(option =>
               option
                 .setName('name')
-                .setDescription('Tên mẫu container')
+                .setDescription('Container template name')
                 .setRequired(true)
                 .setMaxLength(100),
             )
             .addAttachmentOption(option =>
               option
                 .setName('json')
-                .setDescription('File JSON chứa container')
+                .setDescription('JSON file containing the container')
                 .setRequired(true),
             ),
         )
         .addSubcommand(subcommand =>
           subcommand
             .setName('remove')
-            .setDescription('Xoá mẫu container')
+            .setDescription('Remove a container template')
             .addStringOption(option =>
               option
                 .setName('name')
-                .setDescription('Tên mẫu container')
+                .setDescription('Container template name')
                 .setRequired(true)
                 .setAutocomplete(true),
             ),
@@ -146,7 +146,7 @@ export default class SetupCommand extends Command {
           if (guildContainer) {
             const errorContainer = StatusContainer.failed(
               failedEmoji,
-              'Máy chủ đã có container này rồi!',
+              'This server already has this container!',
             );
 
             await message.edit({
@@ -173,7 +173,7 @@ export default class SetupCommand extends Command {
             if (!isJSON) {
               const errorContainer = StatusContainer.failed(
                 failedEmoji,
-                'Sai định dạng container! Vui lòng thử lại!',
+                'Invalid container format! Please try again!',
               );
 
               await message.edit({
@@ -198,7 +198,7 @@ export default class SetupCommand extends Command {
             jsonText = ComponentParser.patch(response.data);
           } catch (err) {
             const errorMsg =
-              err instanceof Error ? err.message : 'Tệp JSON không hợp lệ';
+              err instanceof Error ? err.message : 'Invalid JSON file';
             const errorContainer = StatusContainer.failed(
               failedEmoji,
               errorMsg,
@@ -231,7 +231,7 @@ export default class SetupCommand extends Command {
           } catch {
             const errorContainer = StatusContainer.failed(
               failedEmoji,
-              'Không thể phân tích tệp JSON!',
+              'Could not parse the JSON file!',
             );
             await message.edit({components: [errorContainer]});
             setTimeout(async () => {
@@ -262,7 +262,7 @@ export default class SetupCommand extends Command {
 
                 const errorContainer = StatusContainer.failed(
                   failedEmoji,
-                  'Yêu cầu này đã hết hạn! Vui lòng thử lại!',
+                  'This request has expired. Please try again.',
                 );
 
                 await message.edit({
@@ -294,7 +294,7 @@ export default class SetupCommand extends Command {
                 } catch {
                   const errorContainer = StatusContainer.failed(
                     failedEmoji,
-                    'Đã có lỗi xảy ra khi lưu container!',
+                    'An error occurred while saving the container!',
                   );
                   await interaction.editReply({components: [errorContainer]});
                   setTimeout(async () => {
@@ -305,7 +305,7 @@ export default class SetupCommand extends Command {
 
                 const successContainer = StatusContainer.success(
                   successEmoji,
-                  `Container ${inlineCode(name)} đã được thêm vào máy chủ thành công!`,
+                  `Container ${inlineCode(name)} has been successfully added to the server!`,
                 );
 
                 await interaction.editReply({
@@ -332,7 +332,7 @@ export default class SetupCommand extends Command {
 
                 const errorContainer = StatusContainer.failed(
                   failedEmoji,
-                  'Yêu cầu này đã hết hạn! Vui lòng thử lại!',
+                  'This request has expired. Please try again.',
                 );
 
                 await message.edit({
@@ -357,7 +357,7 @@ export default class SetupCommand extends Command {
 
                 const successContainer = StatusContainer.success(
                   successEmoji,
-                  'Đã huỷ yêu cầu thành công!',
+                  'Request canceled successfully.',
                 );
 
                 await interaction.editReply({
@@ -401,7 +401,7 @@ export default class SetupCommand extends Command {
           if (!guildContainer) {
             const errorContainer = StatusContainer.failed(
               failedEmoji,
-              `Máy chủ này không có container nào tên ${inlineCode(name)}!`,
+              `This server has no container named ${inlineCode(name)}!`,
             );
 
             await message.edit({
@@ -434,7 +434,7 @@ export default class SetupCommand extends Command {
               customId: componentIds.confirmContainerRemoveCustomId,
               timeout: 10000,
               onTimeout: async () => {},
-              handler: async (interaction: ButtonInteraction) => {},
+              handler: async () => {},
               type: ComponentEnum.BUTTON,
               userCheck: [interaction.user.id],
             },
@@ -442,7 +442,7 @@ export default class SetupCommand extends Command {
               customId: componentIds.cancelContainerRemoveCustomId,
               timeout: 10000,
               onTimeout: async () => {},
-              handler: async (interaction: ButtonInteraction) => {},
+              handler: async () => {},
               type: ComponentEnum.BUTTON,
               userCheck: [interaction.user.id],
             },
@@ -482,7 +482,7 @@ export default class SetupCommand extends Command {
         if (oldPrefix === newPrefix) {
           const errorContainer = StatusContainer.failed(
             failedEmoji,
-            'Prefix cũ và prefix mới không thể giống nhau!',
+            'Old and new prefixes cannot be the same!',
           );
 
           await message.edit({
@@ -523,7 +523,7 @@ export default class SetupCommand extends Command {
 
               const errorContainer = StatusContainer.failed(
                 failedEmoji,
-                'Yêu cầu này đã hết hạn! Vui lòng thử lại!',
+                'This request has expired. Please try again.',
               );
 
               await message.edit({
@@ -548,7 +548,7 @@ export default class SetupCommand extends Command {
 
               const successContainer = StatusContainer.success(
                 successEmoji,
-                `Đã đặt prefix của bot thành ${inlineCode(newPrefix)}`,
+                `Set bot prefix to ${inlineCode(newPrefix)}`,
               );
 
               await interaction.editReply({
@@ -573,7 +573,7 @@ export default class SetupCommand extends Command {
 
               const errorContainer = StatusContainer.failed(
                 failedEmoji,
-                'Yêu cầu này đã hết hạn! Vui lòng thử lại',
+                'This request has expired. Please try again.',
               );
 
               await message.edit({
@@ -596,7 +596,7 @@ export default class SetupCommand extends Command {
 
               const successContainer = StatusContainer.success(
                 successEmoji,
-                'Đã huỷ yêu cầu thành công!',
+                'Request canceled successfully.',
               );
 
               await interaction.editReply({
@@ -634,21 +634,23 @@ export default class SetupCommand extends Command {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn chắc chắn muốn thay đổi prefix của bot?`,
+          `## ${infoEmoji} Are you sure you want to change the bot prefix?`,
         ),
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `${bold('Prefix cũ:')} ${inlineCode(oldPrefix)}\n` +
-            `${bold('Prefix mới:')} ${inlineCode(newPrefix)}`,
+          `${bold('Old prefix:')} ${inlineCode(oldPrefix)}\n` +
+            `${bold('New prefix:')} ${inlineCode(newPrefix)}`,
         ),
       )
       .addSeparatorComponents(separator => separator)
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này để xác nhận')),
+            textDisplay.setContent(
+              subtext('Please click this button to confirm'),
+            ),
           )
           .setButtonAccessory(button =>
             button
@@ -661,7 +663,9 @@ export default class SetupCommand extends Command {
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này để huỷ bỏ')),
+            textDisplay.setContent(
+              subtext('Please click this button to cancel'),
+            ),
           )
           .setButtonAccessory(button =>
             button
@@ -674,7 +678,7 @@ export default class SetupCommand extends Command {
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           subtext(
-            `${infoEmoji} Yêu cầu sẽ tự động hết hạn sau ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
+            `${infoEmoji} This request will automatically expire after ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
           ),
         ),
       );
@@ -693,14 +697,16 @@ export default class SetupCommand extends Command {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn chắc chắn muốn thêm container ${inlineCode(containerName)}?`,
+          `## ${infoEmoji} Are you sure you want to add container ${inlineCode(containerName)}?`,
         ),
       )
       .addSeparatorComponents(separator => separator)
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này để xác nhận')),
+            textDisplay.setContent(
+              subtext('Please click this button to confirm'),
+            ),
           )
           .setButtonAccessory(button =>
             button
@@ -713,7 +719,9 @@ export default class SetupCommand extends Command {
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này để huỷ bỏ')),
+            textDisplay.setContent(
+              subtext('Please click this button to cancel'),
+            ),
           )
           .setButtonAccessory(button =>
             button
@@ -726,7 +734,7 @@ export default class SetupCommand extends Command {
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           subtext(
-            `${infoEmoji} Yêu cầu sẽ tự động hết hạn sau ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
+            `${infoEmoji} This request will automatically expire after ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
           ),
         ),
       );
@@ -745,14 +753,16 @@ export default class SetupCommand extends Command {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn chắc chắn muốn xoá container ${inlineCode(containerName)}?`,
+          `## ${infoEmoji} Are you sure you want to remove container ${inlineCode(containerName)}?`,
         ),
       )
       .addSeparatorComponents(separator => separator)
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này để xác nhận')),
+            textDisplay.setContent(
+              subtext('Please click this button to confirm'),
+            ),
           )
           .setButtonAccessory(button =>
             button
@@ -765,7 +775,9 @@ export default class SetupCommand extends Command {
       .addSectionComponents(section =>
         section
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này để huỷ bỏ')),
+            textDisplay.setContent(
+              subtext('Please click this button to cancel'),
+            ),
           )
           .setButtonAccessory(button =>
             button
@@ -778,7 +790,7 @@ export default class SetupCommand extends Command {
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           subtext(
-            `${infoEmoji} Yêu cầu sẽ tự động hết hạn sau ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
+            `${infoEmoji} This request will automatically expire after ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
           ),
         ),
       );

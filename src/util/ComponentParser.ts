@@ -63,11 +63,11 @@ export class ComponentParser {
     try {
       parsed = JSON.parse(json);
     } catch {
-      throw new Error('Tệp JSON không hợp lệ, vui lòng kiểm tra lại định dạng');
+      throw new Error('Invalid JSON file, please check the format');
     }
 
     if (!Array.isArray(parsed)) {
-      throw new Error('Tệp JSON phải là một mảng');
+      throw new Error('JSON file must be an array');
     }
 
     const patched = (parsed as RawComponent[])
@@ -75,7 +75,7 @@ export class ComponentParser {
       .filter((c): c is RawComponent => c !== null);
 
     if (patched.length === 0) {
-      throw new Error('Tệp JSON không có component hợp lệ sau khi lọc');
+      throw new Error('JSON file has no valid components after filtering');
     }
 
     return JSON.stringify(patched);

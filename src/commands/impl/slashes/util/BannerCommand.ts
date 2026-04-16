@@ -16,14 +16,14 @@ import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class BannerCommand extends Command {
   constructor() {
-    super('banner', 'Lấy ảnh bìa');
+    super('banner', 'Get banner');
 
     this.advancedOptions.cooldown = 10000;
 
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription('Người dùng bạn chỉ định')
+        .setDescription('The user you specify')
         .setRequired(false),
     );
   }
@@ -57,7 +57,7 @@ export default class BannerCommand extends Command {
     if (!globalBanner) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        `${userMention(targetUser.id)} không có ảnh bìa.`,
+        `${userMention(targetUser.id)} has no banner.`,
       );
 
       const message = await interaction.editReply({
@@ -108,8 +108,8 @@ export default class BannerCommand extends Command {
     guildBanner: string | undefined,
     deleteAt: Date,
   ): ContainerBuilder {
-    const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
-    const deleteText = `${String(infoEmoji)} Tin nhắn này sẽ tự động xoá trong ${time(deleteAt, TimestampStyles.RelativeTime)}`;
+    const titleText = `## ${memberEmoji} Banner of ${userMention(userId)}`;
+    const deleteText = `${String(infoEmoji)} This message will auto-delete in ${time(deleteAt, TimestampStyles.RelativeTime)}`;
 
     if (guildBanner) {
       return new ContainerBuilder()
@@ -120,7 +120,7 @@ export default class BannerCommand extends Command {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`,
+            `**Type:** ${inlineCode('Global banner')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
@@ -131,11 +131,11 @@ export default class BannerCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh bìa toàn Discord')),
+              textDisplay.setContent(subtext('Download global banner')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(globalBanner),
             ),
@@ -147,7 +147,7 @@ export default class BannerCommand extends Command {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`,
+            `**Type:** ${inlineCode('Server banner')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
@@ -158,11 +158,11 @@ export default class BannerCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh bìa trong máy chủ')),
+              textDisplay.setContent(subtext('Download server banner')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(guildBanner),
             ),
@@ -172,7 +172,7 @@ export default class BannerCommand extends Command {
           textDisplay.setContent(deleteText),
         );
     } else {
-      const typeText = `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`;
+      const typeText = `**Type:** ${inlineCode('Global banner')}`;
 
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
@@ -191,11 +191,11 @@ export default class BannerCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để tải ảnh bìa')),
+              textDisplay.setContent(subtext('Click here to download banner')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setURL(globalBanner)
                 .setStyle(ButtonStyle.Link),
             ),

@@ -20,7 +20,7 @@ import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 export default class BanCommand extends ContextMenuCommand {
   constructor() {
-    super('Cấm người dùng này', ApplicationCommandType.User);
+    super('Ban this user', ApplicationCommandType.User);
 
     this.advancedOptions.cooldown = 30000;
 
@@ -45,7 +45,7 @@ export default class BanCommand extends ContextMenuCommand {
     if (!targetUser) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Người dùng này không tồn tại!',
+        'This user does not exist!',
       );
 
       await interaction.editReply({
@@ -58,7 +58,7 @@ export default class BanCommand extends ContextMenuCommand {
     if (!interaction.guild || !client.user) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Lệnh này chỉ có thể sử dụng trong máy chủ',
+        'This command can only be used in a server.',
       );
 
       await interaction.editReply({
@@ -81,7 +81,7 @@ export default class BanCommand extends ContextMenuCommand {
     if (!userExecute || !bot) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Không thể tìm thấy thông tin người dùng!',
+        'Could not find member information!',
       );
 
       await interaction.editReply({
@@ -93,7 +93,7 @@ export default class BanCommand extends ContextMenuCommand {
     if (!bot.permissions.has(PermissionFlagsBits.BanMembers)) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        `Bot không có quyền hạn để cấm ${userMention(targetUser.id)}!`,
+        `The bot does not have permission to ban ${userMention(targetUser.id)}!`,
       );
 
       await interaction.editReply({
@@ -106,7 +106,7 @@ export default class BanCommand extends ContextMenuCommand {
     if (interaction.user.id === targetUser.id) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Bạn không thể cấm chính bạn!',
+        'You cannot ban yourself.',
       );
 
       await interaction.editReply({
@@ -128,7 +128,7 @@ export default class BanCommand extends ContextMenuCommand {
       if (roleComparisonUser >= 0) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          'Bạn không thể ban người dùng có role cao hơn hoặc bằng bạn!',
+          'You cannot ban a user with a role equal to or higher than yours!',
         );
 
         await interaction.editReply({
@@ -140,7 +140,7 @@ export default class BanCommand extends ContextMenuCommand {
       if (roleComparisonBot >= 0) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          'Bot không thể ban người dùng có role cao hơn hoặc bằng bot',
+          'The bot cannot ban a user with a role equal to or higher than the bot.',
         );
 
         await interaction.editReply({
@@ -163,7 +163,7 @@ export default class BanCommand extends ContextMenuCommand {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn có chắc chắn muốn cấm ${userMention(targetUser.id)} khỏi máy chủ?`,
+          `## ${infoEmoji} Are you sure you want to ban ${userMention(targetUser.id)} from the server?`,
         ),
       )
       .addSeparatorComponents(separator => separator)
@@ -177,7 +177,7 @@ export default class BanCommand extends ContextMenuCommand {
           )
           .addTextDisplayComponents(textDisplay =>
             textDisplay.setContent(
-              subtext('Vui lòng bấm nút này để thực hiện.'),
+              subtext('Please click this button to proceed.'),
             ),
           ),
       )
@@ -191,14 +191,14 @@ export default class BanCommand extends ContextMenuCommand {
               .setStyle(ButtonStyle.Success),
           )
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này để huỷ bỏ.')),
+            textDisplay.setContent(subtext('Please click this button to cancel.')),
           ),
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           subtext(
-            `Lệnh của bạn sẽ hết hạn sau ${time(expireAt, TimestampStyles.RelativeTime)}`,
+            `Your command will expire in ${time(expireAt, TimestampStyles.RelativeTime)}`,
           ),
         ),
       );
@@ -212,7 +212,7 @@ export default class BanCommand extends ContextMenuCommand {
 
           const errorContainer = StatusContainer.failed(
             failedEmoji,
-            'Đã hết thời gian chờ! Vui lòng thử lại!',
+            'This request has expired. Please try again.',
           );
 
           await interaction.editReply({
@@ -235,7 +235,7 @@ export default class BanCommand extends ContextMenuCommand {
 
             const successContainer = StatusContainer.success(
               successEmoji,
-              `Đã cấm ${userMention(targetUser.id)} khỏi máy chủ thành công!`,
+              `Successfully banned ${userMention(targetUser.id)} from the server!`,
             );
 
             await interaction.editReply({
@@ -243,10 +243,10 @@ export default class BanCommand extends ContextMenuCommand {
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (error: any) {
-            let errorMessage = `Đã có lỗi xảy ra khi cấm ${userMention(targetUser.id)}!`;
+            let errorMessage = `An error occurred while banning ${userMention(targetUser.id)}!`;
 
             if (error.code === 50013) {
-              errorMessage = 'Bot không có quyền hạn để cấm người dùng này!';
+              errorMessage = 'The bot does not have permission to ban this user!';
             } else if (error.message) {
               errorMessage = error.message;
             }
@@ -274,7 +274,7 @@ export default class BanCommand extends ContextMenuCommand {
 
           const errorContainer = StatusContainer.failed(
             failedEmoji,
-            'Đã hết thời gian chờ! Vui lòng thử lại!',
+            'This request has expired. Please try again.',
           );
 
           await interaction.editReply({
@@ -292,7 +292,7 @@ export default class BanCommand extends ContextMenuCommand {
 
           const successContainer = StatusContainer.success(
             successEmoji,
-            'Đã huỷ hành động thành công!',
+            'Request canceled successfully.',
           );
 
           await interaction.editReply({

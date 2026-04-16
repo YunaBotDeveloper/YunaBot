@@ -57,10 +57,10 @@ export default class BotAddedEvent extends Event {
       })
       .setThumbnail(guild.iconURL())
       .setTitle(
-        `${client.user?.displayName} đã được thêm vào server thành công!`,
+        `${client.user?.displayName} has been successfully added to the server!`,
       )
       .setDescription(
-        `Cảm ơn bạn đã thêm ${client.user?.displayName} vào ${guild.name}.\nChúc bạn sử dụng bot vui vẻ!\n\nĐể sử dụng được bot, bạn vui lòng bấm vào [đây](https://docs.nstore.lol) để xem HDSD.`,
+        `Thank you for adding ${client.user?.displayName} to ${guild.name}.\nEnjoy using the bot!\n\nTo get started, click [here](https://docs.nstore.lol) to view the user guide.`,
       )
       .setFooter({text: 'From Yuna With ❤️'})
       .setTimestamp()

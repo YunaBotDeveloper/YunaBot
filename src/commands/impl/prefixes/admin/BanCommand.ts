@@ -85,7 +85,7 @@ export default class BanCommand extends PrefixCommand {
       if (!targetUserId) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          'Người dùng không hợp lệ',
+          'Invalid user!',
         );
 
         await ogmessage.edit({
@@ -98,7 +98,7 @@ export default class BanCommand extends PrefixCommand {
     } else {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Không có người dùng nào để cấm!',
+        'No user provided to ban!',
       );
 
       await ogmessage.edit({
@@ -113,7 +113,7 @@ export default class BanCommand extends PrefixCommand {
     if (!targetUser) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Người dùng không hợp lệ!',
+        'Invalid user!',
       );
 
       await ogmessage.edit({
@@ -127,7 +127,7 @@ export default class BanCommand extends PrefixCommand {
     if (targetUser.id === message.author.id) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Bạn không thể cấm chính bạn!',
+        'You cannot ban yourself.',
       );
 
       await ogmessage.edit({
@@ -157,7 +157,7 @@ export default class BanCommand extends PrefixCommand {
       if (roleComparisonUser >= 0) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          'Bạn không thể ban người dùng có role cao hơn hoặc bằng bạn!',
+          'You cannot ban a user with a role equal to or higher than yours!',
         );
 
         await ogmessage.edit({
@@ -171,7 +171,7 @@ export default class BanCommand extends PrefixCommand {
       if (roleComparisonBot >= 0) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          'Bot không thể ban người dùng có role cao hơn hoặc bằng bot!',
+          'The bot cannot ban a user with a role equal to or higher than the bot!',
         );
 
         await ogmessage.edit({
@@ -194,7 +194,7 @@ export default class BanCommand extends PrefixCommand {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn có chắc chắn muốn cấm ${userMention(targetUser.id)} khỏi máy chủ?`,
+          `## ${infoEmoji} Are you sure you want to ban ${userMention(targetUser.id)} from the server?`,
         ),
       )
       .addSeparatorComponents(separator => separator)
@@ -208,7 +208,7 @@ export default class BanCommand extends PrefixCommand {
           )
           .addTextDisplayComponents(textDisplay =>
             textDisplay.setContent(
-              subtext('Vui lòng bấm nút này để thực hiện.'),
+              subtext('Please click this button to proceed.'),
             ),
           ),
       )
@@ -222,14 +222,14 @@ export default class BanCommand extends PrefixCommand {
               .setStyle(ButtonStyle.Success),
           )
           .addTextDisplayComponents(textDisplay =>
-            textDisplay.setContent(subtext('Vui lòng bấm nút này để huỷ bỏ.')),
+            textDisplay.setContent(subtext('Please click this button to cancel.')),
           ),
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           subtext(
-            `Lệnh của bạn sẽ hết hạn sau ${time(expireAt, TimestampStyles.RelativeTime)}`,
+            `Your command will expire in ${time(expireAt, TimestampStyles.RelativeTime)}`,
           ),
         ),
       );
@@ -243,7 +243,7 @@ export default class BanCommand extends PrefixCommand {
 
           const errorContainer = StatusContainer.failed(
             failedEmoji,
-            'Đã hết thời gian chờ! Vui lòng thử lại!',
+            'This request has expired. Please try again.',
           );
 
           await ogmessage.edit({
@@ -266,7 +266,7 @@ export default class BanCommand extends PrefixCommand {
 
             const successContainer = StatusContainer.success(
               successEmoji,
-              `Đã cấm ${userMention(targetUser.id)} khỏi máy chủ thành công!`,
+              `Successfully banned ${userMention(targetUser.id)} from the server!`,
             );
 
             await interaction.editReply({
@@ -274,10 +274,10 @@ export default class BanCommand extends PrefixCommand {
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (error: any) {
-            let errorMessage = `Đã có lỗi xảy ra khi cấm ${userMention(targetUser.id)}!`;
+            let errorMessage = `An error occurred while banning ${userMention(targetUser.id)}!`;
 
             if (error.code === 50013) {
-              errorMessage = 'Bot không có quyền hạn để cấm người dùng này!';
+              errorMessage = 'The bot does not have permission to ban this user!';
             } else if (error.message) {
               errorMessage = error.message;
             }
@@ -305,7 +305,7 @@ export default class BanCommand extends PrefixCommand {
 
           const errorContainer = StatusContainer.failed(
             failedEmoji,
-            'Đã hết thời gian chờ! Vui lòng thử lại!',
+            'This request has expired. Please try again.',
           );
 
           await ogmessage.edit({
@@ -323,7 +323,7 @@ export default class BanCommand extends PrefixCommand {
 
           const successContainer = StatusContainer.success(
             successEmoji,
-            'Đã huỷ hành động thành công!',
+            'Request canceled successfully.',
           );
 
           await interaction.editReply({

@@ -15,7 +15,7 @@ import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class AvatarMenu extends ContextMenuCommand {
   constructor() {
-    super('Lấy ảnh đại diện', ApplicationCommandType.User);
+    super('Get avatar', ApplicationCommandType.User);
 
     this.advancedOptions.cooldown = 10000;
   }
@@ -71,7 +71,7 @@ export default class AvatarMenu extends ContextMenuCommand {
     globalAvatar: string,
     guildAvatar: string | undefined,
   ): ContainerBuilder {
-    const titleText = `## ${memberEmoji} Ảnh đại diện của ${userMention(userId)}`;
+    const titleText = `## ${memberEmoji} Avatar of ${userMention(userId)}`;
 
     if (guildAvatar) {
       return new ContainerBuilder()
@@ -81,9 +81,7 @@ export default class AvatarMenu extends ContextMenuCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Global avatar')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -93,11 +91,11 @@ export default class AvatarMenu extends ContextMenuCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh đại diện toàn Discord')),
+              textDisplay.setContent(subtext('Download global avatar')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(globalAvatar),
             ),
@@ -108,9 +106,7 @@ export default class AvatarMenu extends ContextMenuCommand {
         )
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh đại diện trong máy chủ')}`,
-          ),
+          textDisplay.setContent(`**Type:** ${inlineCode('Server avatar')}`),
         )
         .addSeparatorComponents(separator => separator)
         .addMediaGalleryComponents(gallery =>
@@ -120,17 +116,17 @@ export default class AvatarMenu extends ContextMenuCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh đại diện trong máy chủ')),
+              textDisplay.setContent(subtext('Download server avatar')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(guildAvatar),
             ),
         );
     } else {
-      const typeText = `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`;
+      const typeText = `**Type:** ${inlineCode('Global avatar')}`;
 
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
@@ -149,13 +145,11 @@ export default class AvatarMenu extends ContextMenuCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
-              ),
+              textDisplay.setContent(subtext('Click here to download avatar')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setURL(globalAvatar)
                 .setStyle(ButtonStyle.Link),
             ),

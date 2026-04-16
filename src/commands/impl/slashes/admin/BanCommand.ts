@@ -31,7 +31,7 @@ import GuildLog from '../../../../database/models/GuildLog.model';
 
 export default class BanCommand extends Command {
   constructor() {
-    super('ban', 'Cấm người dùng bạn chỉ định khỏi server.');
+    super('ban', 'Ban the specified user from the server.');
 
     this.advancedOptions.cooldown = 10000;
 
@@ -40,35 +40,35 @@ export default class BanCommand extends Command {
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription('Người dùng bạn muốn cấm')
+        .setDescription('The user you want to ban')
         .setRequired(true),
     );
 
     this.data.addStringOption(option =>
       option
         .setName('reason')
-        .setDescription('Lý do bạn muốn cấm người dùng đó')
+        .setDescription('Reason for banning this user')
         .setRequired(false),
     );
 
     this.data.addStringOption(option =>
       option
         .setName('duration')
-        .setDescription('Cấm người dùng đó trong bao lâu')
+        .setDescription('How long to ban this user')
         .setRequired(false),
     );
 
     this.data.addAttachmentOption(option =>
       option
         .setName('proof')
-        .setDescription('Bằng chứng tại sao người dùng đó bị cấm')
+        .setDescription('Proof of why this user is being banned')
         .setRequired(false),
     );
 
     this.data.addBooleanOption(option =>
       option
         .setName('dm')
-        .setDescription('Có thông báo rằng họ bị cấm khỏi máy chủ không?')
+        .setDescription('Should the user be notified that they were banned?')
         .setRequired(false),
     );
   }
@@ -106,10 +106,10 @@ export default class BanCommand extends Command {
         durationString = humanizeDuration(durationS);
       } else {
         invalidDuration = true;
-        durationString = 'Vĩnh viễn';
+        durationString = 'Permanent';
       }
     } else {
-      durationString = 'Vĩnh viễn';
+      durationString = 'Permanent';
     }
 
     const proof = interaction.options.getAttachment('proof', false);
@@ -135,7 +135,7 @@ export default class BanCommand extends Command {
       if (!isImageProof) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          'Sai định dạng tệp bằng chứng! Vui lòng thử lại!',
+          'Invalid proof file format! Please try again!',
         );
 
         await interaction.editReply({
@@ -155,7 +155,7 @@ export default class BanCommand extends Command {
     if (invalidDuration) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Sai định dạng thời gian! Vui lòng thử lại!',
+        'Invalid duration format! Please try again!',
       );
 
       await interaction.editReply({
@@ -174,7 +174,7 @@ export default class BanCommand extends Command {
     } catch {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Người dùng này không tồn tại!',
+        'This user does not exist!',
       );
 
       await message.edit({
@@ -191,7 +191,7 @@ export default class BanCommand extends Command {
     if (!interaction.guild) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Lệnh này chỉ có thể sử dụng trong máy chủ!',
+        'This command can only be used in a server!',
       );
 
       await message.edit({
@@ -211,7 +211,7 @@ export default class BanCommand extends Command {
     if (targetId) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        `${userMention(targetId.id)} đã bị cấm khỏi máy chủ rồi!`,
+        `${userMention(targetId.id)} is already banned from this server!`,
       );
 
       await message.edit({
@@ -240,7 +240,7 @@ export default class BanCommand extends Command {
     if (!userExcute) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Không thể lấy thông tin của bạn từ máy chủ!',
+        'Could not fetch your member data from this server!',
       );
 
       await message.edit({
@@ -257,7 +257,7 @@ export default class BanCommand extends Command {
     if (!bot.permissions.has(PermissionFlagsBits.BanMembers)) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        `Bot không có quyền hạn để cấm ${userMention(targetUser.id)}!`,
+        `The bot does not have permission to ban ${userMention(targetUser.id)}!`,
       );
 
       await message.edit({
@@ -274,7 +274,7 @@ export default class BanCommand extends Command {
     if (interaction.user.id === targetUser.id) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Bạn không thể cấm chính bạn!',
+        'You cannot ban yourself.',
       );
 
       await message.edit({
@@ -300,7 +300,7 @@ export default class BanCommand extends Command {
       if (roleComparisonUser >= 0) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          `Bạn không có quyền hạn để cấm ${userMention(targetUser.id)}!`,
+          `You do not have permission to ban ${userMention(targetUser.id)}!`,
         );
 
         await message.edit({
@@ -317,7 +317,7 @@ export default class BanCommand extends Command {
       if (roleComparisonBot >= 0) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          `Bot không có quyền hạn để cấm ${userMention(targetUser.id)}!`,
+          `The bot does not have permission to ban ${userMention(targetUser.id)}!`,
         );
 
         await message.edit({
@@ -367,7 +367,7 @@ export default class BanCommand extends Command {
 
           const errorContainer = StatusContainer.failed(
             failedEmoji,
-            'Yêu cầu đã hết hạn! Vui lòng thử lại!',
+            'This request has expired. Please try again.',
           );
 
           await message.edit({
@@ -522,7 +522,7 @@ export default class BanCommand extends Command {
           } catch {
             const errorContainer = StatusContainer.failed(
               failedEmoji,
-              `Đã có lỗi xảy ra khi cấm ${userMention(targetUser.id)}!`,
+              `An error occurred while banning ${userMention(targetUser.id)}!`,
             );
 
             await interaction.editReply({
@@ -546,7 +546,7 @@ export default class BanCommand extends Command {
 
           const errorContainer = StatusContainer.failed(
             failedEmoji,
-            'Yêu cầu đã hết hạn! Vui lòng thử lại!',
+            'This request has expired. Please try again.',
           );
 
           await message.edit({
@@ -571,7 +571,7 @@ export default class BanCommand extends Command {
 
           const successContainer = StatusContainer.success(
             successEmoji,
-            'Đã huỷ hành động thành công!',
+            'Request canceled successfully.',
           );
 
           await interaction.editReply({
@@ -630,23 +630,23 @@ export default class BanCommand extends Command {
       .setAccentColor(EmbedColors.red())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn đã bị cấm khỏi máy chủ ${inlineCode(guild.name)}`,
+          `## ${infoEmoji} You were banned from ${inlineCode(guild.name)}`,
         ),
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           `${bold('Ban ID:')} ${inlineCode(banId)}\n` +
-            `${bold('Người cấm:')} ${userMention(userExcute.id)}\n` +
-            `${bold('Lý do cấm:')} ${reason}\n` +
-            `${bold('Thời gian cấm:')} ${duration.durationString} (${duration.durationS ? time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime) : ''})\n`,
+            `${bold('Banned by:')} ${userMention(userExcute.id)}\n` +
+            `${bold('Reason:')} ${reason}\n` +
+            `${bold('Duration:')} ${duration.durationString} (${duration.durationS ? time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime) : ''})\n`,
         ),
       );
 
     if (proof) {
       banDmContainer.addSeparatorComponents(separator => separator);
       banDmContainer.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(bold('Bằng chứng:')),
+        textDisplay.setContent(bold('Proof:')),
       );
       banDmContainer.addMediaGalleryComponents(gallery =>
         gallery.addItems(item => item.setURL(proof.url)),
@@ -657,7 +657,7 @@ export default class BanCommand extends Command {
     banDmContainer.addTextDisplayComponents(textDisplay =>
       textDisplay.setContent(
         subtext(
-          `Yêu cầu này được thực hiện vào ${time(timeCreate, TimestampStyles.FullDateShortTime)}`,
+          `This request was executed at ${time(timeCreate, TimestampStyles.FullDateShortTime)}`,
         ),
       ),
     );
@@ -683,23 +683,23 @@ export default class BanCommand extends Command {
       .setAccentColor(EmbedColors.green())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${successEmoji} Cấm thành công ${userMention(targetUser.id)} khỏi máy chủ!`,
+          `## ${successEmoji} Successfully banned ${userMention(targetUser.id)} from the server!`,
         ),
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           `${bold('Ban ID:')} ${inlineCode(banId)}\n` +
-            `${bold('Lý do cấm:')} ${reason}\n` +
-            `${bold('Thời gian cấm:')} ${duration.durationString} ${duration.durationS ? `(${time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime)})` : ''}\n` +
-            `${bold('Thông báo người dùng bị cấm:')} ${dm ? successEmoji : failedEmoji}`,
+            `${bold('Reason:')} ${reason}\n` +
+            `${bold('Duration:')} ${duration.durationString} ${duration.durationS ? `(${time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime)})` : ''}\n` +
+            `${bold('User notified:')} ${dm ? successEmoji : failedEmoji}`,
         ),
       );
 
     if (proof) {
       banSuccessContainer.addSeparatorComponents(separator => separator);
       banSuccessContainer.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(bold('Bằng chứng:')),
+        textDisplay.setContent(bold('Proof:')),
       );
       banSuccessContainer.addMediaGalleryComponents(gallery =>
         gallery.addItems(item => item.setURL(proof.url)),
@@ -710,7 +710,7 @@ export default class BanCommand extends Command {
     banSuccessContainer.addTextDisplayComponents(textDisplay =>
       textDisplay.setContent(
         subtext(
-          `Yêu cầu này được thực hiện vào ${time(timeCreate, TimestampStyles.FullDateShortTime)}`,
+          `This request was executed at ${time(timeCreate, TimestampStyles.FullDateShortTime)}`,
         ),
       ),
     );
@@ -735,24 +735,24 @@ export default class BanCommand extends Command {
     const container = new ContainerBuilder()
       .setAccentColor(EmbedColors.red())
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`## ${infoEmoji} Người dùng bị cấm`),
+        textDisplay.setContent(`## ${infoEmoji} Banned user`),
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
           `${bold('Ban ID:')} ${inlineCode(banId)}\n` +
-            `${bold('Người dùng bị cấm:')} ${userMention(targetUser.id)}\n` +
-            `${bold('Người thực hiện:')} ${userMention(userExcute.id)}\n` +
-            `${bold('Lý do cấm:')} ${reason}\n` +
-            `${bold('Thời gian cấm:')} ${duration.durationString} ${duration.durationS ? `(${time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime)})` : ''}\n` +
-            `${bold('Thông báo người dùng bị cấm:')} ${dm ? '✅' : '❌'}`,
+            `${bold('Banned user:')} ${userMention(targetUser.id)}\n` +
+            `${bold('Moderator:')} ${userMention(userExcute.id)}\n` +
+            `${bold('Reason:')} ${reason}\n` +
+            `${bold('Duration:')} ${duration.durationString} ${duration.durationS ? `(${time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime)})` : ''}\n` +
+            `${bold('User notified:')} ${dm ? '✅' : '❌'}`,
         ),
       );
 
     if (proof) {
       container.addSeparatorComponents(separator => separator);
       container.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(bold('Bằng chứng:')),
+        textDisplay.setContent(bold('Proof:')),
       );
       container.addMediaGalleryComponents(gallery =>
         gallery.addItems(item => item.setURL(proof.url)),
@@ -763,7 +763,7 @@ export default class BanCommand extends Command {
     container.addTextDisplayComponents(textDisplay =>
       textDisplay.setContent(
         subtext(
-          `Thực hiện vào ${time(timeCreate, TimestampStyles.FullDateShortTime)}`,
+          `Executed at ${time(timeCreate, TimestampStyles.FullDateShortTime)}`,
         ),
       ),
     );
@@ -793,22 +793,22 @@ export default class BanCommand extends Command {
       .setAccentColor(EmbedColors.yellow())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${infoEmoji} Bạn chắc chắn muốn cấm ${userMention(targetUser.id)} khỏi máy chủ?`,
+          `## ${infoEmoji} Are you sure you want to ban ${userMention(targetUser.id)} from the server?`,
         ),
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `${bold('Lý do cấm:')} ${reason}\n` +
-            `${bold('Thời gian cấm:')} ${duration.durationString} ${duration.durationS ? `(${time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime)})` : ''}\n` +
-            `${bold('Thông báo người dùng bị cấm:')} ${dm ? successEmoji : failedEmoji}`,
+          `${bold('Reason:')} ${reason}\n` +
+            `${bold('Duration:')} ${duration.durationString} ${duration.durationS ? `(${time(timeCreate + duration.durationS, TimestampStyles.FullDateShortTime)})` : ''}\n` +
+            `${bold('User notified:')} ${dm ? successEmoji : failedEmoji}`,
         ),
       );
 
     if (proof) {
       banConfirmContainer.addSeparatorComponents(separator => separator);
       banConfirmContainer.addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(bold('Bằng chứng:')),
+        textDisplay.setContent(bold('Proof:')),
       );
       banConfirmContainer.addMediaGalleryComponents(gallery =>
         gallery.addItems(item => item.setURL(proof.url)),
@@ -819,7 +819,7 @@ export default class BanCommand extends Command {
     banConfirmContainer.addSectionComponents(section =>
       section
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(subtext('Vui lòng bấm nút này để xác nhận')),
+          textDisplay.setContent(subtext('Please click this button to confirm')),
         )
         .setButtonAccessory(button =>
           button
@@ -832,7 +832,7 @@ export default class BanCommand extends Command {
     banConfirmContainer.addSectionComponents(section =>
       section
         .addTextDisplayComponents(textDisplay =>
-          textDisplay.setContent(subtext('Vui lòng bấm nút này huỷ bỏ')),
+          textDisplay.setContent(subtext('Please click this button to cancel')),
         )
         .setButtonAccessory(button =>
           button
@@ -845,7 +845,7 @@ export default class BanCommand extends Command {
     banConfirmContainer.addTextDisplayComponents(textDisplay =>
       textDisplay.setContent(
         subtext(
-          `${infoEmoji} Yêu cầu sẽ tự động hết hạn sau ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
+          `${infoEmoji} This request will automatically expire after ${time(timeCreate + 10, TimestampStyles.RelativeTime)}`,
         ),
       ),
     );

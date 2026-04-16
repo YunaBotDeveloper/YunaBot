@@ -49,7 +49,7 @@ export default class SlashCommandHandler extends Event {
         if (expirationTimestamp) {
           const errorContainer = StatusContainer.failed(
             failedEmoji,
-            `Bạn cần phải đợi thêm <t:${Math.floor(expirationTimestamp / 1000)}:R> nữa để thực hiện lệnh!`,
+            `You need to wait <t:${Math.floor(expirationTimestamp / 1000)}:R> more to use this command!`,
           );
 
           await interaction.reply({
@@ -84,7 +84,7 @@ export default class SlashCommandHandler extends Event {
       ) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          'Bạn không có quyền để sử dụng chức năng này.',
+          "You don't have permission to use this feature.",
         );
 
         await interaction.reply({

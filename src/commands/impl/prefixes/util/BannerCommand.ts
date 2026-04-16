@@ -65,7 +65,7 @@ export default class BannerCommand extends PrefixCommand {
       if (!targetUserId) {
         const errorContainer = StatusContainer.failed(
           failedEmoji,
-          'Người dùng không hợp lệ!',
+          'Invalid user!',
         );
 
         await ogmessage.edit({
@@ -89,7 +89,7 @@ export default class BannerCommand extends PrefixCommand {
     if (!targetUser) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Người dùng không hợp lệ!',
+        'Invalid user!',
       );
 
       await ogmessage.edit({
@@ -126,7 +126,7 @@ export default class BannerCommand extends PrefixCommand {
     if (!globalBanner && !guildBanner) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        `${userMention(targetUser.id)} không có ảnh bìa.`,
+        `${userMention(targetUser.id)} has no banner.`,
       );
       await ogmessage.edit({
         content: '',
@@ -175,8 +175,8 @@ export default class BannerCommand extends PrefixCommand {
     guildBanner: string | undefined,
     deleteAt: Date,
   ): ContainerBuilder {
-    const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
-    const deleteText = `${String(infoEmoji)} Tin nhắn này sẽ tự động xoá trong ${time(deleteAt, TimestampStyles.RelativeTime)}`;
+    const titleText = `## ${memberEmoji} Banner of ${userMention(userId)}`;
+    const deleteText = `${String(infoEmoji)} This message will auto-delete in ${time(deleteAt, TimestampStyles.RelativeTime)}`;
 
     if (guildBanner && globalBanner) {
       return new ContainerBuilder()
@@ -187,7 +187,7 @@ export default class BannerCommand extends PrefixCommand {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`,
+            `**Type:** ${inlineCode('Global banner')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
@@ -198,11 +198,11 @@ export default class BannerCommand extends PrefixCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh bìa toàn Discord')),
+              textDisplay.setContent(subtext('Download global banner')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(globalBanner),
             ),
@@ -214,7 +214,7 @@ export default class BannerCommand extends PrefixCommand {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`,
+            `**Type:** ${inlineCode('Server banner')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
@@ -225,11 +225,11 @@ export default class BannerCommand extends PrefixCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh bìa trong máy chủ')),
+              textDisplay.setContent(subtext('Download server banner')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(guildBanner),
             ),
@@ -242,11 +242,11 @@ export default class BannerCommand extends PrefixCommand {
 
     const singleBanner = guildBanner ?? globalBanner;
     const singleBannerType = guildBanner
-      ? 'Ảnh bìa trong máy chủ'
-      : 'Ảnh bìa toàn Discord';
+      ? 'Server banner'
+      : 'Global banner';
     const singleBannerDownload = guildBanner
-      ? 'Tải ảnh bìa trong máy chủ'
-      : 'Tải ảnh bìa toàn Discord';
+      ? 'Download server banner'
+      : 'Download global banner';
 
     return new ContainerBuilder()
       .setAccentColor(EmbedColors.random())
@@ -255,7 +255,7 @@ export default class BannerCommand extends PrefixCommand {
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`**Loại:** ${inlineCode(singleBannerType)}`),
+        textDisplay.setContent(`**Type:** ${inlineCode(singleBannerType)}`),
       )
       .addSeparatorComponents(separator => separator)
       .addMediaGalleryComponents(gallery =>
@@ -269,7 +269,7 @@ export default class BannerCommand extends PrefixCommand {
           )
           .setButtonAccessory(button =>
             button
-              .setLabel('Tải xuống')
+              .setLabel('Download')
               .setStyle(ButtonStyle.Link)
               .setURL(singleBanner!),
           ),

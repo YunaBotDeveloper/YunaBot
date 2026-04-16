@@ -16,14 +16,14 @@ import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class AvatarCommand extends Command {
   constructor() {
-    super('avatar', 'Lấy ảnh đại diện');
+    super('avatar', 'Get avatar');
 
     this.advancedOptions.cooldown = 10000;
 
     this.data.addUserOption(option =>
       option
         .setName('user')
-        .setDescription('Người dùng bạn chỉ định')
+        .setDescription('The user you specify')
         .setRequired(false),
     );
   }
@@ -87,8 +87,8 @@ export default class AvatarCommand extends Command {
     guildAvatar: string | undefined,
     deleteAt: Date,
   ): ContainerBuilder {
-    const titleText = `## ${memberEmoji} Ảnh đại diện của ${userMention(userId)}`;
-    const deleteText = `${String(infoEmoji)} Tin nhắn này sẽ tự động xoá trong ${time(deleteAt, TimestampStyles.RelativeTime)}`;
+    const titleText = `## ${memberEmoji} Avatar of ${userMention(userId)}`;
+    const deleteText = `${String(infoEmoji)} This message will auto-delete in ${time(deleteAt, TimestampStyles.RelativeTime)}`;
 
     if (guildAvatar) {
       return new ContainerBuilder()
@@ -99,7 +99,7 @@ export default class AvatarCommand extends Command {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`,
+            `**Type:** ${inlineCode('Global avatar')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
@@ -110,11 +110,11 @@ export default class AvatarCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh đại diện toàn Discord')),
+              textDisplay.setContent(subtext('Download global avatar')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(globalAvatar),
             ),
@@ -126,7 +126,7 @@ export default class AvatarCommand extends Command {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh đại diện trong máy chủ')}`,
+            `**Type:** ${inlineCode('Server avatar')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
@@ -137,11 +137,11 @@ export default class AvatarCommand extends Command {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh đại diện trong máy chủ')),
+              textDisplay.setContent(subtext('Download server avatar')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(guildAvatar),
             ),
@@ -151,7 +151,7 @@ export default class AvatarCommand extends Command {
           textDisplay.setContent(subtext(deleteText)),
         );
     } else {
-      const typeText = `**Loại:** ${inlineCode('Ảnh đại diện toàn Discord')}`;
+      const typeText = `**Type:** ${inlineCode('Global avatar')}`;
 
       return new ContainerBuilder()
         .setAccentColor(EmbedColors.random())
@@ -171,12 +171,12 @@ export default class AvatarCommand extends Command {
           section
             .addTextDisplayComponents(textDisplay =>
               textDisplay.setContent(
-                subtext('Bấm vào đây để tải ảnh đại diện'),
+                subtext('Click here to download avatar'),
               ),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setURL(globalAvatar)
                 .setStyle(ButtonStyle.Link),
             ),

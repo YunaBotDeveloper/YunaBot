@@ -16,27 +16,27 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 
 const HUG_QUOTES = [
-  'Một cái ôm có thể chữa lành những điều mà lời nói không thể.',
-  'Ôm nhau đi, cuộc đời ngắn lắm!',
-  'Vòng tay ấm áp là liều thuốc tốt nhất.',
-  'Đôi khi tất cả những gì bạn cần là một cái ôm thật chặt.',
-  'Ôm là ngôn ngữ của trái tim không cần dịch.',
+  'A hug can heal what words cannot.',
+  'Come on, give them a hug. Life is short!',
+  'Warm arms are the best medicine.',
+  'Sometimes all you need is a tight hug.',
+  "A hug is the heart's language without translation.",
 ];
 
 const SELF_HUG_QUOTES = [
-  'Tự ôm mình cũng là một cách yêu thương bản thân!',
-  'Đôi khi bạn cần tự ôm lấy chính mình.',
-  'Bạn xứng đáng được ôm, dù là tự ôm!',
-  'Không ai có thể ôm bạn tốt hơn chính bạn.',
-  'Hãy yêu thương bản thân mỗi ngày.',
+  'Hugging yourself is also self-love!',
+  'Sometimes you need to hug yourself.',
+  'You deserve a hug, even from yourself!',
+  'No one can hug you better than you can.',
+  'Love yourself every day.',
 ];
 
 const HUG_BACK_QUOTES = [
-  'Ôm qua ôm lại, tình thân ngày càng bền chặt!',
-  'Khi yêu thương được chia sẻ, nó nhân lên gấp đôi.',
-  'Lan truyền sự ấm áp đi khắp nơi!',
-  'Không ai chịu thua trong cuộc chiến yêu thương!',
-  'Hạnh phúc là khi được ôm và được ôm lại.',
+  'Hugging back makes the bond even stronger!',
+  'When love is shared, it doubles.',
+  'Spread warmth everywhere!',
+  'No one loses in a battle of affection!',
+  'Happiness is giving and receiving hugs.',
 ];
 
 function randomQuote(pool: string[]): string {
@@ -91,7 +91,7 @@ export default class HugCommand extends PrefixCommand {
       if (!targetUserId) {
         await ogMessage.edit({
           components: [
-            StatusContainer.failed(failedEmoji, 'Người dùng không hợp lệ!'),
+            StatusContainer.failed(failedEmoji, 'Invalid user!'),
           ],
           flags: [MessageFlags.IsComponentsV2],
         });
@@ -110,7 +110,7 @@ export default class HugCommand extends PrefixCommand {
     if (targetUserId && !targetUser) {
       await ogMessage.edit({
         components: [
-          StatusContainer.failed(failedEmoji, 'Người dùng không hợp lệ!'),
+          StatusContainer.failed(failedEmoji, 'Invalid user!'),
         ],
         flags: [MessageFlags.IsComponentsV2],
       });
@@ -121,7 +121,7 @@ export default class HugCommand extends PrefixCommand {
     if (targetUser.bot) {
       await ogMessage.edit({
         components: [
-          StatusContainer.failed(failedEmoji, 'Bạn không thể ôm bot!'),
+          StatusContainer.failed(failedEmoji, 'You cannot hug the bot.'),
         ],
         flags: [MessageFlags.IsComponentsV2],
       });
@@ -237,13 +237,13 @@ export default class HugCommand extends PrefixCommand {
     if (isHugBack) {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user2)} đã ôm lại ${userMention(userIds.user1)}!`,
+          `## ${userMention(userIds.user2)} hugged back ${userMention(userIds.user1)}!`,
         ),
       );
     } else {
       container.addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${userMention(userIds.user1)} vừa ôm ${userMention(userIds.user2)}`,
+          `## ${userMention(userIds.user1)} hugged ${userMention(userIds.user2)}`,
         ),
       );
     }
@@ -271,7 +271,7 @@ export default class HugCommand extends PrefixCommand {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            subtext(`${userMention(huggedUserId)} đã được ôm ${hugCount} lần!`),
+            subtext(`${userMention(huggedUserId)} has been hugged ${hugCount} times!`),
           ),
         );
     }
@@ -283,12 +283,12 @@ export default class HugCommand extends PrefixCommand {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Đã hết thời gian chờ')),
+              textDisplay.setContent(subtext('Timeout expired')),
             )
             .setButtonAccessory(button =>
               button
                 .setCustomId(hugBackCustomId!)
-                .setLabel('Ôm lại')
+                .setLabel('Hug back')
                 .setDisabled(true)
                 .setStyle(ButtonStyle.Primary),
             ),
@@ -297,12 +297,12 @@ export default class HugCommand extends PrefixCommand {
         container.addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Bấm vào đây để ôm lại họ')),
+              textDisplay.setContent(subtext('Click here to hug back')),
             )
             .setButtonAccessory(button =>
               button
                 .setCustomId(hugBackCustomId!)
-                .setLabel('Ôm lại')
+                .setLabel('Hug back')
                 .setStyle(ButtonStyle.Primary),
             ),
         );

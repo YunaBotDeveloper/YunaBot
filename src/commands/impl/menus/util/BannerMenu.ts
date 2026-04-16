@@ -15,7 +15,7 @@ import {EmbedColors} from '../../../../util/EmbedColors';
 
 export default class BannerMenu extends ContextMenuCommand {
   constructor() {
-    super('Lấy ảnh bìa', ApplicationCommandType.User);
+    super('Get banner', ApplicationCommandType.User);
 
     this.advancedOptions.cooldown = 10000;
   }
@@ -39,7 +39,7 @@ export default class BannerMenu extends ContextMenuCommand {
     } catch {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        'Không thể lấy thông tin người dùng!',
+        'Could not fetch user information!',
       );
       await interaction.editReply({components: [errorContainer]});
       return;
@@ -67,7 +67,7 @@ export default class BannerMenu extends ContextMenuCommand {
     if (!globalBanner && !guildBanner) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        `${userMention(targetUser.id)} không có ảnh bìa.`,
+        `${userMention(targetUser.id)} has no banner.`,
       );
       await interaction.editReply({
         components: [errorContainer],
@@ -99,7 +99,7 @@ export default class BannerMenu extends ContextMenuCommand {
     globalBanner: string | undefined,
     guildBanner: string | undefined,
   ): ContainerBuilder {
-    const titleText = `## ${memberEmoji} Ảnh bìa của ${userMention(userId)}`;
+    const titleText = `## ${memberEmoji} Banner of ${userMention(userId)}`;
 
     if (guildBanner && globalBanner) {
       return new ContainerBuilder()
@@ -110,7 +110,7 @@ export default class BannerMenu extends ContextMenuCommand {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh bìa toàn Discord')}`,
+            `**Type:** ${inlineCode('Global banner')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
@@ -121,11 +121,11 @@ export default class BannerMenu extends ContextMenuCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh bìa toàn Discord')),
+              textDisplay.setContent(subtext('Download global banner')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(globalBanner),
             ),
@@ -137,7 +137,7 @@ export default class BannerMenu extends ContextMenuCommand {
         .addSeparatorComponents(separator => separator)
         .addTextDisplayComponents(textDisplay =>
           textDisplay.setContent(
-            `**Loại:** ${inlineCode('Ảnh bìa trong máy chủ')}`,
+            `**Type:** ${inlineCode('Server banner')}`,
           ),
         )
         .addSeparatorComponents(separator => separator)
@@ -148,11 +148,11 @@ export default class BannerMenu extends ContextMenuCommand {
         .addSectionComponents(section =>
           section
             .addTextDisplayComponents(textDisplay =>
-              textDisplay.setContent(subtext('Tải ảnh bìa trong máy chủ')),
+              textDisplay.setContent(subtext('Download server banner')),
             )
             .setButtonAccessory(button =>
               button
-                .setLabel('Tải xuống')
+                .setLabel('Download')
                 .setStyle(ButtonStyle.Link)
                 .setURL(guildBanner),
             ),
@@ -161,11 +161,11 @@ export default class BannerMenu extends ContextMenuCommand {
 
     const singleBanner = guildBanner ?? globalBanner;
     const singleBannerType = guildBanner
-      ? 'Ảnh bìa trong máy chủ'
-      : 'Ảnh bìa toàn Discord';
+      ? 'Server banner'
+      : 'Global banner';
     const singleBannerDownload = guildBanner
-      ? 'Tải ảnh bìa trong máy chủ'
-      : 'Tải ảnh bìa toàn Discord';
+      ? 'Download server banner'
+      : 'Download global banner';
 
     return new ContainerBuilder()
       .setAccentColor(EmbedColors.random())
@@ -174,7 +174,7 @@ export default class BannerMenu extends ContextMenuCommand {
       )
       .addSeparatorComponents(separator => separator)
       .addTextDisplayComponents(textDisplay =>
-        textDisplay.setContent(`**Loại:** ${inlineCode(singleBannerType)}`),
+        textDisplay.setContent(`**Type:** ${inlineCode(singleBannerType)}`),
       )
       .addSeparatorComponents(separator => separator)
       .addMediaGalleryComponents(gallery =>
@@ -188,7 +188,7 @@ export default class BannerMenu extends ContextMenuCommand {
           )
           .setButtonAccessory(button =>
             button
-              .setLabel('Tải xuống')
+              .setLabel('Download')
               .setURL(singleBanner!)
               .setStyle(ButtonStyle.Link),
           ),
