@@ -77,6 +77,18 @@ export default class SetupCommand extends Command {
                 .setRequired(true)
                 .setAutocomplete(true),
             ),
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('preview')
+            .setDescription('Preview a container template')
+            .addStringOption(option =>
+              option
+                .setName('name')
+                .setDescription('Container template name')
+                .setRequired(true)
+                .setAutocomplete(true),
+            ),
         ),
     );
   }
@@ -89,6 +101,20 @@ export default class SetupCommand extends Command {
     if (subcommandGroup === 'container') {
       switch (subcommand) {
         case 'remove': {
+          const containers = await GuildContainer.findAll({
+            where: {guildId: interaction.guildId!},
+          });
+
+          const choices = containers
+            .filter(c => c.name.toLowerCase().includes(focusedValue))
+            .slice(0, 25)
+            .map(c => ({name: c.name, value: c.name}));
+
+          await interaction.respond(choices);
+          break;
+        }
+
+        case 'preview': {
           const containers = await GuildContainer.findAll({
             where: {guildId: interaction.guildId!},
           });

@@ -9,13 +9,17 @@ export const getTemplateTokens = (
   context: ParseContext,
 ): Record<string, string> => {
   const {user, guild} = context;
+  const isAnimatedAvatar = user.avatar?.startsWith('a_') ?? false;
 
   return {
     '${user.tag}': user.username,
     '${user.id}': user.id,
     '${user.mention}': `<@${user.id}>`,
     '${user.displayName}': user.displayName,
-    '${user.avatar}': user.avatarURL() ?? '',
+    '${user.avatar}': user.displayAvatarURL({
+      extension: isAnimatedAvatar ? 'gif' : 'png',
+      size: 1024,
+    }),
     '${user.createdAt}': `<t:${Math.floor(user.createdTimestamp / 1000)}:R>`,
 
     '${server.name}': guild.name,
