@@ -164,7 +164,7 @@ export default class SetupCommand extends Command {
 
           const guildContainer = await GuildContainer.findOne({
             where: {
-              guildId: interaction.guild!.id,
+              guildId: interaction.guild.id,
               name,
             },
           });
@@ -586,6 +586,58 @@ export default class SetupCommand extends Command {
             components: [previewText, ...containers],
             flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
           });
+
+          break;
+        }
+
+        case 'preview': {
+          const name = interaction.options.getString('name', true);
+
+          const guildContainer = await GuildContainer.findOne({
+            where: {
+              guildId: interaction.guild.id,
+              name,
+            },
+          });
+
+          if (!guildContainer) {
+            const errorContainer = StatusContainer.failed(
+              failedEmoji,
+              `This server has no container named ${inlineCode(name)}!`,
+            );
+
+            await message.edit({
+              components: [errorContainer],
+            });
+
+            setTimeout(async () => {
+              await message.delete().catch(() => null);
+            });
+
+            return;
+          }
+
+          const timeCreate = Math.round(Date.now() / 1000);
+
+          const deleteAfterText = new TextDisplayBuilder().setContent(
+            subtext(
+              `${infoEmoji} This request will automatically expire after ${time(timeCreate + 60, TimestampStyles.RelativeTime)}`,
+            ),
+          );
+
+          const containers = ComponentParser.parse(guildContainer.json, {
+            user: interaction.user,
+            guild: interaction.guild,
+          });
+
+          await message.edit({
+            components: [...containers, deleteAfterText],
+            flags: [MessageFlags.IsComponentsV2],
+          });
+
+          setTimeout(async () => {
+            await message.delete().catch(() => null);
+          }, 60000);
 
           break;
         }
