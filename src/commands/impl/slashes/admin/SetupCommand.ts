@@ -433,16 +433,111 @@ export default class SetupCommand extends Command {
             {
               customId: componentIds.confirmContainerRemoveCustomId,
               timeout: 10000,
-              onTimeout: async () => {},
-              handler: async () => {},
+              onTimeout: async () => {
+                ComponentManager.getComponentManager().unregisterMany([
+                  componentIds.confirmContainerRemoveCustomId,
+                  componentIds.cancelContainerRemoveCustomId,
+                ]);
+
+                const errorContainer = StatusContainer.failed(
+                  failedEmoji,
+                  'This request has expired. Please try again.',
+                );
+
+                await message.edit({
+                  components: [errorContainer],
+                });
+
+                setTimeout(async () => {
+                  await message.delete().catch(() => null);
+                }, 5000);
+
+                return;
+              },
+              handler: async (interaction: ButtonInteraction) => {
+                ComponentManager.getComponentManager().unregisterMany([
+                  componentIds.confirmContainerRemoveCustomId,
+                  componentIds.cancelContainerRemoveCustomId,
+                ]);
+
+                await interaction.update({
+                  components: [loadingContainer],
+                });
+
+                await GuildContainer.destroy({
+                  where: {
+                    guildId: interaction.guild!.id,
+                    name,
+                  },
+                });
+
+                const successContainer = StatusContainer.success(
+                  successEmoji,
+                  `Successfully deleted container ${inlineCode(name)}!`,
+                );
+
+                await interaction.editReply({
+                  components: [successContainer],
+                });
+
+                setTimeout(async () => {
+                  await message.delete().catch(() => null);
+                }, 5000);
+
+                return;
+              },
               type: ComponentEnum.BUTTON,
               userCheck: [interaction.user.id],
             },
             {
               customId: componentIds.cancelContainerRemoveCustomId,
               timeout: 10000,
-              onTimeout: async () => {},
-              handler: async () => {},
+              onTimeout: async () => {
+                ComponentManager.getComponentManager().unregisterMany([
+                  componentIds.confirmContainerRemoveCustomId,
+                  componentIds.cancelContainerRemoveCustomId,
+                ]);
+
+                const errorContainer = StatusContainer.failed(
+                  failedEmoji,
+                  'This request has expired. Please try again.',
+                );
+
+                await message.edit({
+                  components: [errorContainer],
+                });
+
+                setTimeout(async () => {
+                  await message.delete().catch(() => null);
+                }, 5000);
+
+                return;
+              },
+              handler: async (interaction: ButtonInteraction) => {
+                ComponentManager.getComponentManager().unregisterMany([
+                  componentIds.confirmContainerRemoveCustomId,
+                  componentIds.cancelContainerRemoveCustomId,
+                ]);
+
+                await interaction.update({
+                  components: [loadingContainer],
+                });
+
+                const successContainer = StatusContainer.success(
+                  successEmoji,
+                  'Request canceled successfully.',
+                );
+
+                await interaction.editReply({
+                  components: [successContainer],
+                });
+
+                setTimeout(async () => {
+                  await message.delete().catch(() => null);
+                }, 5000);
+
+                return;
+              },
               type: ComponentEnum.BUTTON,
               userCheck: [interaction.user.id],
             },
