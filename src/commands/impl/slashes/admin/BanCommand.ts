@@ -28,6 +28,7 @@ import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {v4 as uuidv4} from 'uuid';
 import BanLog from '../../../../database/models/BanLog.model';
 import GuildLog from '../../../../database/models/GuildLog.model';
+import TempBanService from '../../../../services/TempBanService';
 
 export default class BanCommand extends Command {
   constructor() {
@@ -452,6 +453,17 @@ export default class BanCommand extends Command {
 
             await banLog.save();
 
+            // Schedule automatic unban if duration was specified
+            if (durationS) {
+              const tempBanService = TempBanService.getInstance();
+              tempBanService.scheduleUnban(
+                interaction.guild.id,
+                targetUser.id,
+                banId,
+                durationS * 1000,
+              );
+            }
+
             await interaction.editReply({
               components: [banSuccessContainer],
             });
@@ -679,11 +691,12 @@ export default class BanCommand extends Command {
     dm: boolean,
     timeCreate: number,
   ): ContainerBuilder {
+    const isTempBan = duration.durationS !== null;
     const banSuccessContainer = new ContainerBuilder()
       .setAccentColor(EmbedColors.green())
       .addTextDisplayComponents(textDisplay =>
         textDisplay.setContent(
-          `## ${successEmoji} Successfully banned ${userMention(targetUser.id)} from the server!`,
+          `## ${successEmoji} Successfully ${isTempBan ? 'temporarily banned' : 'banned'} ${userMention(targetUser.id)} from the server!`,
         ),
       )
       .addSeparatorComponents(separator => separator)

@@ -3,10 +3,19 @@ import GuildMember from '../database/models/GuildMember.model';
 import Log4TS from '../logger/Log4TS';
 
 const SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const BATCH_SIZE = 500;
 
-const logger = Log4TS.getLogger();
+interface MemberRow {
+  userId: string;
+  guildId: string;
+  username: string;
+  displayName: string;
+  roles: string;
+  joinedAt: string | null;
+  isBot: boolean;
+}
 
-function memberToRow(member: DiscordGuildMember) {
+function memberToRow(member: DiscordGuildMember): MemberRow {
   return {
     userId: member.user.id,
     guildId: member.guild.id,
@@ -21,6 +30,7 @@ function memberToRow(member: DiscordGuildMember) {
 export class MemberSyncService {
   private static instance: MemberSyncService | null = null;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
+  private logger = Log4TS.getLogger();
 
   private constructor() {}
 
@@ -31,37 +41,65 @@ export class MemberSyncService {
     return MemberSyncService.instance;
   }
 
+  private async batchUpsert(rows: MemberRow[]): Promise<void> {
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batch = rows.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(row => GuildMember.upsert(row)));
+    }
+  }
+
+  private async removeStaleMembers(
+    guildId: string,
+    currentUserIds: Set<string>,
+  ): Promise<number> {
+    const stored = await GuildMember.findAll({where: {guildId}});
+    const stale = stored.filter(s => !currentUserIds.has(s.userId));
+
+    if (stale.length === 0) return 0;
+
+    await Promise.all(stale.map(s => s.destroy()));
+    return stale.length;
+  }
+
   public async syncGuild(guild: Guild): Promise<void> {
     try {
       const members = await guild.members.fetch();
       const rows = members.map(m => memberToRow(m));
+      const currentUserIds = new Set(rows.map(r => r.userId));
 
-      for (const row of rows) {
-        await GuildMember.upsert(row);
-      }
+      await this.batchUpsert(rows);
+      const removedCount = await this.removeStaleMembers(
+        guild.id,
+        currentUserIds,
+      );
 
-      const fetchedIds = new Set(rows.map(r => r.userId));
-      const stored = await GuildMember.findAll({where: {guildId: guild.id}});
-      const stale = stored.filter(s => !fetchedIds.has(s.userId));
-      if (stale.length > 0) {
-        await Promise.all(stale.map(s => s.destroy()));
-      }
-
-      logger.info(
-        `[MemberSync] Synced ${rows.length} members for guild ${guild.name}`,
+      this.logger.info(
+        `[MemberSync] Synced ${rows.length} members for guild ${guild.name}` +
+          (removedCount > 0 ? `, removed ${removedCount} stale` : ''),
       );
     } catch (error) {
-      logger.error(`[MemberSync] Failed to sync guild ${guild.name}: ${error}`);
+      this.logger.error(
+        `[MemberSync] Failed to sync guild ${guild.name}: ${error}`,
+      );
     }
   }
 
   public async syncAll(client: Client): Promise<void> {
     const guilds = [...client.guilds.cache.values()];
-    logger.info(`[MemberSync] Starting sync for ${guilds.length} guild(s)`);
+    this.logger.info(
+      `[MemberSync] Starting sync for ${guilds.length} guild(s)`,
+    );
 
-    await Promise.all(guilds.map(guild => this.syncGuild(guild)));
+    const results = await Promise.allSettled(
+      guilds.map(guild => this.syncGuild(guild)),
+    );
 
-    logger.success('[MemberSync] All guilds synced');
+    const failures = results.filter(r => r.status === 'rejected').length;
+    if (failures > 0) {
+      this.logger.error(`[MemberSync] ${failures} guild(s) failed to sync`);
+    } else {
+      this.logger.success('[MemberSync] All guilds synced');
+    }
   }
 
   public startPeriodicSync(client: Client): void {
@@ -69,36 +107,42 @@ export class MemberSyncService {
 
     this.intervalHandle = setInterval(() => {
       this.syncAll(client).catch(err =>
-        logger.error(`[MemberSync] Periodic sync error: ${err}`),
+        this.logger.error(`[MemberSync] Periodic sync error: ${err}`),
       );
     }, SYNC_INTERVAL_MS);
 
-    logger.info('[MemberSync] Periodic sync started (every 15 minutes)');
+    this.logger.info('[MemberSync] Periodic sync started (every 15 minutes)');
   }
 
   public stopPeriodicSync(): void {
     if (this.intervalHandle) {
       clearInterval(this.intervalHandle);
       this.intervalHandle = null;
+      this.logger.info('[MemberSync] Periodic sync stopped');
     }
   }
 
-  public async upsertMember(member: DiscordGuildMember): Promise<void> {
+  public async upsertMember(member: DiscordGuildMember): Promise<boolean> {
     try {
       await GuildMember.upsert(memberToRow(member));
+      return true;
     } catch (error) {
-      logger.error(
+      this.logger.error(
         `[MemberSync] Failed to upsert member ${member.user.tag}: ${error}`,
       );
+      return false;
     }
   }
 
-  /** Remove a single member from DB (called from GuildMemberRemove). */
-  public async removeMember(userId: string, guildId: string): Promise<void> {
+  public async removeMember(userId: string, guildId: string): Promise<boolean> {
     try {
-      await GuildMember.destroy({where: {userId, guildId}});
+      const deleted = await GuildMember.destroy({where: {userId, guildId}});
+      return deleted > 0;
     } catch (error) {
-      logger.error(`[MemberSync] Failed to remove member ${userId}: ${error}`);
+      this.logger.error(
+        `[MemberSync] Failed to remove member ${userId}: ${error}`,
+      );
+      return false;
     }
   }
 }

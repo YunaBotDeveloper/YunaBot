@@ -13,6 +13,7 @@ import {IComponent} from '../interfaces/IComponent';
 import {SQLize} from '../database/SQLize';
 import path = require('path');
 import ApplicationEmoji from '../api/discord/ApplicationEmoji';
+import TempBanService from '../services/TempBanService';
 
 export default class ExtendedClient extends Client implements IClient {
   constructor() {
@@ -57,5 +58,9 @@ export default class ExtendedClient extends Client implements IClient {
     await this.eventManager.loadEvents();
     await this.login(Config.getInstance().token);
     await this.commandManager.loadCommands();
+
+    // Load pending tempbans after login
+    const tempBanService = TempBanService.getInstance();
+    await tempBanService.loadPendingUnbans();
   }
 }
