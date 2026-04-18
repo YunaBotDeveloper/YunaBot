@@ -1,169 +1,205 @@
 # ManagerBot
 
-A modular Discord server management bot built with **discord.js v14**, **TypeScript**, and **SQLite**. Supports slash commands, prefix commands, and context menu interactions with a fully extensible architecture.
+<p align="center">
+  <img src="https://img.shields.io/badge/discord.js-v14.26.2-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.js">
+  <img src="https://img.shields.io/badge/TypeScript-5.9.3-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/Bun-1.0+-000000?style=for-the-badge&logo=bun&logoColor=white" alt="Bun">
+</p>
+
+<p align="center">
+  <b>A powerful, modular Discord server management bot with modern UI components</b>
+</p>
 
 ---
 
 ## Features
 
-- **Slash Commands** — Modern Discord interactions with input validation and per-command cooldowns
-- **Prefix Commands** — Traditional text-based commands with per-guild custom prefix support
-- **Context Menu Commands** — Right-click user actions for quick moderation
-- **Interactive Components** — Button, modal, and select menu handling with timeout and user-lock support
-- **Discord Components V2** — Built with the latest Discord UI container system
-- **Welcome / Goodbye / Boost Messages** — Fully customizable JSON-driven container templates for server events
-- **Moderation Logging** — Webhook-based ban and channel nuke logs sent to configurable channels
-- **SQLite Database** — Lightweight persistent storage via Sequelize ORM
+- **Modern Discord UI** — Built with Discord Components V2 (containers, sections, text displays)
+- **Three Command Types** — Slash commands, prefix commands, and context menu actions
+- **Interactive Components** — Buttons, modals, and select menus with timeout handling
+- **Server Automation** — Welcome/goodbye/boost messages with customizable JSON templates
+- **Moderation Tools** — Ban, kick, timeout with confirmation dialogs and logging
+- **Persistent Storage** — SQLite database via Sequelize ORM
 - **Cooldown System** — Per-user, per-command configurable cooldowns
-- **Custom Emoji API** — Application emoji integration for rich status responses
-- **Fun Commands** — Hug, kiss, and pat commands with counters and embedded media
+- **Auto-Discovery** — Commands and events loaded automatically from directory structure
 
 ---
 
 ## Commands
 
-### Slash Commands
+### Admin Commands
 
-| Command | Category | Description |
-|---------|----------|-------------|
-| `/ban` | Admin | Ban a user with reason, duration, proof, optional DM notification, and confirmation prompt |
-| `/setup` | Admin | Configure prefix, container templates, and other server settings |
-| `/avatar` | Util | Display a user's avatar |
-| `/banner` | Util | Display a user's banner |
-| `/hug` | Fun | Hug a user |
-| `/kiss` | Fun | Kiss a user |
-| `/pat` | Fun | Pat a user |
+| Command | Description | Permissions |
+|---------|-------------|-------------|
+| `/ban` | Ban a user with reason, duration, proof attachment, and DM notification | BanMembers |
+| `/kick` | Kick a user from the server | KickMembers |
+| `/timeout` | Temporarily timeout a user | ModerateMembers |
+| `/nuke` | Clear all messages in a channel with confirmation | ManageChannels |
+| `/purge` | Delete a specified number of messages | ManageMessages |
+| `/setup prefix` | Change the bot's command prefix | ManageGuild |
+| `/setup container` | Manage welcome/goodbye/boost message templates | ManageGuild |
 
-### Prefix Commands
+### Utility Commands
 
-| Command | Aliases | Category | Description |
-|---------|---------|----------|-------------|
-| `ban` | — | Admin | Ban a user |
-| `help` | `h` | Info | List all available commands |
-| `avatar` | — | Util | Display a user's avatar |
-| `banner` | — | Util | Display a user's banner |
-| `hug` | — | Fun | Hug a user |
-| `kiss` | — | Fun | Kiss a user |
-| `pat` | — | Fun | Pat a user |
+| Command | Description |
+|---------|-------------|
+| `/avatar` | Display a user's avatar in full resolution |
+| `/banner` | Display a user's profile banner |
+| `/userinfo` | Show detailed user information |
+| `/serverinfo` | Display server statistics |
+
+### Fun Commands
+
+| Command | Description |
+|---------|-------------|
+| `/hug` | Hug another member |
+| `/kiss` | Kiss another member |
+| `/pat` | Pat another member |
 
 ### Context Menu Commands
 
-| Command | Category | Description |
-|---------|----------|-------------|
-| Ban | Admin | Right-click a user to ban them |
-| Avatar | Util | Right-click to view a user's avatar |
-| Banner | Util | Right-click to view a user's banner |
+Right-click on any user to access:
+- **Ban** — Quick ban action
+- **Avatar** — View full-size avatar
+- **Banner** — View profile banner
 
 ---
 
 ## Container Template System
 
-Server event messages (welcome, goodbye, boost) are driven by JSON container templates uploaded via `/setup container add`. Templates support the following dynamic tokens:
+Server event messages (welcome, goodbye, boost) use customizable JSON container templates. Upload templates via `/setup container add`.
 
-| Token | Description |
+### Supported Tokens
+
+| Token | Replacement |
 |-------|-------------|
 | `${user.tag}` | Username |
 | `${user.id}` | User ID |
-| `${user.mention}` | User mention (`<@id>`) |
+| `${user.mention}` | User mention |
 | `${user.displayName}` | Display name |
 | `${user.avatar}` | Avatar URL |
-| `${user.createdAt}` | Account creation date (relative) |
+| `${user.createdAt}` | Account creation date |
 | `${server.name}` | Server name |
 | `${server.id}` | Server ID |
 | `${server.icon}` | Server icon URL |
-| `${server.memberCount}` | Total member count |
-| `${server.boostCount}` | Server boost count |
-| `${server.boostLevel}` | Server boost tier |
+| `${server.memberCount}` | Total members |
+| `${server.boostCount}` | Boost count |
+| `${server.boostLevel}` | Boost tier |
 
 ---
 
-## Prerequisites
+## Getting Started
+
+### Prerequisites
 
 - [Bun](https://bun.sh) >= 1.0
-- Node.js >= 18 (for compiled production output)
-- A Discord bot token with the following intents: `Guilds`, `GuildMembers`, `GuildMessages`, `MessageContent`
+- Node.js >= 18 (for production builds)
+- Discord bot token with intents: `Guilds`, `GuildMembers`, `GuildMessages`, `MessageContent`
 
----
-
-## Setup
-
-**1. Clone the repository**
+### Installation
 
 ```bash
+# Clone the repository
 git clone https://github.com/your-username/ManagerBot.git
 cd ManagerBot
-```
 
-**2. Install dependencies**
-
-```bash
+# Install dependencies
 bun install
+
+# Configure the bot
+cp config.example.yaml config.yaml
+# Edit config.yaml and add your bot token
 ```
 
-**3. Configure the bot**
+### Configuration
 
-Create a `config.yaml` file at the project root:
+Create `config.yaml` in the project root:
 
 ```yaml
 bot:
   token: "YOUR_BOT_TOKEN_HERE"
 ```
 
-**4. Run the bot**
+### Running the Bot
 
 ```bash
 # Development (hot reload)
 bun run dev
 
-# Production (compile then run)
+# Production
 npm run compile
 node build/index.js
 ```
 
 ---
 
-## Available Scripts
+## Development
 
-| Script | Description |
-|--------|-------------|
-| `bun run dev` | Start in watch mode with hot reload |
-| `npm run compile` | Compile TypeScript to `build/` |
-| `npm run lint` | Run GTS linter |
-| `npm run fix` | Auto-fix lint issues |
-| `npm run clean` | Remove compiled output |
+```bash
+# Run linter
+npm run lint
+
+# Auto-fix lint issues
+npm run fix
+
+# Clean build directory
+npm run clean
+
+# Compile TypeScript
+npm run compile
+```
 
 ---
 
 ## Architecture
 
-The bot uses a modular singleton-based architecture:
+```
+src/
+├── classes/           # Core client class
+├── commands/          # Command system
+│   ├── impl/          # Command implementations
+│   │   ├── menus/     # Context menu commands
+│   │   ├── prefixes/  # Prefix commands
+│   │   └── slashes/   # Slash commands
+├── component/         # Interactive component system
+├── config/            # Configuration loader
+├── database/          # Sequelize models
+├── events/            # Event handlers
+├── interfaces/        # TypeScript interfaces
+├── logger/            # Logging utility
+├── services/          # Business logic services
+└── util/              # Helper utilities
+```
 
-- **`ExtendedClient`** — Custom discord.js client that bootstraps the database, events, login, and command registration
-- **`CommandManager`** — Auto-discovers and loads all command files from `src/commands/impl/`
-- **`EventManager`** — Dynamically loads event handlers from `src/events/impl/`
-- **`ComponentManager`** — Registers interactive components (buttons, modals, select menus) with unique IDs, user-lock, and timeouts
-- **`SQLize`** — Sequelize + SQLite singleton that auto-loads all database models
+### Key Components
 
-See the [full project structure](QWEN.md) for a detailed breakdown.
+| Component | Purpose |
+|-----------|---------|
+| `ExtendedClient` | Custom discord.js client with bootstrap logic |
+| `CommandManager` | Auto-discovers and registers commands |
+| `EventManager` | Dynamically loads event handlers |
+| `ComponentManager` | Manages interactive components with timeouts |
+| `SQLize` | Database singleton with model auto-loading |
 
 ---
 
 ## Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| [discord.js](https://discord.js.org) v14 | Discord API wrapper |
-| TypeScript 5 | Type-safe development |
-| Bun | Fast runtime & package manager |
-| Sequelize + SQLite | Database ORM |
-| Axios | HTTP client |
-| sharp | Image processing |
-| nanoid / uuid | Unique ID generation |
-| YAML | Bot configuration |
-| GTS | Google TypeScript Style linting |
+- **[discord.js](https://discord.js.org)** v14 — Discord API wrapper
+- **[TypeScript](https://www.typescriptlang.org)** 5 — Type-safe development
+- **[Bun](https://bun.sh)** — Fast runtime & package manager
+- **[Sequelize](https://sequelize.org)** + SQLite — Database ORM
+- **[GTS](https://github.com/google/gts)** — Google TypeScript Style
 
 ---
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  Made with love for Discord communities
+</p>
