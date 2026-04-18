@@ -66,7 +66,6 @@ export default class TempBanService {
   ): void {
     const key = `${guildId}-${userId}`;
 
-    // Clear existing timeout if any
     if (this.pendingUnbans.has(key)) {
       const existing = this.pendingUnbans.get(key)!;
       clearTimeout(existing.timeoutId);
@@ -100,7 +99,6 @@ export default class TempBanService {
         return;
       }
 
-      // Check if user is still banned
       const ban = await guild.bans.fetch(userId).catch(() => null);
       if (!ban) {
         this.logger.info(`User ${userId} is not banned in ${guildId}`);

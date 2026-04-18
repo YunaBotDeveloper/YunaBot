@@ -2,7 +2,7 @@ import {Client, Guild, GuildMember as DiscordGuildMember} from 'discord.js';
 import GuildMember from '../database/models/GuildMember.model';
 import Log4TS from '../logger/Log4TS';
 
-const SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const SYNC_INTERVAL_MS = 15 * 60 * 1000;
 const BATCH_SIZE = 500;
 
 interface MemberRow {
@@ -74,21 +74,17 @@ export class MemberSyncService {
       );
 
       this.logger.info(
-        `[MemberSync] Synced ${rows.length} members for guild ${guild.name}` +
+        `Synced ${rows.length} members for guild ${guild.name}` +
           (removedCount > 0 ? `, removed ${removedCount} stale` : ''),
       );
     } catch (error) {
-      this.logger.error(
-        `[MemberSync] Failed to sync guild ${guild.name}: ${error}`,
-      );
+      this.logger.error(`Failed to sync guild ${guild.name}: ${error}`);
     }
   }
 
   public async syncAll(client: Client): Promise<void> {
     const guilds = [...client.guilds.cache.values()];
-    this.logger.info(
-      `[MemberSync] Starting sync for ${guilds.length} guild(s)`,
-    );
+    this.logger.info(`Starting sync for ${guilds.length} guild(s)`);
 
     const results = await Promise.allSettled(
       guilds.map(guild => this.syncGuild(guild)),
@@ -96,9 +92,9 @@ export class MemberSyncService {
 
     const failures = results.filter(r => r.status === 'rejected').length;
     if (failures > 0) {
-      this.logger.error(`[MemberSync] ${failures} guild(s) failed to sync`);
+      this.logger.error(`${failures} guild(s) failed to sync`);
     } else {
-      this.logger.success('[MemberSync] All guilds synced');
+      this.logger.success('All guilds synced');
     }
   }
 
@@ -107,18 +103,18 @@ export class MemberSyncService {
 
     this.intervalHandle = setInterval(() => {
       this.syncAll(client).catch(err =>
-        this.logger.error(`[MemberSync] Periodic sync error: ${err}`),
+        this.logger.error(`Periodic sync error: ${err}`),
       );
     }, SYNC_INTERVAL_MS);
 
-    this.logger.info('[MemberSync] Periodic sync started (every 15 minutes)');
+    this.logger.info('Periodic sync started (every 15 minutes)');
   }
 
   public stopPeriodicSync(): void {
     if (this.intervalHandle) {
       clearInterval(this.intervalHandle);
       this.intervalHandle = null;
-      this.logger.info('[MemberSync] Periodic sync stopped');
+      this.logger.info('Periodic sync stopped');
     }
   }
 
@@ -127,9 +123,7 @@ export class MemberSyncService {
       await GuildMember.upsert(memberToRow(member));
       return true;
     } catch (error) {
-      this.logger.error(
-        `[MemberSync] Failed to upsert member ${member.user.tag}: ${error}`,
-      );
+      this.logger.error(`Failed to upsert member ${member.user.tag}: ${error}`);
       return false;
     }
   }
@@ -139,9 +133,7 @@ export class MemberSyncService {
       const deleted = await GuildMember.destroy({where: {userId, guildId}});
       return deleted > 0;
     } catch (error) {
-      this.logger.error(
-        `[MemberSync] Failed to remove member ${userId}: ${error}`,
-      );
+      this.logger.error(`Failed to remove member ${userId}: ${error}`);
       return false;
     }
   }
