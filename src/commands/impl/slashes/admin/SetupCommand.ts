@@ -89,6 +89,11 @@ export default class SetupCommand extends Command {
                 .setRequired(true)
                 .setAutocomplete(true),
             ),
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('list')
+            .setDescription('List all container templates'),
         ),
     );
   }
@@ -638,6 +643,52 @@ export default class SetupCommand extends Command {
           setTimeout(async () => {
             await message.delete().catch(() => null);
           }, 60000);
+
+          break;
+        }
+
+        case 'list': {
+          const containers = await GuildContainer.findAll({
+            where: {
+              guildId: interaction.guild.id,
+            },
+          });
+
+          if (containers.length === 0) {
+            const errorContainer = StatusContainer.failed(
+              failedEmoji,
+              'This server has no container templates!',
+            );
+
+            await message.edit({
+              components: [errorContainer],
+            });
+
+            setTimeout(async () => {
+              await message.delete().catch(() => null);
+            }, 5000);
+
+            return;
+          }
+
+          const containerNames = containers
+            .map((c, index) => `${index + 1}. ${inlineCode(c.name)}`)
+            .join('\n');
+
+          const listContainer = new ContainerBuilder()
+            .setAccentColor(EmbedColors.blue())
+            .addTextDisplayComponents(textDisplay =>
+              textDisplay.setContent(
+                `## ${infoEmoji} Container Templates\n` +
+                  `This server has ${bold(containers.length.toString())} container(s):\n\n` +
+                  containerNames,
+              ),
+            );
+
+          await message.edit({
+            components: [listContainer],
+            flags: [MessageFlags.IsComponentsV2],
+          });
 
           break;
         }
