@@ -6,6 +6,7 @@
       "dependencies": {
         "axios": "^1.15.0",
         "bufferutil": "^4.1.0",
+        "discord-alt-detector": "^1.0.4",
         "discord-html-transcripts": "^3.3.0",
         "discord.js": "^14.26.2",
         "jimp": "^1.6.1",
@@ -405,6 +406,8 @@
     "delayed-stream": ["delayed-stream@1.0.0", "", {}, "sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ=="],
 
     "detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
+
+    "discord-alt-detector": ["discord-alt-detector@1.0.4", "", { "dependencies": { "discord.js": "^14.15.2" } }, "sha512-TeSRYpUecVQl0FGx0Ybln9VDwoxU/GjQb9vzU3VCJYHkVlmN/FadAHqk07HHtfARNgPyjpAqDsdY/KtctTKUEQ=="],
 
     "discord-api-types": ["discord-api-types@0.38.43", "", {}, "sha512-sSoBf/nK6m7BGtw65mi+QBuvEWaHE8MMziFLqWL+gT6ME/BLg34dRSVKS3Husx40uU06bvxUc3/X+D9Y6/zAbw=="],
 

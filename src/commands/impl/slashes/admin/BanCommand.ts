@@ -468,67 +468,67 @@ export default class BanCommand extends Command {
               components: [banSuccessContainer],
             });
 
-            const guildLog = await GuildLog.findOne({
-              where: {guildId: interaction.guild.id},
-            });
+            // const guildLog = await GuildLog.findOne({
+            //   where: {guildId: interaction.guild.id},
+            // });
 
-            if (!guildLog || !guildLog.banLogId) {
-              return;
-            }
+            // if (!guildLog || !guildLog.banLogId) {
+            //   return;
+            // }
 
-            const channel = await interaction.guild.channels
-              .fetch(guildLog.banLogId)
-              .catch(() => null);
+            // const channel = await interaction.guild.channels
+            //   .fetch(guildLog.banLogId)
+            //   .catch(() => null);
 
-            if (!channel || !(channel instanceof TextChannel)) {
-              await guildLog.update({banLogId: null, banLogWebhookURL: null});
-              return;
-            }
+            // if (!channel || !(channel instanceof TextChannel)) {
+            //   await guildLog.update({banLogId: null, banLogWebhookURL: null});
+            //   return;
+            // }
 
-            let webhookURL = guildLog.banLogWebhookURL;
+            // let webhookURL = guildLog.banLogWebhookURL;
 
-            if (!webhookURL) {
-              const webhook = await channel.createWebhook({
-                name: client.user!.displayName,
-                avatar: client.user?.avatarURL(),
-              });
+            // if (!webhookURL) {
+            //   const webhook = await channel.createWebhook({
+            //     name: client.user!.displayName,
+            //     avatar: client.user?.avatarURL(),
+            //   });
 
-              webhookURL = webhook.url;
-              await guildLog.update({banLogWebhookURL: webhookURL});
-            }
+            //   webhookURL = webhook.url;
+            //   await guildLog.update({banLogWebhookURL: webhookURL});
+            // }
 
-            const isValidWebhook = await fetch(webhookURL, {method: 'GET'})
-              .then(res => res.ok)
-              .catch(() => false);
+            // const isValidWebhook = await fetch(webhookURL, {method: 'GET'})
+            //   .then(res => res.ok)
+            //   .catch(() => false);
 
-            if (!isValidWebhook) {
-              await guildLog.update({banLogId: null, banLogWebhookURL: null});
-              return;
-            }
+            // if (!isValidWebhook) {
+            //   await guildLog.update({banLogId: null, banLogWebhookURL: null});
+            //   return;
+            // }
 
-            const webhookClient = new WebhookClient({url: webhookURL});
+            // const webhookClient = new WebhookClient({url: webhookURL});
 
-            const banLogContainer = this.banLogContainer(
-              '🔨',
-              banId,
-              interaction.user,
-              targetUser,
-              reason,
-              {
-                durationS,
-                durationString,
-              },
-              proof,
-              shouldDm,
-              timeCreate,
-            );
+            // const banLogContainer = this.banLogContainer(
+            //   '🔨',
+            //   banId,
+            //   interaction.user,
+            //   targetUser,
+            //   reason,
+            //   {
+            //     durationS,
+            //     durationString,
+            //   },
+            //   proof,
+            //   shouldDm,
+            //   timeCreate,
+            // );
 
-            await webhookClient.send({
-              components: [banLogContainer],
-              withComponents: true,
-              flags: [MessageFlags.IsComponentsV2],
-              allowedMentions: {},
-            });
+            // await webhookClient.send({
+            //   components: [banLogContainer],
+            //   withComponents: true,
+            //   flags: [MessageFlags.IsComponentsV2],
+            //   allowedMentions: {},
+            // });
 
             return;
           } catch {

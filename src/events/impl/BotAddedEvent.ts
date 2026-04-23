@@ -23,7 +23,7 @@ export default class BotAddedEvent extends Event {
 
   async run(client: ExtendedClient, guild: Guild) {
     const guildPrefix = new GuildPrefix({guildId: guild.id, prefix: '!'});
-    const guildLog = new GuildLog({guildId: guild.id, nukeLogId: ''});
+    const guildLog = new GuildLog({guildId: guild.id});
     await guildPrefix.save();
     await guildLog.save();
 

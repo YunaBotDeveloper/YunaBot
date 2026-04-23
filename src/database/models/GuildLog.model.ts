@@ -13,10 +13,8 @@ class GuildLog extends Model<
   InferCreationAttributes<GuildLog>
 > {
   declare guildId: string;
-  declare nukeLogId: string | null;
-  declare nukeLogWebhookURL: string | null;
-  declare banLogId: string | null;
-  declare banLogWebhookURL: string | null;
+  declare altLogChannelId: string | null;
+  declare altLogWebhookURL: string | null;
 }
 
 export function initGuildLogModel(sequelizeInstance: Sequelize): void {
@@ -28,28 +26,20 @@ export function initGuildLogModel(sequelizeInstance: Sequelize): void {
         primaryKey: true,
         allowNull: false,
       },
-      nukeLogId: {
+      altLogChannelId: {
         type: DataTypes.STRING,
         allowNull: true,
-        defaultValue: null,
       },
-      nukeLogWebhookURL: {
+      altLogWebhookURL: {
         type: DataTypes.STRING,
         allowNull: true,
-        defaultValue: null,
-      },
-      banLogId: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        defaultValue: null,
-      },
-      banLogWebhookURL: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        defaultValue: null,
       },
     },
-    {sequelize, tableName: 'GuildLog', timestamps: false},
+    {
+      sequelize,
+      tableName: 'GuildLog',
+      timestamps: false,
+    },
   );
 }
 
