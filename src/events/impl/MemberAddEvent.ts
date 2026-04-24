@@ -1,10 +1,4 @@
-import {
-  ContainerBuilder,
-  Embed,
-  Events,
-  GuildMember,
-  TextChannel,
-} from 'discord.js';
+import {ContainerBuilder, Events, GuildMember, TextChannel} from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
 import {MemberSyncService} from '../../services/MemberSyncService';
@@ -63,19 +57,15 @@ export default class MemberAddEvent extends Event {
     const altDetectorContainer = new ContainerBuilder();
 
     switch (category) {
-      case 'mega-suspicious': {
-        altDetectorContainer.setAccentColor(EmbedColors.red());
-        break;
-      }
-
-      case 'highly-suspicious': {
-        altDetectorContainer.setAccentColor(EmbedColors.red());
-        break;
-      }
-
+      case 'mega-suspicious':
+      case 'highly-suspicious':
       case 'suspicious': {
         altDetectorContainer.setAccentColor(EmbedColors.red());
         break;
+      }
+
+      case 'newbie': {
+        altDetectorContainer.setAccentColor(EmbedColors.orange());
       }
     }
 

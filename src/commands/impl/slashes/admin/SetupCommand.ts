@@ -23,6 +23,7 @@ import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import axios from 'axios';
 import {ComponentParser} from '../../../../util/ComponentParser';
 import GuildContainer from '../../../../database/models/GuildContainer.model';
+import GuildTemplateCacheService from '../../../../services/GuildTemplateCacheService';
 
 export default class SetupCommand extends Command {
   constructor() {
@@ -322,6 +323,10 @@ export default class SetupCommand extends Command {
                     name,
                     json: jsonText,
                   });
+                  GuildTemplateCacheService.getInstance().invalidateContainer(
+                    interaction.guild!.id,
+                    name,
+                  );
                 } catch {
                   const errorContainer = StatusContainer.failed(
                     failedEmoji,
@@ -501,6 +506,10 @@ export default class SetupCommand extends Command {
                     name,
                   },
                 });
+                GuildTemplateCacheService.getInstance().invalidateContainer(
+                  interaction.guild!.id,
+                  name,
+                );
 
                 const successContainer = StatusContainer.success(
                   successEmoji,

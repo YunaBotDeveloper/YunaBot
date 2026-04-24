@@ -1,9 +1,8 @@
 import {Events, GuildMember, MessageFlags, TextChannel} from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
-import GuildEvent from '../../database/models/GuildEvent.model';
-import GuildContainer from '../../database/models/GuildContainer.model';
 import {ComponentParser} from '../../util/ComponentParser';
+import GuildTemplateCacheService from '../../services/GuildTemplateCacheService';
 
 export default class BoostEvent extends Event {
   constructor() {
@@ -17,30 +16,20 @@ export default class BoostEvent extends Event {
   ) {
     if (oldMember.premiumSince !== newMember.premiumSince) {
       try {
-        const config = await GuildEvent.findOne({
-          where: {
-            guildId: newMember.guild.id,
-          },
-        });
+        const template =
+          await GuildTemplateCacheService.getInstance().getTemplatePayload(
+            newMember.guild.id,
+            'boost',
+          );
+        if (!template) return;
 
-        if (!config?.boostChannelId || !config.boostChannelContainer) return;
-
-        const container = await GuildContainer.findOne({
-          where: {
-            guildId: newMember.guild.id,
-            name: config.boostChannelContainer,
-          },
-        });
-
-        if (!container) return;
-
-        const containers = ComponentParser.parse(container.json, {
+        const containers = ComponentParser.parse(template.containerJson, {
           user: newMember.user,
           guild: newMember.guild,
         });
 
         const channel = await newMember.guild.channels
-          .fetch(config.boostChannelId)
+          .fetch(template.channelId)
           .catch(() => null);
 
         if (!channel || !(channel instanceof TextChannel)) return;

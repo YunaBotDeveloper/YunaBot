@@ -1,9 +1,8 @@
 import {Events, GuildMember, MessageFlags, TextChannel} from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
-import GuildEvent from '../../database/models/GuildEvent.model';
-import GuildContainer from '../../database/models/GuildContainer.model';
 import {ComponentParser} from '../../util/ComponentParser';
+import GuildTemplateCacheService from '../../services/GuildTemplateCacheService';
 
 export default class GoodbyeEvent extends Event {
   constructor() {
@@ -14,30 +13,20 @@ export default class GoodbyeEvent extends Event {
     if (member.user.bot) return;
 
     try {
-      const config = await GuildEvent.findOne({
-        where: {
-          guildId: member.guild.id,
-        },
-      });
+      const template =
+        await GuildTemplateCacheService.getInstance().getTemplatePayload(
+          member.guild.id,
+          'goodbye',
+        );
+      if (!template) return;
 
-      if (!config?.goodbyeChannelId || !config.goodbyeChannelContainer) return;
-
-      const container = await GuildContainer.findOne({
-        where: {
-          guildId: member.guild.id,
-          name: config.goodbyeChannelContainer,
-        },
-      });
-
-      if (!container) return;
-
-      const containers = ComponentParser.parse(container.json, {
+      const containers = ComponentParser.parse(template.containerJson, {
         user: member.user,
         guild: member.guild,
       });
 
       const channel = await member.guild.channels
-        .fetch(config.goodbyeChannelId)
+        .fetch(template.channelId)
         .catch(() => null);
 
       if (!channel || !(channel instanceof TextChannel)) return;

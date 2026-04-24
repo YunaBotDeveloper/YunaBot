@@ -1,9 +1,11 @@
 import {Client, Guild, GuildMember as DiscordGuildMember} from 'discord.js';
+import {Op} from 'sequelize';
 import GuildMember from '../database/models/GuildMember.model';
 import Log4TS from '../logger/Log4TS';
 
 const SYNC_INTERVAL_MS = 15 * 60 * 1000;
 const BATCH_SIZE = 500;
+const SQLITE_SAFE_IN_LIMIT = 900;
 
 interface MemberRow {
   userId: string;
@@ -30,6 +32,7 @@ function memberToRow(member: DiscordGuildMember): MemberRow {
 export class MemberSyncService {
   private static instance: MemberSyncService | null = null;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
+  private syncInProgress = false;
   private logger = Log4TS.getLogger();
 
   private constructor() {}
@@ -44,7 +47,15 @@ export class MemberSyncService {
   private async batchUpsert(rows: MemberRow[]): Promise<void> {
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const batch = rows.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map(row => GuildMember.upsert(row)));
+      await GuildMember.bulkCreate(batch, {
+        updateOnDuplicate: [
+          'username',
+          'displayName',
+          'roles',
+          'joinedAt',
+          'isBot',
+        ],
+      });
     }
   }
 
@@ -52,16 +63,53 @@ export class MemberSyncService {
     guildId: string,
     currentUserIds: Set<string>,
   ): Promise<number> {
-    const stored = await GuildMember.findAll({where: {guildId}});
-    const stale = stored.filter(s => !currentUserIds.has(s.userId));
+    if (currentUserIds.size === 0) {
+      return GuildMember.destroy({where: {guildId}});
+    }
 
-    if (stale.length === 0) return 0;
+    if (currentUserIds.size <= SQLITE_SAFE_IN_LIMIT) {
+      return GuildMember.destroy({
+        where: {
+          guildId,
+          userId: {
+            [Op.notIn]: [...currentUserIds],
+          },
+        },
+      });
+    }
 
-    await Promise.all(stale.map(s => s.destroy()));
-    return stale.length;
+    const stored = (await GuildMember.findAll({
+      where: {guildId},
+      attributes: ['userId'],
+      raw: true,
+    })) as Array<{userId: string}>;
+
+    const staleUserIds = stored
+      .map(member => member.userId)
+      .filter(userId => !currentUserIds.has(userId));
+
+    if (staleUserIds.length === 0) {
+      return 0;
+    }
+
+    let removed = 0;
+    for (let i = 0; i < staleUserIds.length; i += BATCH_SIZE) {
+      const staleBatch = staleUserIds.slice(i, i + BATCH_SIZE);
+      removed += await GuildMember.destroy({
+        where: {
+          guildId,
+          userId: {
+            [Op.in]: staleBatch,
+          },
+        },
+      });
+    }
+
+    return removed;
   }
 
   public async syncGuild(guild: Guild): Promise<void> {
+    const start = Date.now();
     try {
       const members = await guild.members.fetch();
       const rows = members.map(m => memberToRow(m));
@@ -75,26 +123,41 @@ export class MemberSyncService {
 
       this.logger.info(
         `Synced ${rows.length} members for guild ${guild.name}` +
-          (removedCount > 0 ? `, removed ${removedCount} stale` : ''),
+          (removedCount > 0 ? `, removed ${removedCount} stale` : '') +
+          ` (${Date.now() - start}ms)`,
       );
     } catch (error) {
       this.logger.error(`Failed to sync guild ${guild.name}: ${error}`);
+      throw error;
     }
   }
 
   public async syncAll(client: Client): Promise<void> {
+    if (this.syncInProgress) {
+      this.logger.warning(
+        'Skipping member sync because another sync is running',
+      );
+      return;
+    }
+    this.syncInProgress = true;
+
+    const start = Date.now();
     const guilds = [...client.guilds.cache.values()];
     this.logger.info(`Starting sync for ${guilds.length} guild(s)`);
 
-    const results = await Promise.allSettled(
-      guilds.map(guild => this.syncGuild(guild)),
-    );
+    try {
+      const results = await Promise.allSettled(
+        guilds.map(guild => this.syncGuild(guild)),
+      );
 
-    const failures = results.filter(r => r.status === 'rejected').length;
-    if (failures > 0) {
-      this.logger.error(`${failures} guild(s) failed to sync`);
-    } else {
-      this.logger.success('All guilds synced');
+      const failures = results.filter(r => r.status === 'rejected').length;
+      if (failures > 0) {
+        this.logger.error(`${failures} guild(s) failed to sync`);
+      } else {
+        this.logger.success(`All guilds synced in ${Date.now() - start}ms`);
+      }
+    } finally {
+      this.syncInProgress = false;
     }
   }
 

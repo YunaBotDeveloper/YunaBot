@@ -10,12 +10,10 @@ import {
   MessageFlags,
   PermissionFlagsBits,
   subtext,
-  TextChannel,
   time,
   TimestampStyles,
   User,
   userMention,
-  WebhookClient,
 } from 'discord.js';
 import {Command} from '../../../Command';
 import ExtendedClient from '../../../../classes/ExtendedClient';
@@ -27,7 +25,6 @@ import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import {v4 as uuidv4} from 'uuid';
 import BanLog from '../../../../database/models/BanLog.model';
-import GuildLog from '../../../../database/models/GuildLog.model';
 import TempBanService from '../../../../services/TempBanService';
 
 export default class BanCommand extends Command {

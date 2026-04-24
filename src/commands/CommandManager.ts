@@ -3,6 +3,7 @@ import {Command} from './Command';
 import {ContextMenuCommand} from './ContextMenuCommand';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import {REST, Routes} from 'discord.js';
 import Config from '../config/Config';
 import Log4TS from '../logger/Log4TS';
@@ -15,6 +16,10 @@ export class CommandManager {
   private contextMenuCommands: ContextMenuCommand[];
   private rest: REST;
   private logger: Log4TS;
+  private readonly commandHashPath = path.join(
+    process.cwd(),
+    '.command-sync-hash',
+  );
 
   constructor(client: ExtendedClient) {
     this.client = client;
@@ -30,6 +35,7 @@ export class CommandManager {
   }
 
   public async loadCommands(): Promise<void> {
+    const discoveryStart = Date.now();
     const commandsDir = path.join(__dirname, 'impl');
     const subDirs = fs.readdirSync(commandsDir);
 
@@ -67,14 +73,67 @@ export class CommandManager {
       ...this.slashCommands.map(cmd => cmd.data.toJSON()),
       ...this.contextMenuCommands.map(cmd => cmd.data.toJSON()),
     ];
+    this.logger.info(
+      `[Perf] Discovered ${this.slashCommands.length} slash, ${this.prefixCommands.length} prefix, ` +
+        `${this.contextMenuCommands.length} context-menu commands in ${Date.now() - discoveryStart}ms`,
+    );
 
+    await this.syncGlobalCommandsIfNeeded(allCommands);
+  }
+
+  private createCommandSignature(commands: unknown[]): string {
+    const normalized = [...commands].sort((a, b) => {
+      const aName = (a as {name?: string}).name ?? '';
+      const bName = (b as {name?: string}).name ?? '';
+      return aName.localeCompare(bName);
+    });
+    return crypto
+      .createHash('sha256')
+      .update(JSON.stringify(normalized))
+      .digest('hex');
+  }
+
+  private readStoredCommandSignature(): string | null {
+    try {
+      if (!fs.existsSync(this.commandHashPath)) {
+        return null;
+      }
+      return fs.readFileSync(this.commandHashPath, 'utf8').trim() || null;
+    } catch (error) {
+      this.logger.warning(`Could not read command hash cache: ${error}`);
+      return null;
+    }
+  }
+
+  private writeStoredCommandSignature(signature: string): void {
+    try {
+      fs.writeFileSync(this.commandHashPath, signature, 'utf8');
+    } catch (error) {
+      this.logger.warning(`Could not write command hash cache: ${error}`);
+    }
+  }
+
+  private async syncGlobalCommandsIfNeeded(commands: unknown[]): Promise<void> {
+    const forceSync = process.env.FORCE_COMMAND_SYNC === 'true';
+    const signature = this.createCommandSignature(commands);
+    const previousSignature = this.readStoredCommandSignature();
+
+    if (!forceSync && previousSignature === signature) {
+      this.logger.info(
+        'Skipped Discord global command sync (command signature unchanged)',
+      );
+      return;
+    }
+
+    const syncStart = Date.now();
     await this.rest.put(
       Routes.applicationCommands(this.client.user?.id as string),
-      {body: allCommands},
+      {body: commands},
     );
-    this.logger.success('Slash commands are now available on Discord API');
+
+    this.writeStoredCommandSignature(signature);
     this.logger.success(
-      'Context menu commands are now available on Discord API',
+      `Discord global command sync completed in ${Date.now() - syncStart}ms`,
     );
   }
 

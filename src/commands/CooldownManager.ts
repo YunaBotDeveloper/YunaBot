@@ -1,6 +1,7 @@
 export class CooldownManager {
   private cooldowns: Map<string, Map<string, number>>;
   private static instance: CooldownManager | null = null;
+  private cleanupRuns = 0;
 
   constructor() {
     this.cooldowns = new Map();
@@ -21,10 +22,7 @@ export class CooldownManager {
     const expirationTime = Date.now() + cooldown;
 
     this.cooldowns.get(commandName)?.set(userId, expirationTime);
-
-    setTimeout(() => {
-      this.cooldowns.get(commandName)?.delete(userId);
-    }, cooldown);
+    this.cleanupExpiredCooldowns();
   }
 
   public isInCooldown(commandName: string, userId: string): boolean {
@@ -60,5 +58,24 @@ export class CooldownManager {
     if (!userCooldowns) return null;
 
     return userCooldowns.get(userId) || null;
+  }
+
+  private cleanupExpiredCooldowns(): void {
+    this.cleanupRuns++;
+    if (this.cleanupRuns % 100 !== 0) {
+      return;
+    }
+
+    const now = Date.now();
+    for (const [commandName, userCooldowns] of this.cooldowns) {
+      for (const [userId, expirationTime] of userCooldowns) {
+        if (expirationTime <= now) {
+          userCooldowns.delete(userId);
+        }
+      }
+      if (userCooldowns.size === 0) {
+        this.cooldowns.delete(commandName);
+      }
+    }
   }
 }

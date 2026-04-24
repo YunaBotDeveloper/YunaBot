@@ -18,6 +18,7 @@ import Log4TS from '../../logger/Log4TS';
 import {StatusContainer} from '../../util/StatusContainer';
 
 const logging = Log4TS.getLogger();
+const SLOW_INTERACTION_THRESHOLD_MS = 500;
 
 export default class SlashCommandHandler extends Event {
   constructor() {
@@ -62,11 +63,19 @@ export default class SlashCommandHandler extends Event {
 
       cooldownManager.setCooldown(commandName, userId, cooldown);
 
+      const start = Date.now();
       try {
         await command?.run(interaction);
       } catch (e) {
         logging.error(e);
         console.error(e);
+      } finally {
+        const elapsed = Date.now() - start;
+        if (elapsed >= SLOW_INTERACTION_THRESHOLD_MS) {
+          logging.info(
+            `[Perf] Slow slash command "${commandName}" took ${elapsed}ms`,
+          );
+        }
       }
     }
     if (
@@ -183,6 +192,7 @@ export default class SlashCommandHandler extends Event {
 
       cooldownManager.setCooldown(commandName, userId, cooldown);
 
+      const start = Date.now();
       try {
         await command.run(
           interaction as
@@ -192,6 +202,13 @@ export default class SlashCommandHandler extends Event {
       } catch (e) {
         logging.error(e);
         console.error(e);
+      } finally {
+        const elapsed = Date.now() - start;
+        if (elapsed >= SLOW_INTERACTION_THRESHOLD_MS) {
+          logging.info(
+            `[Perf] Slow context command "${commandName}" took ${elapsed}ms`,
+          );
+        }
       }
     }
 
