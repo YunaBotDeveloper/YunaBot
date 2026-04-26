@@ -46,6 +46,45 @@ export default class SetupCommand extends Command {
 
     this.data.addSubcommandGroup(group =>
       group
+        .setName('bot')
+        .setDescription('change it later')
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('avatar')
+            .setDescription('Set bot avatar')
+            .addAttachmentOption(option =>
+              option
+                .setName('avatar')
+                .setDescription('Avatar')
+                .setRequired(true),
+            ),
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('banner')
+            .setDescription('Set bot banner')
+            .addAttachmentOption(option =>
+              option
+                .setName('banner')
+                .setDescription('Banner')
+                .setRequired(true),
+            ),
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('displayname')
+            .setDescription('Set bot display name')
+            .addStringOption(option =>
+              option.setName('name').setDescription('Name').setRequired(true),
+            ),
+        )
+        .addSubcommand(subcommand =>
+          subcommand.setName('bio').setDescription('Set bot bio'),
+        ),
+    );
+
+    this.data.addSubcommandGroup(group =>
+      group
         .setName('container')
         .setDescription('Manage server container templates')
         .addSubcommand(subcommand =>
