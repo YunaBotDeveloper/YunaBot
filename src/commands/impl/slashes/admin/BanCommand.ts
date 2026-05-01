@@ -80,10 +80,14 @@ export default class BanCommand extends Command {
     const client = interaction.client as ExtendedClient;
     if (!client.user) return;
 
-    const successEmoji = await client.api.emojiAPI.getEmojiByName('success');
-    const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
-    const loadingEmoji = await client.api.emojiAPI.getEmojiByName('loading');
-    const infoEmoji = await client.api.emojiAPI.getEmojiByName('info');
+    const [successEmoji, failedEmoji, infoEmoji, loadingEmoji] =
+      await Promise.all([
+        client.api.emojiAPI.getEmojiByName('success'),
+        client.api.emojiAPI.getEmojiByName('failed'),
+        client.api.emojiAPI.getEmojiByName('info'),
+        client.api.emojiAPI.getEmojiByName('loading'),
+      ]);
+
     const loadingContainer = StatusContainer.loading(loadingEmoji);
     await message.edit({
       components: [loadingContainer],
