@@ -51,7 +51,7 @@ export default class Log4TS {
 
     console.log(
       `[${this.getFormattedTimestamp()}] ` +
-        '[ManagerBot] ' +
+        '[Yuna] ' +
         `[${colorFunc(logLevel.toUpperCase())}] - ${message}`,
     );
   }
