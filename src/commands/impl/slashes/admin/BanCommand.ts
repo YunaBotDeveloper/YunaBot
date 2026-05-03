@@ -230,15 +230,11 @@ export default class BanCommand extends Command {
       return;
     }
 
-    const targetMember = await interaction.guild.members
-      .fetch(targetUser.id)
-      .catch(() => null);
-    const userExcute = await interaction.guild.members
-      .fetch(interaction.user.id)
-      .catch(() => null);
-    const bot = await interaction.guild.members
-      .fetch(client.user.id)
-      .catch(() => null);
+    const [targetMember, userExcute, bot] = await Promise.all([
+      interaction.guild.members.fetch(targetUser.id).catch(() => null),
+      interaction.guild.members.fetch(interaction.user.id).catch(() => null),
+      interaction.guild.members.fetch(client.user.id).catch(() => null),
+    ]);
 
     if (!bot) return;
 
