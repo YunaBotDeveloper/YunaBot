@@ -4,32 +4,41 @@ import Config from '../../config/Config';
 
 export default class ApplicationEmoji {
   private client: ExtendedClient;
+  private cache: Map<string, string> = new Map();
+  private warmed = false;
+
   constructor(client: ExtendedClient) {
     this.client = client;
   }
 
-  public async getEmojiByName(name: string): Promise<string | undefined> {
-    const res = await axios.get(
-      'https://discord.com/api/v10/applications/' +
-        this.client.user?.id +
-        '/emojis',
-      {
-        headers: {
-          Authorization: 'Bot ' + Config.getInstance().token,
+  public async warmCache(): Promise<void> {
+    const res = await axios
+      .get(
+        'https://discord.com/api/v10/applications/' +
+          this.client.user?.id +
+          '/emojis',
+        {
+          headers: {
+            Authorization: 'Bot ' + Config.getInstance().token,
+          },
         },
-      },
-    );
+      )
+      .catch(() => null);
 
-    if (res.status !== 200) return;
+    if (!res || res.status !== 200) return;
 
-    const itemData = res.data.items;
+    for (const item of res.data.items) {
+      const prefix = item.animated ? '<a:' : '<:';
+      this.cache.set(item.name, prefix + item.name + ':' + item.id + '>');
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const matchingEmoji = itemData.find((item: any) => item.name === name);
+    this.warmed = true;
+  }
 
-    if (!matchingEmoji) return;
-
-    const prefix = matchingEmoji.animated ? '<a:' : '<:';
-    return prefix + matchingEmoji.name + ':' + matchingEmoji.id + '>';
+  public async getEmojiByName(name: string): Promise<string | undefined> {
+    if (!this.warmed) {
+      await this.warmCache();
+    }
+    return this.cache.get(name);
   }
 }

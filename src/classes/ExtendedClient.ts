@@ -57,7 +57,10 @@ export default class ExtendedClient extends Client implements IClient {
     await this.database.getSync();
     await this.eventManager.loadEvents();
     await this.login(Config.getInstance().token);
-    await this.commandManager.loadCommands();
+    await Promise.all([
+      this.commandManager.loadCommands(),
+      this.api.emojiAPI.warmCache(),
+    ]);
 
     // Load pending tempbans after login
     const tempBanService = TempBanService.getInstance();
