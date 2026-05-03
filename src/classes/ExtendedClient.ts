@@ -62,8 +62,8 @@ export default class ExtendedClient extends Client implements IClient {
       this.api.emojiAPI.warmCache(),
     ]);
 
-    // Load pending tempbans after login
+    // Load pending tempbans non-blocking — only schedules in-memory timers
     const tempBanService = TempBanService.getInstance();
-    await tempBanService.loadPendingUnbans();
+    tempBanService.loadPendingUnbans().catch(e => console.error(e));
   }
 }
