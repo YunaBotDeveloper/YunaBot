@@ -1,3 +1,4 @@
+import {Op} from 'sequelize';
 import BanLog from '../database/models/BanLog.model';
 import Log4TS from '../logger/Log4TS';
 import Access from '../instances/Access';
@@ -28,9 +29,7 @@ export default class TempBanService {
 
     const activeBans = await BanLog.findAll({
       where: {
-        duration: {
-          not: null as unknown as undefined,
-        },
+        duration: {[Op.not]: null},
       },
     });
 
