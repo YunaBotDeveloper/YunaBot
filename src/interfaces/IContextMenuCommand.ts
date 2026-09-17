@@ -12,7 +12,6 @@ export interface IContextMenuCommand {
 
   run(
     interaction:
-      | UserContextMenuCommandInteraction
-      | MessageContextMenuCommandInteraction,
+      UserContextMenuCommandInteraction | MessageContextMenuCommandInteraction,
   ): Promise<void>;
 }

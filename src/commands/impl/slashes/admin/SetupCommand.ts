@@ -150,9 +150,7 @@ export default class SetupCommand extends Command {
       const containers = await GuildContainer.findAll({
         where: {
           guildId: interaction.guildId!,
-          ...(focusedValue
-            ? {name: {[Op.like]: `%${focusedValue}%`}}
-            : {}),
+          ...(focusedValue ? {name: {[Op.like]: `%${focusedValue}%`}} : {}),
         },
         limit: 25,
         attributes: ['name'],

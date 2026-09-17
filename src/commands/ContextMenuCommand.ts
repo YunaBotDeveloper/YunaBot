@@ -22,7 +22,6 @@ export abstract class ContextMenuCommand implements IContextMenuCommand {
 
   abstract run(
     interaction:
-      | UserContextMenuCommandInteraction
-      | MessageContextMenuCommandInteraction,
+      UserContextMenuCommandInteraction | MessageContextMenuCommandInteraction,
   ): Promise<void>;
 }
