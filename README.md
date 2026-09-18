@@ -49,14 +49,6 @@
 | `/userinfo` | Show detailed user information |
 | `/serverinfo` | Display server statistics |
 
-### Fun Commands
-
-| Command | Description |
-|---------|-------------|
-| `/hug` | Hug another member |
-| `/kiss` | Kiss another member |
-| `/pat` | Pat another member |
-
 ### Context Menu Commands
 
 Right-click on any user to access:
