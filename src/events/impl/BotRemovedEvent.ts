@@ -1,7 +1,6 @@
 import {Events, Guild} from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
-import GuildPrefix from '../../database/models/GuildPrefix.model';
 import GuildLog from '../../database/models/GuildLog.model';
 import NukeLog from '../../database/models/NukeLog.model';
 
@@ -11,7 +10,6 @@ export default class BotRemovedEvent extends Event {
   }
 
   async run(client: ExtendedClient, guild: Guild) {
-    await GuildPrefix.destroy({where: {guildId: guild.id}});
     await GuildLog.destroy({where: {guildId: guild.id}});
     await NukeLog.destroy({where: {guildId: guild.id}});
   }

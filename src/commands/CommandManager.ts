@@ -6,12 +6,10 @@ import * as fs from 'fs';
 import {REST, Routes} from 'discord.js';
 import Config from '../config/Config';
 import Log4TS from '../logger/Log4TS';
-import {PrefixCommand} from './PrefixCommand';
 
 export class CommandManager {
   private client: ExtendedClient;
   private slashCommands: Command[];
-  private prefixCommands: PrefixCommand[];
   private contextMenuCommands: ContextMenuCommand[];
   private rest: REST;
   private logger: Log4TS;
@@ -19,7 +17,6 @@ export class CommandManager {
   constructor(client: ExtendedClient) {
     this.client = client;
     this.slashCommands = [];
-    this.prefixCommands = [];
     this.contextMenuCommands = [];
     const token = Config.getInstance().token;
     if (!token) {
@@ -104,9 +101,6 @@ export class CommandManager {
         this.logger.info(
           `Loaded slash command: ${fileName}${category ? ` (category: ${category})` : ''}`,
         );
-      } else if (commandInstance instanceof PrefixCommand) {
-        this.prefixCommands.push(commandInstance);
-        this.logger.info('Loaded prefix command: ' + fileName);
       } else if (commandInstance instanceof ContextMenuCommand) {
         this.contextMenuCommands.push(commandInstance);
         this.logger.info('Loaded context menu command: ' + fileName);
@@ -114,7 +108,7 @@ export class CommandManager {
         this.logger.warning(
           'The command: ' +
             fileName +
-            ' does not match any structures of Command, PrefixCommand or ContextMenuCommand as expected',
+            ' does not match any structures of Command or ContextMenuCommand as expected',
         );
       }
     } catch (e) {
@@ -132,20 +126,6 @@ export class CommandManager {
 
   public getSlashCommandSize(): number {
     return this.slashCommands.length;
-  }
-
-  public getPrefixCommand(name: string): PrefixCommand | undefined {
-    return this.prefixCommands.find(
-      prefixcmd => prefixcmd.name === name || prefixcmd.aliases.includes(name),
-    );
-  }
-
-  public getAllPrefixCommand(): PrefixCommand[] {
-    return this.prefixCommands;
-  }
-
-  public getPrefixCommandSize(): number {
-    return this.prefixCommands.length;
   }
 
   public getContextMenuCommand(name: string): ContextMenuCommand | undefined {
