@@ -6,6 +6,7 @@ export default class ApplicationEmoji {
   private client: ExtendedClient;
   private cache: Map<string, string> = new Map();
   private warmed = false;
+  private warming: Promise<void> | null = null;
 
   constructor(client: ExtendedClient) {
     this.client = client;
@@ -37,7 +38,9 @@ export default class ApplicationEmoji {
 
   public async getEmojiByName(name: string): Promise<string | undefined> {
     if (!this.warmed) {
-      await this.warmCache();
+      // Share one in-flight request instead of one per concurrent call.
+      this.warming ??= this.warmCache().finally(() => (this.warming = null));
+      await this.warming;
     }
     return this.cache.get(name);
   }

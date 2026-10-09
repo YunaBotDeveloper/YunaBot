@@ -15,6 +15,9 @@ type RawComponent = {
 };
 
 const INTERACTIVE_TYPES = new Set([2, 3, 5, 6, 7, 8]);
+const LINK_BUTTON_STYLE = 5;
+const SECTION_TYPE = 9;
+const CONTAINER_TYPE = 17;
 
 function isAttachmentUrl(url: unknown): boolean {
   return typeof url === 'string' && url.startsWith('attachment://');
@@ -25,7 +28,9 @@ function patchComponent(component: unknown): RawComponent | null {
 
   const c = component as RawComponent;
 
-  if (INTERACTIVE_TYPES.has(c.type ?? -1)) return null;
+  // Link buttons need no handler, so they stay.
+  const isLinkButton = c.type === 2 && c.style === LINK_BUTTON_STYLE;
+  if (INTERACTIVE_TYPES.has(c.type ?? -1) && !isLinkButton) return null;
 
   if (c.type === 13) {
     const file = c.file as {url?: unknown} | undefined;
@@ -35,9 +40,15 @@ function patchComponent(component: unknown): RawComponent | null {
   const result: RawComponent = {...c};
 
   if (Array.isArray(c.components)) {
-    result.components = c.components
-      .map(patchComponent)
-      .filter((child): child is RawComponent => child !== null);
+    result.components = c.components.flatMap(child => {
+      const patched = patchComponent(child);
+      if (!patched) return [];
+      // A section is invalid without its accessory: keep only its text.
+      if (patched.type === SECTION_TYPE && !patched.accessory) {
+        return patched.components ?? [];
+      }
+      return [patched];
+    });
 
     if (c.type === 1 && result.components.length === 0) return null;
   }
@@ -76,6 +87,11 @@ export class ComponentParser {
 
     if (patched.length === 0) {
       throw new Error('JSON file has no valid components after filtering');
+    }
+
+    // parse() builds every top-level item as a ContainerBuilder.
+    if (patched.some(c => c.type !== CONTAINER_TYPE)) {
+      throw new Error('Every top-level component must be a container');
     }
 
     return JSON.stringify(patched);

@@ -25,9 +25,11 @@ export default class SlashCommandHandler extends Event {
   }
 
   async run(client: ExtendedClient, interaction: Interaction): Promise<void> {
-    const failedEmoji = await client.api.emojiAPI.getEmojiByName('failed');
-
     if (interaction.user.bot) return;
+
+    // Resolved lazily: only error replies need it, and autocomplete must
+    // respond within 3s.
+    const getFailedEmoji = () => client.api.emojiAPI.getEmojiByName('failed');
 
     const cooldownManager = CooldownManager.getCooldownManager();
 
@@ -48,7 +50,7 @@ export default class SlashCommandHandler extends Event {
 
         if (expirationTimestamp) {
           const errorContainer = StatusContainer.failed(
-            failedEmoji,
+            await getFailedEmoji(),
             `You need to wait <t:${Math.floor(expirationTimestamp / 1000)}:R> more to use this command!`,
           );
 
@@ -83,7 +85,7 @@ export default class SlashCommandHandler extends Event {
         !component.userCheck.includes(interaction.user.id)
       ) {
         const errorContainer = StatusContainer.failed(
-          failedEmoji,
+          await getFailedEmoji(),
           "You don't have permission to use this feature.",
         );
 

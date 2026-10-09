@@ -1,9 +1,12 @@
-import {Events, GuildMember, MessageFlags, TextChannel} from 'discord.js';
+import {Events, GuildMember, MessageFlags} from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
 import GuildEvent from '../../database/models/GuildEvent.model';
 import GuildContainer from '../../database/models/GuildContainer.model';
 import {ComponentParser} from '../../util/ComponentParser';
+import Log4TS from '../../logger/Log4TS';
+
+const logger = Log4TS.getLogger();
 
 export default class WelcomeEvent extends Event {
   constructor() {
@@ -40,14 +43,14 @@ export default class WelcomeEvent extends Event {
         .fetch(config.welcomeChannelId)
         .catch(() => null);
 
-      if (!channel || !(channel instanceof TextChannel)) return;
+      if (!channel?.isSendable()) return;
 
       await channel.send({
         components: containers,
         flags: [MessageFlags.IsComponentsV2],
       });
-    } catch {
-      //
+    } catch (e) {
+      logger.error(`[WelcomeEvent] ${e}`);
     }
   }
 }

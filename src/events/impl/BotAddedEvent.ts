@@ -6,6 +6,7 @@ import {EmbedColors} from '../../util/EmbedColors';
 import Event from '../Event';
 import {
   AuditLogEvent,
+  DiscordAPIError,
   EmbedBuilder,
   Events,
   Guild,
@@ -21,8 +22,11 @@ export default class BotAddedEvent extends Event {
   }
 
   async run(client: ExtendedClient, guild: Guild) {
-    const guildLog = new GuildLog({guildId: guild.id, nukeLogId: ''});
-    await guildLog.save();
+    // Row may survive a kick that happened while the bot was offline.
+    await GuildLog.findOrCreate({
+      where: {guildId: guild.id},
+      defaults: {guildId: guild.id, nukeLogId: ''},
+    });
 
     MemberSyncService.getInstance()
       .syncGuild(guild)
@@ -65,7 +69,10 @@ export default class BotAddedEvent extends Event {
     try {
       await member.send({embeds: [welcomeEmbed]});
     } catch (error) {
-      if (error === RESTJSONErrorCodes.CannotSendMessagesToThisUser) {
+      if (
+        error instanceof DiscordAPIError &&
+        error.code === RESTJSONErrorCodes.CannotSendMessagesToThisUser
+      ) {
         return;
       } else {
         logger.error(error);

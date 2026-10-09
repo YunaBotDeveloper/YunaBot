@@ -210,13 +210,15 @@ export default class BanCommand extends Command {
       return;
     }
 
-    const banList = await interaction.guild.bans.fetch();
-    const targetId = banList.get(targetUser.id)?.user;
+    // Fetch the single ban: a bulk fetch only returns the first 1000.
+    const existingBan = await interaction.guild.bans
+      .fetch({user: targetUser.id, force: true})
+      .catch(() => null);
 
-    if (targetId) {
+    if (existingBan) {
       const errorContainer = StatusContainer.failed(
         failedEmoji,
-        `${userMention(targetId.id)} is already banned from this server!`,
+        `${userMention(targetUser.id)} is already banned from this server!`,
       );
 
       await message.edit({
@@ -396,11 +398,10 @@ export default class BanCommand extends Command {
           const banId = uuidv4();
 
           try {
-            await interaction.guild.bans.create(targetUser, {
-              reason: reason,
-              deleteMessageSeconds: 60 * 60 * 24 * 7,
-            });
-
+            // DM before banning: once banned the user usually shares no guild
+            // with the bot, so the DM would fail. A failed DM must not abort
+            // the ban, its log or the scheduled unban.
+            let dmSent = false;
             if (shouldDm) {
               const banDmContainer = this.banDmContainer(
                 interaction.guild,
@@ -416,13 +417,19 @@ export default class BanCommand extends Command {
                 timeCreate,
               );
 
-              const dmTargetUser = await targetUser.createDM(true);
-
-              await dmTargetUser.send({
-                components: [banDmContainer],
-                flags: [MessageFlags.IsComponentsV2],
-              });
+              dmSent = await targetUser
+                .send({
+                  components: [banDmContainer],
+                  flags: [MessageFlags.IsComponentsV2],
+                })
+                .then(() => true)
+                .catch(() => false);
             }
+
+            await interaction.guild.bans.create(targetUser, {
+              reason: reason,
+              deleteMessageSeconds: 60 * 60 * 24 * 7,
+            });
 
             const banSuccessContainer = this.banSuccessContainer(
               successEmoji,
@@ -435,7 +442,7 @@ export default class BanCommand extends Command {
                 durationString,
               },
               proof,
-              shouldDm,
+              dmSent,
               timeCreate,
             );
 
@@ -519,7 +526,7 @@ export default class BanCommand extends Command {
                 durationString,
               },
               proof,
-              shouldDm,
+              dmSent,
               timeCreate,
             );
 

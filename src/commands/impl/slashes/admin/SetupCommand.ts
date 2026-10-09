@@ -630,7 +630,7 @@ export default class SetupCommand extends Command {
 
             setTimeout(async () => {
               await message.delete().catch(() => null);
-            });
+            }, 5000);
 
             return;
           }
@@ -708,6 +708,13 @@ export default class SetupCommand extends Command {
       }
       return;
     }
+
+    // `/setup bot ...` is registered but has no implementation yet.
+    const errorContainer = StatusContainer.failed(
+      failedEmoji,
+      'This command is not implemented yet.',
+    );
+    await message.edit({components: [errorContainer]});
   }
 
   containerAddConfirmContainer(

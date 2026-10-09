@@ -49,12 +49,12 @@ export class CommandManager {
           const categoryFiles = fs.readdirSync(itemPath);
 
           for (const file of categoryFiles) {
-            if (!file.endsWith('.ts') && !file.endsWith('.js')) continue;
+            if (!/\.(ts|js)$/.test(file) || file.endsWith('.d.ts')) continue;
 
             const filePath = path.join(itemPath, file);
             this.loadCommandFile(filePath, file, categoryName);
           }
-        } else if (item.endsWith('.ts') || item.endsWith('.js')) {
+        } else if (/\.(ts|js)$/.test(item) && !item.endsWith('.d.ts')) {
           this.loadCommandFile(itemPath, item, undefined);
         }
       }

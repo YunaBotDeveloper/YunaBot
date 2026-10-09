@@ -16,7 +16,7 @@ bun run dev
 npm run compile
 
 # Production run (after compile)
-node build/index.js
+node build/src/index.js
 
 # Linting (GTS - Google TypeScript Style)
 npm run lint

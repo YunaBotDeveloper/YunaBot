@@ -3,6 +3,8 @@ import BanLog from '../database/models/BanLog.model';
 import Log4TS from '../logger/Log4TS';
 import Access from '../instances/Access';
 
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
+
 interface PendingUnban {
   guildId: string;
   userId: string;
@@ -70,16 +72,28 @@ export default class TempBanService {
       clearTimeout(existing.timeoutId);
     }
 
-    const timeoutId = setTimeout(async () => {
-      await this.executeUnban(guildId, userId);
-      await this.removeBanLog(guildId, banId);
-      this.pendingUnbans.delete(key);
-    }, durationMs);
+    const unbanAt = Date.now() + durationMs;
+
+    // setTimeout overflows above 2^31-1 ms (~24.8 days) and fires immediately,
+    // so long bans wait in chunks and re-schedule until unbanAt is reached.
+    const timeoutId = setTimeout(
+      async () => {
+        const remaining = unbanAt - Date.now();
+        if (remaining > 0) {
+          this.scheduleUnban(guildId, userId, banId, remaining);
+          return;
+        }
+        await this.executeUnban(guildId, userId);
+        await this.removeBanLog(guildId, banId);
+        this.pendingUnbans.delete(key);
+      },
+      Math.min(durationMs, MAX_TIMEOUT_MS),
+    );
 
     this.pendingUnbans.set(key, {
       guildId,
       userId,
-      unbanAt: Date.now() + durationMs,
+      unbanAt,
       timeoutId,
     });
 

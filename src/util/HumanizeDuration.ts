@@ -1,8 +1,11 @@
-export function humanizeDuration(ms: number): string {
-  const days = Math.floor(ms / 86400);
-  const hours = Math.floor((ms % 86400) / 3600);
-  const minutes = Math.floor((ms % 3600) / 60);
-  if (days > 0) return `${days} days`;
-  if (hours > 0) return `${hours} hours`;
-  return `${minutes} minutes`;
+export function humanizeDuration(seconds: number): string {
+  const units: [number, string][] = [
+    [Math.floor(seconds / 86400), 'day'],
+    [Math.floor((seconds % 86400) / 3600), 'hour'],
+    [Math.floor((seconds % 3600) / 60), 'minute'],
+  ];
+  const parts = units
+    .filter(([n]) => n > 0)
+    .map(([n, unit]) => `${n} ${unit}${n === 1 ? '' : 's'}`);
+  return parts.join(' ') || '0 minutes';
 }

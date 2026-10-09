@@ -14,10 +14,16 @@ export class EventManager {
 
   public async loadEvents(): Promise<void> {
     const eventsDir = path.join(__dirname, 'impl');
-    const files = fs.readdirSync(eventsDir);
+    const files = fs
+      .readdirSync(eventsDir)
+      .filter(f => /\.(ts|js)$/.test(f) && !f.endsWith('.d.ts'));
 
     for (const file of files) {
       const event = require(path.join(eventsDir, file)).default;
+      if (typeof event !== 'function') {
+        this.logger.warning('Skipped ' + file + ': no default export class');
+        continue;
+      }
 
       const eventInstances = new event(this.client);
       if (eventInstances.once) {
