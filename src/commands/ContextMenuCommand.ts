@@ -4,9 +4,8 @@ import {
   UserContextMenuCommandInteraction,
   ApplicationCommandType,
 } from 'discord.js';
-import {IContextMenuCommand} from '../interfaces/IContextMenuCommand';
 
-export abstract class ContextMenuCommand implements IContextMenuCommand {
+export abstract class ContextMenuCommand {
   public data: ContextMenuCommandBuilder;
   public advancedOptions: {
     cooldown?: number;

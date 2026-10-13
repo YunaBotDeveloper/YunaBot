@@ -1,7 +1,6 @@
 import ExtendedClient from '../classes/ExtendedClient';
-import {IEvent} from '../interfaces/IEvent';
 
-export default abstract class Event implements IEvent {
+export default abstract class Event {
   public name: string;
   public once: boolean;
 

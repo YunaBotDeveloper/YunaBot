@@ -1,10 +1,7 @@
-import axios from 'axios';
 import ExtendedClient from '../../classes/ExtendedClient';
-import Config from '../../config/Config';
 
 export default class ApplicationEmoji {
   private client: ExtendedClient;
-  private cache: Map<string, string> = new Map();
   private warmed = false;
   private warming: Promise<void> | null = null;
 
@@ -13,27 +10,10 @@ export default class ApplicationEmoji {
   }
 
   public async warmCache(): Promise<void> {
-    const res = await axios
-      .get(
-        'https://discord.com/api/v10/applications/' +
-          this.client.user?.id +
-          '/emojis',
-        {
-          headers: {
-            Authorization: 'Bot ' + Config.getInstance().token,
-          },
-        },
-      )
+    const emojis = await this.client.application?.emojis
+      .fetch()
       .catch(() => null);
-
-    if (!res || res.status !== 200) return;
-
-    for (const item of res.data.items) {
-      const prefix = item.animated ? '<a:' : '<:';
-      this.cache.set(item.name, prefix + item.name + ':' + item.id + '>');
-    }
-
-    this.warmed = true;
+    if (emojis) this.warmed = true;
   }
 
   public async getEmojiByName(name: string): Promise<string | undefined> {
@@ -42,6 +22,8 @@ export default class ApplicationEmoji {
       this.warming ??= this.warmCache().finally(() => (this.warming = null));
       await this.warming;
     }
-    return this.cache.get(name);
+    return this.client.application?.emojis.cache
+      .find(emoji => emoji.name === name)
+      ?.toString();
   }
 }

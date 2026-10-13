@@ -8,7 +8,6 @@ import {ComponentEnum} from '../../enum/ComponentEnum';
 
 export default abstract class ComponentBuilder {
   protected data: Partial<IComponent> = {};
-  private isBuilt = false;
 
   public setCustomId(customId: string): this {
     this.data.customId = customId;
@@ -56,11 +55,6 @@ export default abstract class ComponentBuilder {
     ) {
       throw new Error('Missing required fields to build components');
     }
-    this.isBuilt = true;
     return this.data as IComponent;
-  }
-
-  public isComponentBuilt(): boolean {
-    return this.isBuilt;
   }
 }

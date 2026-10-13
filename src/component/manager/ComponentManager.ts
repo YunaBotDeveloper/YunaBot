@@ -1,6 +1,7 @@
 import Access from '../../instances/Access';
 import {IComponent} from '../../interfaces/IComponent';
 import ComponentBuilder from '../api/ComponentBuilder';
+import Log4TS from '../../logger/Log4TS';
 
 export default class ComponentManager {
   public static instance: ComponentManager;
@@ -18,10 +19,6 @@ export default class ComponentManager {
 
   public register(components: (IComponent | ComponentBuilder)[]) {
     components.forEach(comp => {
-      if (comp instanceof ComponentBuilder && !comp.isComponentBuilt()) {
-        throw new Error('Component must be built before registration');
-      }
-
       const builtComponent =
         comp instanceof ComponentBuilder ? comp.build() : comp;
 
@@ -34,7 +31,9 @@ export default class ComponentManager {
             try {
               await builtComponent.onTimeout();
             } catch (error) {
-              console.log(error);
+              Log4TS.getLogger().error(
+                `onTimeout failed for "${builtComponent.customId}": ${error}`,
+              );
             }
           }
         }, builtComponent.timeout);

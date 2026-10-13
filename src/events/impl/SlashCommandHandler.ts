@@ -1,23 +1,31 @@
 import {
+  AnySelectMenuInteraction,
   ButtonInteraction,
-  EmbedBuilder,
+  ChatInputCommandInteraction,
   Events,
   Interaction,
-  ModalSubmitInteraction,
-  UserContextMenuCommandInteraction,
   MessageContextMenuCommandInteraction,
-  AnySelectMenuInteraction,
   MessageFlags,
+  ModalSubmitInteraction,
+  RepliableInteraction,
+  UserContextMenuCommandInteraction,
 } from 'discord.js';
 import Event from '../Event';
 import ExtendedClient from '../../classes/ExtendedClient';
 import {ComponentEnum} from '../../enum/ComponentEnum';
 import {CooldownManager} from '../../commands/CooldownManager';
-import {EmbedColors} from '../../util/EmbedColors';
 import Log4TS from '../../logger/Log4TS';
 import {StatusContainer} from '../../util/StatusContainer';
 
 const logging = Log4TS.getLogger();
+
+type CommandInteraction =
+  | ChatInputCommandInteraction
+  | UserContextMenuCommandInteraction
+  | MessageContextMenuCommandInteraction;
+
+type ComponentInteraction =
+  ButtonInteraction | AnySelectMenuInteraction | ModalSubmitInteraction;
 
 export default class SlashCommandHandler extends Event {
   constructor() {
@@ -27,189 +35,139 @@ export default class SlashCommandHandler extends Event {
   async run(client: ExtendedClient, interaction: Interaction): Promise<void> {
     if (interaction.user.bot) return;
 
-    // Resolved lazily: only error replies need it, and autocomplete must
-    // respond within 3s.
-    const getFailedEmoji = () => client.api.emojiAPI.getEmojiByName('failed');
-
-    const cooldownManager = CooldownManager.getCooldownManager();
-
-    if (interaction.isChatInputCommand()) {
-      const commandName = interaction.commandName;
-      const command = client.commandManager.getSlashCommand(commandName);
-
-      if (!command) return;
-
-      const userId = interaction.user.id;
-      const cooldown = command.advancedOptions.cooldown || 0;
-
-      if (cooldownManager.isInCooldown(commandName, userId)) {
-        const expirationTimestamp = cooldownManager.getExpirationTimestamp(
-          commandName,
-          userId,
-        );
-
-        if (expirationTimestamp) {
-          const errorContainer = StatusContainer.failed(
-            await getFailedEmoji(),
-            `You need to wait <t:${Math.floor(expirationTimestamp / 1000)}:R> more to use this command!`,
-          );
-
-          await interaction.reply({
-            components: [errorContainer],
-            flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
-          });
-        }
-        return;
-      }
-
-      cooldownManager.setCooldown(commandName, userId, cooldown);
-
+    if (interaction.isAutocomplete()) {
+      const command = client.commandManager.getSlashCommand(
+        interaction.commandName,
+      );
       try {
-        await command?.run(interaction);
-      } catch (e) {
-        logging.error(e);
-        console.error(e);
-      }
-    }
-    if (
-      interaction.isButton() ||
-      interaction.isAnySelectMenu() ||
-      interaction.isModalSubmit()
-    ) {
-      const component = client.components.get(interaction.customId);
-      if (!component) return;
-
-      if (
-        component.userCheck &&
-        !component.userCheck.includes('*') &&
-        !component.userCheck.includes(interaction.user.id)
-      ) {
-        const errorContainer = StatusContainer.failed(
-          await getFailedEmoji(),
-          "You don't have permission to use this feature.",
-        );
-
-        await interaction.reply({
-          components: [errorContainer],
-          flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
-        });
-        return;
-      }
-
-      try {
-        switch (component.type) {
-          case ComponentEnum.BUTTON:
-            if (interaction.isButton()) {
-              await component.handler(interaction as ButtonInteraction);
-            }
-            break;
-          case ComponentEnum.MENU:
-            if (interaction.isAnySelectMenu()) {
-              await component.handler(interaction as AnySelectMenuInteraction);
-            }
-            break;
-          case ComponentEnum.MODAL:
-            if (interaction.isModalSubmit()) {
-              await component.handler(interaction as ModalSubmitInteraction);
-            }
-            break;
-          default:
-            logging.warning(`Unhandled component type: ${component.type}`);
-        }
+        await command?.autocomplete(interaction);
       } catch (error) {
         logging.error(
-          `Error handling component "${interaction.customId}": ` + error,
+          `Error during autocomplete for "${interaction.commandName}": ${error}`,
         );
-        console.error(error);
-        if (interaction.replied || interaction.deferred) {
-          return;
-        }
-        const errEmbed = new EmbedBuilder()
-          .setAuthor({
-            name: interaction.user.displayName,
-            iconURL: interaction.user.displayAvatarURL(),
-          })
-          .setColor(EmbedColors.red())
-          .setTitle('❌ Error ❌')
-          .setDescription('Error while excuting command:\nUnknown error!')
-          .setFooter({
-            text: 'ManagerBot @ 0.0.1',
-          })
-          .setTimestamp();
-        await interaction.reply({
-          embeds: [errEmbed],
-          flags: 'Ephemeral',
-        });
       }
+      return;
+    }
+
+    if (interaction.isChatInputCommand()) {
+      const command = client.commandManager.getSlashCommand(
+        interaction.commandName,
+      );
+      if (command) {
+        await this.execute(client, interaction, command.advancedOptions, () =>
+          command.run(interaction),
+        );
+      }
+      return;
     }
 
     if (
       interaction.isUserContextMenuCommand() ||
       interaction.isMessageContextMenuCommand()
     ) {
-      const commandName = interaction.commandName;
-      const command = client.commandManager.getContextMenuCommand(commandName);
-
-      if (!command) return;
-
-      const userId = interaction.user.id;
-      const cooldown = command.advancedOptions.cooldown || 0;
-
-      if (cooldownManager.isInCooldown(commandName, userId)) {
-        const expirationTimestamp = cooldownManager.getExpirationTimestamp(
-          commandName,
-          userId,
+      const command = client.commandManager.getContextMenuCommand(
+        interaction.commandName,
+      );
+      if (command) {
+        await this.execute(client, interaction, command.advancedOptions, () =>
+          command.run(interaction),
         );
-        if (expirationTimestamp) {
-          const errEmbed = new EmbedBuilder()
-            .setAuthor({
-              name: interaction.user.displayName,
-              iconURL: interaction.user.displayAvatarURL(),
-            })
-            .setColor(EmbedColors.red())
-            .setTitle('❌ Error ❌')
-            .setDescription(
-              `Error while excuting command:\nYou must wait <t:${Math.floor(expirationTimestamp / 1000)}:R> to re-execute command!`,
-            )
-            .setFooter({
-              text: 'ManagerBot @ 0.0.1',
-            })
-            .setTimestamp();
-          await interaction.reply({
-            embeds: [errEmbed],
-            flags: 'Ephemeral',
-          });
-        }
-        return;
       }
-
-      cooldownManager.setCooldown(commandName, userId, cooldown);
-
-      try {
-        await command.run(
-          interaction as
-            | UserContextMenuCommandInteraction
-            | MessageContextMenuCommandInteraction,
-        );
-      } catch (e) {
-        logging.error(e);
-        console.error(e);
-      }
+      return;
     }
 
-    if (interaction.isAutocomplete()) {
-      const commandName = interaction.commandName;
-      const command = client.commandManager.getSlashCommand(commandName);
-
-      if (!command?.autocomplete) return;
-
-      try {
-        await command.autocomplete(interaction);
-      } catch (error) {
-        logging.error(
-          `Error during autocomplete for command "${commandName}": ` + error,
-        );
-      }
+    if (
+      interaction.isButton() ||
+      interaction.isAnySelectMenu() ||
+      interaction.isModalSubmit()
+    ) {
+      await this.handleComponent(client, interaction);
     }
+  }
+
+  private async execute(
+    client: ExtendedClient,
+    interaction: CommandInteraction,
+    options: {cooldown?: number},
+    run: () => Promise<void>,
+  ): Promise<void> {
+    const cooldowns = CooldownManager.getCooldownManager();
+    const {commandName, user} = interaction;
+
+    if (cooldowns.isInCooldown(commandName, user.id)) {
+      const expiresAt =
+        cooldowns.getExpirationTimestamp(commandName, user.id) ?? Date.now();
+      await this.fail(
+        client,
+        interaction,
+        `You need to wait <t:${Math.floor(expiresAt / 1000)}:R> more to use this command!`,
+      );
+      return;
+    }
+
+    if (options.cooldown) {
+      cooldowns.setCooldown(commandName, user.id, options.cooldown);
+    }
+
+    try {
+      await run();
+    } catch (error) {
+      logging.error(`Error running command "${commandName}": ${error}`);
+      console.error(error);
+      await this.fail(client, interaction, 'Something went wrong.');
+    }
+  }
+
+  private async handleComponent(
+    client: ExtendedClient,
+    interaction: ComponentInteraction,
+  ): Promise<void> {
+    const component = client.components.get(interaction.customId);
+    if (!component) return;
+
+    const typeMatches = {
+      [ComponentEnum.BUTTON]: interaction.isButton(),
+      [ComponentEnum.MENU]: interaction.isAnySelectMenu(),
+      [ComponentEnum.MODAL]: interaction.isModalSubmit(),
+    }[component.type];
+    if (!typeMatches) return;
+
+    const {userCheck} = component;
+    if (
+      userCheck &&
+      !userCheck.includes('*') &&
+      !userCheck.includes(interaction.user.id)
+    ) {
+      await this.fail(
+        client,
+        interaction,
+        "You don't have permission to use this feature.",
+      );
+      return;
+    }
+
+    try {
+      await component.handler(interaction);
+    } catch (error) {
+      logging.error(
+        `Error handling component "${interaction.customId}": ${error}`,
+      );
+      console.error(error);
+      await this.fail(client, interaction, 'Something went wrong.');
+    }
+  }
+
+  private async fail(
+    client: ExtendedClient,
+    interaction: RepliableInteraction,
+    message: string,
+  ): Promise<void> {
+    if (interaction.replied || interaction.deferred) return;
+
+    const emoji = await client.api.emojiAPI.getEmojiByName('failed');
+    await interaction.reply({
+      components: [StatusContainer.failed(emoji, message)],
+      flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+    });
   }
 }

@@ -69,9 +69,9 @@ export class CommandManager {
       Routes.applicationCommands(this.client.user?.id as string),
       {body: allCommands},
     );
-    this.logger.success('Slash commands are now available on Discord API');
     this.logger.success(
-      'Context menu commands are now available on Discord API',
+      `Registered ${this.slashCommands.length} slash and ` +
+        `${this.contextMenuCommands.length} context menu commands`,
     );
   }
 

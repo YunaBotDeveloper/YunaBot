@@ -5,7 +5,6 @@ import {
   Partials,
   PresenceUpdateStatus,
 } from 'discord.js';
-import IClient from '../interfaces/IClient';
 import {EventManager} from '../events/EventManager';
 import {CommandManager} from '../commands/CommandManager';
 import Config from '../config/Config';
@@ -14,7 +13,7 @@ import {SQLize} from '../database/SQLize';
 import path = require('path');
 import ApplicationEmoji from '../api/discord/ApplicationEmoji';
 
-export default class ExtendedClient extends Client implements IClient {
+export default class ExtendedClient extends Client {
   constructor() {
     super({
       intents: Object.values(GatewayIntentBits) as number[],

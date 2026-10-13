@@ -4,9 +4,8 @@ import {
   SlashCommandBuilder,
   InteractionContextType,
 } from 'discord.js';
-import {ICommand} from '../interfaces/ICommand';
 
-export abstract class Command implements ICommand {
+export abstract class Command {
   public data: SlashCommandBuilder;
   public advancedOptions: {
     cooldown?: number;
