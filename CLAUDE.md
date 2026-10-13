@@ -4,154 +4,59 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ManagerBot is a modular Discord server management bot built with **discord.js v14**, **TypeScript**, and **SQLite**. It supports slash commands, prefix commands, and context menu interactions.
+YunaBot (called "ManagerBot" in older docs and error embeds) is a modular Discord server management bot built with **discord.js v14**, **TypeScript**, and **SQLite** (Sequelize). It supports slash commands and context menu commands, and uses Discord Components V2 for its UI.
 
 ## Development Commands
 
 ```bash
-# Development (hot reload with Bun)
-bun run dev
-
-# Compile TypeScript to build/
-npm run compile
-
-# Production run (after compile)
-node build/src/index.js
-
-# Linting (GTS - Google TypeScript Style)
-npm run lint
-npm run fix       # Auto-fix lint issues
-npm run clean     # Remove compiled output
+bun run dev                 # Run src/index.ts directly with Bun, hot reload
+npm run compile             # tsc -> build/ (rootDir is ".", so output is build/src/...)
+node build/src/index.js     # Production run after compile
+npm run lint                # gts lint (ESLint + Prettier, Google TS style)
+npm run fix                 # Auto-fix lint issues
+npm run clean               # Remove build output
 ```
+
+There is no test suite: `package.json` has `pretest`/`posttest` hooks but no `test` script, and `test/` does not exist yet.
+
+`config.yaml` (with `bot.token`) is read from the **current working directory**. If it is missing, `Config` writes an example file and throws.
 
 ## Architecture
 
-The bot uses a modular singleton-based architecture with these core components:
+### Startup flow
 
-### Core Classes
+`src/index.ts` → `Access.getClient()` (the `ExtendedClient` singleton) → `ExtendedClient.initialize()`:
 
-- **`ExtendedClient`** (`src/classes/ExtendedClient.ts`) — Custom discord.js client that bootstraps the database, events, login, and command registration. Entry point is `src/index.ts` via `Access.getClient()`.
+1. `SQLize.loadModels()` + `sequelize.sync()`. Every `*.model.ts` in `src/database/models/` is `require`d and its first exported `init*` function is called. There are no migrations; schema changes go through `sync()`.
+2. `EventManager.loadEvents()` registers every file in `src/events/impl/`. The default export must extend `Event(name, once)`.
+3. `login()`, then in parallel: `CommandManager.loadCommands()` and `emojiAPI.warmCache()`.
 
-- **`CommandManager`** (`src/commands/CommandManager.ts`) — Auto-discovers and loads commands from `src/commands/impl/` subdirectories (`slashes/`, `prefixes/`, `menus/`). Commands are auto-registered with Discord API on startup.
+The repo is currently just the framework: there are no commands, no models, and the only events are `ReadyEvent` and `SlashCommandHandler`. Features are being rebuilt from scratch.
 
-- **`EventManager`** (`src/events/EventManager.ts`) — Dynamically loads event handlers from `src/events/impl/`.
+### Dynamic loading: things to watch for
 
-- **`ComponentManager`** (`src/component/manager/ComponentManager.ts`) — Registers interactive components (buttons, modals, select menus) with unique IDs, user-lock validation, and timeout handling.
+- Commands, events and models are found with `fs.readdirSync(__dirname/...)` + `require()`, and both `.ts` and `.js` files match. The same code therefore runs under Bun (from `src/`) and under Node (from `build/src/`). Nothing is registered by hand.
+- `CommandManager` walks `src/commands/impl/{slashes,menus}/{category}/`. The category folder name becomes `command.category` (slash commands only). A file's default export must be a class extending `Command` or `ContextMenuCommand`, and it is instantiated with no arguments. `impl/slashes/`, `impl/menus/` and `database/models/` contain a `.gitkeep`. Don't delete it: the loaders call `readdirSync` on those folders and crash if they are missing.
+- `tsc` never deletes old output, so after removing or renaming a command, run `npm run clean` before `compile`. Otherwise the stale `.js` in `build/` is still loaded and registered.
+- Commands are registered **globally** with a single `PUT Routes.applicationCommands(...)`. That call replaces everything, so if a command file fails to load, the command is removed from Discord.
+- The SQLite path is `path.join(__dirname, '..', 'database', 'database.sqlite')`. A dev run uses `src/database/database.sqlite` and a compiled run uses `build/src/database/database.sqlite`, which are **two different databases**. `tsc` does not copy the file across.
 
-- **`SQLize`** (`src/database/SQLize.ts`) — Sequelize + SQLite singleton that auto-loads all models from `src/database/models/`.
+### Interaction routing
 
-- **`Config`** (`src/config/Config.ts`) — YAML-based configuration (expects `config.yaml` with `bot.token`).
+`src/events/impl/SlashCommandHandler.ts` (on `InteractionCreate`) handles every interaction type: slash commands, context menus, autocomplete, and components. It applies `CooldownManager` cooldowns (`command.advancedOptions.cooldown`, in ms) before calling `command.run()`.
 
-- **`Access`** (`src/instances/Access.ts`) — Singleton provider for `ExtendedClient`. All core singletons are accessed via `getInstance()` or `getClient()` static methods.
+### Components (buttons / select menus / modals)
 
-### Supporting Singletons
+Components are not tied to a specific message. A component is registered in `client.components` (a `Map` keyed by `customId`) through `ComponentManager.getComponentManager().register([...])`, either as a plain `IComponent` object or as a built `ComponentBuilder` (`src/component/builders/`). Options:
 
-- **`CooldownManager`** (`src/commands/CooldownManager.ts`) — Per-user, per-command cooldown tracking. Set via `command.advancedOptions.cooldown` (milliseconds).
+- `userCheck: string[]` restricts the component to the listed user IDs; `'*'` allows anyone.
+- `timeout` + `onTimeout` auto-unregister the component and run cleanup.
+- The `client.components` map is global, so make each customId unique per invocation (for example `` `confirm_${interaction.id}` ``) and unregister it when the flow ends.
 
-- **`PrefixManager`** (`src/commands/PrefixManager.ts`) — Guild-specific prefix storage with in-memory cache. Default prefix is `!`.
+## Conventions
 
-- **`TempBanService`** (`src/services/TempBanService.ts`) — Schedules automatic unbans for duration-based bans. Loads pending unbans from `BanLog` on startup.
-
-### Command Structure
-
-Three command types are supported:
-
-1. **Slash Commands** — Extend `Command` class (`src/commands/Command.ts`), placed in `src/commands/impl/slashes/{category}/`
-2. **Prefix Commands** — Extend `PrefixCommand` class (`src/commands/PrefixCommand.ts`), placed in `src/commands/impl/prefixes/{category}/`
-3. **Context Menu Commands** — Extend `ContextMenuCommand` class (`src/commands/ContextMenuCommand.ts`), placed in `src/commands/impl/menus/{category}/`
-
-Commands are auto-discovered at runtime—no manual registration needed. The `category` folder name is automatically assigned.
-
-### Component System
-
-Interactive components (buttons, modals, select menus) can be registered in two ways:
-
-**Raw object registration:**
-```typescript
-ComponentManager.getComponentManager().register([{
-  customId: 'uniqueId',
-  handler: async (interaction) => { /* ... */ },
-  type: ComponentEnum.BUTTON,
-  userCheck: [userId],  // Optional: restrict to specific users
-  timeout: 10000,       // Optional: auto-unregister after ms
-  onTimeout: async () => { /* ... */ }
-}]);
-```
-
-**Fluent builder (`ComponentBuilder`):**
-```typescript
-const builder = new SomeComponentBuilder()
-  .setCustomId('uniqueId')
-  .setType(ComponentEnum.BUTTON)
-  .setHandler(async (interaction) => { /* ... */ })
-  .setUserCheck([userId])
-  .setTimeout(10000)
-  .build();
-ComponentManager.getComponentManager().register([builder]);
-```
-
-### Database Models
-
-Models in `src/database/models/` follow this pattern:
-
-```typescript
-class MyModel extends Model<InferAttributes<MyModel>, InferCreationAttributes<MyModel>> {
-  declare id: string;
-}
-
-export function initMyModel(sequelize: Sequelize): void {
-  MyModel.init({ /* fields */ }, { sequelize, tableName: 'MyModel', timestamps: false });
-}
-
-export default MyModel;
-```
-
-Models are auto-loaded by `SQLize.loadModels()` which finds exported functions starting with `init`.
-
-### Container Template System
-
-Server event messages (welcome, goodbye, boost) use customizable JSON container templates uploaded via `/setup container add`. The `ComponentParser` (`src/util/ComponentParser.ts`) validates and substitutes template tokens using `VariableRegistry` (`src/util/VariableRegistry.ts`).
-
-Supported tokens: `${user.tag}`, `${user.id}`, `${user.mention}`, `${user.displayName}`, `${user.avatar}`, `${user.createdAt}`, `${server.name}`, `${server.id}`, `${server.icon}`, `${server.memberCount}`, `${server.boostCount}`, `${server.boostLevel}`.
-
-## Key Files
-
-- `src/index.ts` — Entry point, gets client singleton and initializes
-- `src/instances/Access.ts` — Singleton provider for ExtendedClient
-- `src/interfaces/` — TypeScript interfaces for commands, components, etc.
-- `src/util/` — Utilities including `StatusContainer` (UI helpers), `EmbedColors`, `ParseDuration`, `HumanizeDuration`
-
-## Discord Components V2
-
-The bot uses Discord's Components V2 system (Containers, TextDisplay, Section, etc.) rather than traditional embeds. All Components V2 replies must include the flag:
-
-```typescript
-await interaction.reply({
-  components: [container],
-  flags: [MessageFlags.IsComponentsV2],
-});
-```
-
-See `BanCommand.ts` for examples of `ContainerBuilder` usage with separators, media galleries, and section accessories.
-
-## Application Emoji API
-
-Custom emoji responses use `client.api.emojiAPI.getEmojiByName(name)` which fetches from the Discord Application Emoji API. This is typically awaited at the start of a command run to resolve emojis before constructing UI containers.
-
-## Configuration
-
-Create `config.yaml` in project root:
-
-```yaml
-bot:
-  token: "YOUR_BOT_TOKEN_HERE"
-```
-
-If missing, the bot creates an example file and throws an error.
-
-## Code Style
-
-- **GTS (Google TypeScript Style)** with 2-space indentation
-- **Prettier** config extends from GTS
-- Trailing commas, semicolons required
-- Line width: 80 characters
+- **Components V2** are used for UI instead of embeds. Replies need `flags: [MessageFlags.IsComponentsV2]`. `StatusContainer.success/failed(emoji, text)` and `.loading(emoji)` (`src/util/StatusContainer.ts`) builds the standard status replies.
+- **Application emojis**: `await client.api.emojiAPI.getEmojiByName(name)` resolves custom emojis (cached at startup). Commands usually resolve them at the start of `run()`.
+- **Singletons** everywhere: `Access.getClient()`, `Config.getInstance()`, `ComponentManager.getComponentManager()`, `CooldownManager.getCooldownManager()`, `Log4TS.getLogger()`.
+- Log through `Log4TS` (`info` / `success` / `warning` / `error`), not `console.log`.
+- GTS style: 2-space indent, single quotes, semicolons, trailing commas, 80-column lines. Run `npm run fix` before finishing.

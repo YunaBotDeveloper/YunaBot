@@ -13,7 +13,6 @@ import {IComponent} from '../interfaces/IComponent';
 import {SQLize} from '../database/SQLize';
 import path = require('path');
 import ApplicationEmoji from '../api/discord/ApplicationEmoji';
-import TempBanService from '../services/TempBanService';
 
 export default class ExtendedClient extends Client implements IClient {
   constructor() {
@@ -61,9 +60,5 @@ export default class ExtendedClient extends Client implements IClient {
       this.commandManager.loadCommands(),
       this.api.emojiAPI.warmCache(),
     ]);
-
-    // Load pending tempbans non-blocking — only schedules in-memory timers
-    const tempBanService = TempBanService.getInstance();
-    tempBanService.loadPendingUnbans().catch(e => console.error(e));
   }
 }
