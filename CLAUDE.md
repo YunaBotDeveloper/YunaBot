@@ -9,7 +9,7 @@ YunaBot (called "ManagerBot" in older docs and error embeds) is a modular Discor
 ## Development Commands
 
 ```bash
-bun run dev                 # Run src/index.ts directly with Bun, hot reload
+bun run dev                 # Run src/index.ts with Bun, restarts on file change
 npm run compile             # tsc -> build/ (rootDir is ".", so output is build/src/...)
 node build/src/index.js     # Production run after compile
 npm run lint                # gts lint (ESLint + Prettier, Google TS style)
@@ -17,7 +17,7 @@ npm run fix                 # Auto-fix lint issues
 npm run clean               # Remove build output
 ```
 
-There is no test suite: `package.json` has `pretest`/`posttest` hooks but no `test` script, and `test/` does not exist yet.
+There is no test suite: `package.json` has `pretest`/`posttest` hooks but no `test` script, and `test/` does not exist yet. To check a change, run `npx tsc --noEmit -p .` and `npm run lint`. `prepare` runs `compile`, so `npm install` also builds.
 
 `config.yaml` (with `bot.token`) is read from the **current working directory**. If it is missing, `Config` writes an example file and throws.
 
@@ -31,7 +31,7 @@ There is no test suite: `package.json` has `pretest`/`posttest` hooks but no `te
 2. `EventManager.loadEvents()` registers every file in `src/events/impl/`. The default export must extend `Event(name, once)`.
 3. `login()`, then in parallel: `CommandManager.loadCommands()` and `emojiAPI.warmCache()`.
 
-The repo is currently just the framework: there are no commands, no models, and the only events are `ReadyEvent` and `SlashCommandHandler`. Features are being rebuilt from scratch.
+Features are being rebuilt from scratch on top of the framework. So far there is one command, `/config` (`impl/slashes/admin/ConfigCommand.ts`, with `name` / `bio` / `appearance` subcommands), two models (`GuildSettings` and `BotNameHistory`), and two events (`ReadyEvent` and `SlashCommandHandler`). README.md still describes the stripped-down framework.
 
 ### Dynamic loading: things to watch for
 
@@ -52,11 +52,14 @@ Components are not tied to a specific message. A component is registered in `cli
 - `userCheck: string[]` restricts the component to the listed user IDs; `'*'` allows anyone.
 - `timeout` + `onTimeout` auto-unregister the component and run cleanup.
 - The `client.components` map is global, so make each customId unique per invocation (for example `` `confirm_${interaction.id}` ``) and unregister it when the flow ends.
+- The map is in memory only. After a restart or timeout, the customId is no longer registered, so the handler silently ignores the interaction (no reply), and Discord shows "This interaction failed".
+- Modal flow (see `ConfigCommand.setBio`): register the handler **before** `showModal()`. The handler unregisters itself first, then checks `inCachedGuild()`, then calls `deferReply()`.
 
 ## Conventions
 
 - **Components V2** are used for UI instead of embeds. Replies need `flags: [MessageFlags.IsComponentsV2]`. `StatusContainer.success/failed(emoji, text)` and `.loading(emoji)` (`src/util/StatusContainer.ts`) builds the standard status replies.
-- **Application emojis**: `await client.api.emojiAPI.getEmojiByName(name)` resolves custom emojis (cached at startup). Commands usually resolve them at the start of `run()`.
+- **Application emojis**: `await client.api.emojiAPI.getEmojiByName(name)` resolves custom emojis (cached at startup). The name must exactly match the uploaded emoji's name (e.g. `ui_success`, `ui_error`). An unknown name returns `undefined`, and `StatusContainer` then quietly falls back to ✅/❌, so a typo is easy to miss.
+- **Emoji pipeline**: the source files are `assets/emojis/svg/*.svg`. `bun scripts/render-emojis.ts` renders them to PNGs plus `preview.png`. `bun scripts/upload-emojis.ts [--dry-run]` uploads them to the application and regenerates `src/util/UIEmojis.ts`. The upload script needs the `DISCORD_TOKEN` and `DISCORD_APPLICATION_ID` env vars. It never replaces an existing emoji: to change one, delete it on Discord first.
 - **Singletons** everywhere: `Access.getClient()`, `Config.getInstance()`, `ComponentManager.getComponentManager()`, `CooldownManager.getCooldownManager()`, `Log4TS.getLogger()`.
 - Log through `Log4TS` (`info` / `success` / `warning` / `error`), not `console.log`.
 - GTS style: 2-space indent, single quotes, semicolons, trailing commas, 80-column lines. Run `npm run fix` before finishing.
