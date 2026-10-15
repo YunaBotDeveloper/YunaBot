@@ -15,6 +15,7 @@ import GuildSettings from '../../../../database/models/GuildSettings.model';
 import {StatusContainer} from '../../../../util/StatusContainer';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
+import Log4TS from '../../../../logger/Log4TS';
 
 export default class ConfigCommand extends Command {
   constructor() {
@@ -39,6 +40,10 @@ export default class ConfigCommand extends Command {
     this.data.addSubcommand(subcommand =>
       subcommand.setName('bio').setDescription('Set bot bio'),
     );
+
+    this.data.addSubcommand(subcommand =>
+      subcommand.setName('appearance').setDescription('Set appearance'),
+    );
   }
 
   async run(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -50,6 +55,9 @@ export default class ConfigCommand extends Command {
         break;
       case 'bio':
         await this.setBio(interaction);
+        break;
+      case 'appearance':
+        await this.setAppearance(interaction);
         break;
     }
   }
@@ -77,7 +85,7 @@ export default class ConfigCommand extends Command {
     await BotNameHistory.upsert({guildId, name, usedAt: new Date()});
 
     const emoji =
-      await Access.getClient().api.emojiAPI.getEmojiByName('success');
+      await Access.getClient().api.emojiAPI.getEmojiByName('ui_success');
     await interaction.editReply({
       components: [StatusContainer.success(emoji, `Bot name set to ${name}`)],
       flags: [MessageFlags.IsComponentsV2],
@@ -115,12 +123,12 @@ export default class ConfigCommand extends Command {
 
           const botBio =
             modalInteraction.fields.getTextInputValue('bioInput') || null;
-          // Discord ignores bio: null; only '' clears it.
+
           await modalInteraction.guild.members.editMe({bio: botBio ?? ''});
           await GuildSettings.upsert({guildId, botBio});
 
           const emoji =
-            await Access.getClient().api.emojiAPI.getEmojiByName('success');
+            await Access.getClient().api.emojiAPI.getEmojiByName('ui_success');
           await modalInteraction.editReply({
             components: [
               StatusContainer.success(
@@ -138,6 +146,114 @@ export default class ConfigCommand extends Command {
     ]);
 
     await interaction.showModal(modal);
+  }
+
+  private async setAppearance(
+    interaction: ChatInputCommandInteraction<'cached'>,
+  ): Promise<void> {
+    const customId = `botAppearance_${interaction.id}`;
+
+    const appearanceModal = new ModalBuilder()
+      .setCustomId(customId)
+      .setTitle('Bot Appearance')
+      .addLabelComponents(label =>
+        label
+          .setLabel('Avatar')
+          .setFileUploadComponent(fileUpload =>
+            fileUpload
+              .setCustomId('botAvatar')
+              .setRequired(false)
+              .setMaxValues(1),
+          ),
+      )
+      .addLabelComponents(label =>
+        label
+          .setLabel('Click here if you want remove bot avatar.')
+          .setCheckboxComponent(checkbox =>
+            checkbox.setCustomId('botRemoveAvatar'),
+          ),
+      )
+      .addLabelComponents(label =>
+        label
+          .setLabel('Banner')
+          .setFileUploadComponent(fileUpload =>
+            fileUpload
+              .setCustomId('botBanner')
+              .setRequired(false)
+              .setMaxValues(1),
+          ),
+      )
+      .addLabelComponents(label =>
+        label
+          .setLabel('Click here if you want remove bot banner.')
+          .setCheckboxComponent(checkbox =>
+            checkbox.setCustomId('botRemoveBanner'),
+          ),
+      );
+
+    const components = ComponentManager.getComponentManager();
+    components.register([
+      {
+        customId,
+        handler: async (modalInteraction: ModalSubmitInteraction) => {
+          components.unregister(customId);
+          if (!modalInteraction.inCachedGuild()) return;
+          await modalInteraction.deferReply();
+
+          const avatar = modalInteraction.fields
+            .getUploadedFiles('botAvatar')
+            ?.first();
+          const banner = modalInteraction.fields
+            .getUploadedFiles('botBanner')
+            ?.first();
+
+          const edit = {
+            avatar: modalInteraction.fields.getCheckbox('botRemoveAvatar')
+              ? null
+              : avatar?.url,
+            banner: modalInteraction.fields.getCheckbox('botRemoveBanner')
+              ? null
+              : banner?.url,
+          };
+
+          const fail = async (message: string) => {
+            const emoji =
+              await Access.getClient().api.emojiAPI.getEmojiByName('ui_error');
+            await modalInteraction.editReply({
+              components: [StatusContainer.failed(emoji, message)],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+          };
+
+          if (edit.avatar === undefined && edit.banner === undefined) {
+            await fail('Nothing to change');
+            return;
+          }
+
+          try {
+            await modalInteraction.guild.members.editMe(edit);
+          } catch (error) {
+            Log4TS.getLogger().error(`Failed to edit bot appearance: ${error}`);
+            await fail('Discord rejected that image');
+            return;
+          }
+
+          const emoji =
+            await Access.getClient().api.emojiAPI.getEmojiByName('ui_success');
+          await modalInteraction.editReply({
+            components: [
+              StatusContainer.success(emoji, 'Bot appearance updated!'),
+            ],
+            flags: [MessageFlags.IsComponentsV2],
+          });
+        },
+        type: ComponentEnum.MODAL,
+        userCheck: [interaction.user.id],
+        timeout: 15 * 60 * 1000,
+      },
+    ]);
+
+    await interaction.showModal(appearanceModal);
   }
 
   private async suggestNames(
