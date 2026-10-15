@@ -164,7 +164,7 @@ export default class SlashCommandHandler extends Event {
   ): Promise<void> {
     if (interaction.replied || interaction.deferred) return;
 
-    const emoji = await client.api.emojiAPI.getEmojiByName('failed');
+    const emoji = await client.api.emojiAPI.getEmojiByName('ui_error');
     await interaction.reply({
       components: [StatusContainer.failed(emoji, message)],
       flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
