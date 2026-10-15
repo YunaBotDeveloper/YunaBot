@@ -230,6 +230,18 @@ export default class ConfigCommand extends Command {
             return;
           }
 
+          // ponytail: trusts the uploader's content type, so a renamed file
+          // passes; sniff the file's magic bytes if that ever matters.
+          const isImage = /^image\/(png|jpeg|gif|webp)\b/;
+          if (
+            [avatar, banner].some(
+              file => file && !isImage.test(file.contentType ?? ''),
+            )
+          ) {
+            await fail('Avatar and banner must be PNG, JPEG, GIF or WebP');
+            return;
+          }
+
           try {
             await modalInteraction.guild.members.editMe(edit);
           } catch (error) {
