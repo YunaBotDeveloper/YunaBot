@@ -1,7 +1,7 @@
 // Renders assets/emojis/svg/*.svg to 128x128 PNGs and builds preview.png.
 // Usage: bun scripts/render-emojis.ts
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import sharp from 'sharp';
 
 const ROOT = path.join(__dirname, '..', 'assets', 'emojis');
@@ -88,6 +88,6 @@ async function main() {
 
 main().catch(err => {
   console.error(err);
-  // eslint-disable-next-line n/no-process-exit
+
   process.exit(1);
 });

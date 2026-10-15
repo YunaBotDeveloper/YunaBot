@@ -2,8 +2,8 @@
 // that already exists, then writes src/util/UIEmojis.ts from the API response.
 // Usage: bun scripts/upload-emojis.ts [--dry-run]
 // Needs DISCORD_TOKEN and DISCORD_APPLICATION_ID in the environment.
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import {REST, Routes, type APIEmoji} from 'discord.js';
 
 const PNG_DIR = path.join(__dirname, '..', 'assets', 'emojis', 'png');
@@ -78,6 +78,6 @@ async function main() {
 
 main().catch(err => {
   console.error(err instanceof Error ? err.message : err);
-  // eslint-disable-next-line n/no-process-exit
+
   process.exit(1);
 });
