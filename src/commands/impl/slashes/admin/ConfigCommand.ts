@@ -1,6 +1,7 @@
 import {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
+  GuildMember,
   LabelBuilder,
   MessageFlags,
   ModalBuilder,
@@ -13,6 +14,7 @@ import Access from '../../../../instances/Access';
 import BotNameHistory from '../../../../database/models/BotNameHistory.model';
 import GuildSettings from '../../../../database/models/GuildSettings.model';
 import {StatusContainer} from '../../../../util/StatusContainer';
+import {checkImageAttachment} from '../../../../util/ImageChecker';
 import ComponentManager from '../../../../component/manager/ComponentManager';
 import {ComponentEnum} from '../../../../enum/ComponentEnum';
 import Log4TS from '../../../../logger/Log4TS';
@@ -207,14 +209,10 @@ export default class ConfigCommand extends Command {
             .getUploadedFiles('botBanner')
             ?.first();
 
-          const edit = {
-            avatar: modalInteraction.fields.getCheckbox('botRemoveAvatar')
-              ? null
-              : avatar?.url,
-            banner: modalInteraction.fields.getCheckbox('botRemoveBanner')
-              ? null
-              : banner?.url,
-          };
+          const removeAvatar =
+            modalInteraction.fields.getCheckbox('botRemoveAvatar');
+          const removeBanner =
+            modalInteraction.fields.getCheckbox('botRemoveBanner');
 
           const fail = async (message: string) => {
             const emoji =
@@ -225,30 +223,49 @@ export default class ConfigCommand extends Command {
             });
           };
 
-          if (edit.avatar === undefined && edit.banner === undefined) {
+          if (!avatar && !banner && !removeAvatar && !removeBanner) {
             await fail('Nothing to change');
             return;
           }
 
-          // ponytail: trusts the uploader's content type, so a renamed file
-          // passes; sniff the file's magic bytes if that ever matters.
-          const isImage = /^image\/(png|jpeg|gif|webp)\b/;
-          if (
-            [avatar, banner].some(
-              file => file && !isImage.test(file.contentType ?? ''),
-            )
-          ) {
-            await fail('Avatar and banner must be PNG, JPEG, GIF or WebP');
-            return;
+          const [avatarCheck, bannerCheck] = await Promise.all([
+            avatar && !removeAvatar ? checkImageAttachment(avatar) : undefined,
+            banner && !removeBanner ? checkImageAttachment(banner) : undefined,
+          ]);
+          for (const check of [avatarCheck, bannerCheck]) {
+            if (check && !check.ok) {
+              await fail(check.reason);
+              return;
+            }
           }
 
+          const edit = {
+            avatar: removeAvatar
+              ? null
+              : avatarCheck?.ok
+                ? avatarCheck.buffer
+                : undefined,
+            banner: removeBanner
+              ? null
+              : bannerCheck?.ok
+                ? bannerCheck.buffer
+                : undefined,
+          };
+
+          let me: GuildMember;
           try {
-            await modalInteraction.guild.members.editMe(edit);
+            me = await modalInteraction.guild.members.editMe(edit);
           } catch (error) {
             Log4TS.getLogger().error(`Failed to edit bot appearance: ${error}`);
             await fail('Discord rejected that image');
             return;
           }
+
+          await GuildSettings.upsert({
+            guildId: modalInteraction.guildId,
+            ...(edit.avatar !== undefined && {botAvatar: me.avatar}),
+            ...(edit.banner !== undefined && {botBanner: me.banner}),
+          });
 
           const emoji =
             await Access.getClient().api.emojiAPI.getEmojiByName('ui_success');

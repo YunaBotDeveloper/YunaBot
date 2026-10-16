@@ -62,9 +62,27 @@ export class SQLize {
     await this.sequelize
       .authenticate()
       .then(() => this.logger.success('Authenticated database'));
-    await this.sequelize
-      .sync()
-      .then(() => this.logger.success('Synchronized database'));
+    await this.sequelize.sync();
+    await this.addMissingColumns();
+    this.logger.success('Synchronized database');
+  }
+
+  // sync() never alters existing tables, so columns added to a model later
+  // would be missing from older databases.
+  // ponytail: add-only; renames, type changes and drops still need a manual
+  // migration.
+  private async addMissingColumns(): Promise<void> {
+    const queryInterface = this.sequelize.getQueryInterface();
+    for (const model of Object.values(this.sequelize.models)) {
+      const table = model.getTableName() as string;
+      const existing = await queryInterface.describeTable(table);
+      for (const [name, attribute] of Object.entries(model.getAttributes())) {
+        const column = attribute.field ?? name;
+        if (existing[column]) continue;
+        await queryInterface.addColumn(table, column, attribute);
+        this.logger.info(`Added column ${table}.${column}`);
+      }
+    }
   }
 
   public async close(): Promise<void> {
