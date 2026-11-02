@@ -73,6 +73,14 @@ export default class ModerationLogEvent extends Event {
 
         break;
       }
+
+      case AuditLogEvent.MemberBanRemove: {
+        const settings = await GuildSettings.findByPk(guild.id);
+
+        if (!settings?.unbanLogEnabled || !settings.unbanLogChannelId) return;
+
+        break;
+      }
     }
   }
 }

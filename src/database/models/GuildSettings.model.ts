@@ -20,6 +20,10 @@ class GuildSettings extends Model<
   declare botBanner: string | null;
   declare banLogEnabled: CreationOptional<boolean>;
   declare banLogChannelId: string | null;
+  declare unbanLogEnabled: CreationOptional<boolean>;
+  declare unbanLogChannelId: string | null;
+  declare kickLogEnabled: CreationOptional<boolean>;
+  declare kickLogChannelId: string | null;
 }
 
 export function initGuildSettingsModel(sequelizeInstance: Sequelize): void {
@@ -50,6 +54,22 @@ export function initGuildSettingsModel(sequelizeInstance: Sequelize): void {
         defaultValue: false,
       },
       banLogChannelId: {
+        type: DataTypes.STRING,
+      },
+      unbanLogEnabled: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      unbanLogChannelId: {
+        type: DataTypes.STRING,
+      },
+      kickLogEnabled: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      kickLogChannelId: {
         type: DataTypes.STRING,
       },
     },
