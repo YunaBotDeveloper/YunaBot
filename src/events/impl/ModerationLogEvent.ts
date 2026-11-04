@@ -28,12 +28,12 @@ export default class ModerationLogEvent extends Event {
 
         if (!settings?.banLogEnabled || !settings.banLogChannelId) return;
 
-        const executorId = entry.executorId;
-        const executor = executorId
-          ? await guild.members.fetch(executorId).catch(() => null)
+        const banExecutorId = entry.executorId;
+        const banExecutor = banExecutorId
+          ? await guild.members.fetch(banExecutorId).catch(() => null)
           : null;
-        const targetId = entry.targetId;
-        const reason = entry.reason;
+        const banTargetId = entry.targetId;
+        const banReason = entry.reason;
         const banAt = entry.createdAt;
 
         const banLogChannel = await guild.channels.fetch(
@@ -44,23 +44,25 @@ export default class ModerationLogEvent extends Event {
         const banLogEmbed = new EmbedBuilder()
           .setColor(EmbedColors.red())
           .setAuthor({
-            iconURL: executor ? executor.displayAvatarURL() : undefined,
-            name: executor ? executor.displayName : 'Unknown',
+            iconURL: banExecutor ? banExecutor.displayAvatarURL() : undefined,
+            name: banExecutor ? banExecutor.displayName : 'Unknown',
           })
           .setTitle('Member banned')
-          .setDescription(`Reason: ${reason ? reason : 'No reason provided'}`)
+          .setDescription(
+            `Reason: ${banReason ? banReason : 'No reason provided'}`,
+          )
           .addFields(
             {
               name: 'Executor:',
-              value: executorId
-                ? `${userMention(executorId)}\n${inlineCode(executorId)}`
+              value: banExecutorId
+                ? `${userMention(banExecutorId)}\n${inlineCode(banExecutorId)}`
                 : 'Unknown',
               inline: true,
             },
             {
               name: 'Target:',
-              value: targetId
-                ? `${userMention(targetId)}\n${inlineCode(targetId)}`
+              value: banExecutorId
+                ? `${userMention(banExecutorId)}\n${inlineCode(banExecutorId)}`
                 : 'Unknown',
               inline: true,
             },
@@ -79,6 +81,18 @@ export default class ModerationLogEvent extends Event {
 
         if (!settings?.unbanLogEnabled || !settings.unbanLogChannelId) return;
 
+        const unbanExecutorId = entry.executorId;
+        const unbanExecutor = unbanExecutorId
+          ? await guild.members.fetch(unbanExecutorId).catch(() => {})
+          : null;
+        const unbanTargetId = entry.targetId;
+        const unbanReason = entry.reason;
+        const unbanAt = entry.createdAt;
+
+        const unbanLogChannel = await guild.channels.fetch(
+          settings.unbanLogChannelId,
+        );
+        if (!unbanLogChannel?.isSendable()) return;
         break;
       }
     }
