@@ -94,15 +94,15 @@ export default class ModerationLogEvent extends Event {
         );
         if (!unbanLogChannel?.isSendable()) return;
 
-        const banLogEmbed = new EmbedBuilder()
-          .setColor(EmbedColors.red())
+        const unbanLogEmbed = new EmbedBuilder()
+          .setColor(EmbedColors.green())
           .setAuthor({
             iconURL: unbanExecutor
               ? unbanExecutor.displayAvatarURL()
               : undefined,
             name: unbanExecutor ? unbanExecutor.displayName : 'Unknown',
           })
-          .setTitle('Member banned')
+          .setTitle('Member unbanned')
           .setDescription(
             `Reason: ${unbanReason ? unbanReason : 'No reason provided'}`,
           )
@@ -125,7 +125,7 @@ export default class ModerationLogEvent extends Event {
           .setTimestamp(unbanAt);
 
         await unbanLogChannel.send({
-          embeds: [banLogEmbed],
+          embeds: [unbanLogEmbed],
         });
 
         break;
