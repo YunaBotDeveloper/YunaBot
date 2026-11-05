@@ -61,8 +61,8 @@ export default class ModerationLogEvent extends Event {
             },
             {
               name: 'Target:',
-              value: banExecutorId
-                ? `${userMention(banExecutorId)}\n${inlineCode(banExecutorId)}`
+              value: banTargetId
+                ? `${userMention(banTargetId)}\n${inlineCode(banTargetId)}`
                 : 'Unknown',
               inline: true,
             },
@@ -93,6 +93,41 @@ export default class ModerationLogEvent extends Event {
           settings.unbanLogChannelId,
         );
         if (!unbanLogChannel?.isSendable()) return;
+
+        const banLogEmbed = new EmbedBuilder()
+          .setColor(EmbedColors.red())
+          .setAuthor({
+            iconURL: unbanExecutor
+              ? unbanExecutor.displayAvatarURL()
+              : undefined,
+            name: unbanExecutor ? unbanExecutor.displayName : 'Unknown',
+          })
+          .setTitle('Member banned')
+          .setDescription(
+            `Reason: ${unbanReason ? unbanReason : 'No reason provided'}`,
+          )
+          .addFields(
+            {
+              name: 'Executor:',
+              value: unbanExecutorId
+                ? `${userMention(unbanExecutorId)}\n${inlineCode(unbanExecutorId)}`
+                : 'Unknown',
+              inline: true,
+            },
+            {
+              name: 'Target:',
+              value: unbanTargetId
+                ? `${userMention(unbanTargetId)}\n${inlineCode(unbanTargetId)}`
+                : 'Unknown',
+              inline: true,
+            },
+          )
+          .setTimestamp(unbanAt);
+
+        await unbanLogChannel.send({
+          embeds: [banLogEmbed],
+        });
+
         break;
       }
     }
