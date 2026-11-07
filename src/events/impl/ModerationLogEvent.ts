@@ -130,6 +130,58 @@ export default class ModerationLogEvent extends Event {
 
         break;
       }
+
+      case AuditLogEvent.MemberKick: {
+        const settings = await GuildSettings.findByPk(guild.id);
+
+        if (!settings?.kickLogEnabled || !settings.kickLogChannelId) return;
+
+        const kickExecutorId = entry.executorId;
+        const kickExecutor = kickExecutorId
+          ? await guild.members.fetch(kickExecutorId).catch(() => null)
+          : null;
+        const kickTargetId = entry.targetId;
+        const kickReason = entry.reason;
+        const kickAt = entry.createdAt;
+
+        const kickLogChannel = await guild.channels.fetch(
+          settings.kickLogChannelId,
+        );
+
+        if (!kickLogChannel?.isSendable()) return;
+
+        const kickLogEmbed = new EmbedBuilder()
+          .setColor(EmbedColors.red())
+          .setAuthor({
+            iconURL: kickExecutor ? kickExecutor.displayAvatarURL() : undefined,
+            name: kickExecutor ? kickExecutor.displayName : 'Unknown',
+          })
+          .setTitle('Member kicked')
+          .setDescription(
+            `Reason: ${kickReason ? kickReason : 'No reason provided'}`,
+          )
+          .addFields(
+            {
+              name: 'Executor:',
+              value: kickExecutorId
+                ? `${userMention(kickExecutorId)}\n${inlineCode(kickExecutorId)}`
+                : 'Unknown',
+              inline: true,
+            },
+            {
+              name: 'Target:',
+              value: kickTargetId
+                ? `${userMention(kickTargetId)}\n${inlineCode(kickTargetId)}`
+                : 'Unknown',
+              inline: true,
+            },
+          )
+          .setTimestamp(kickAt);
+
+        await kickLogChannel.send({
+          embeds: [kickLogEmbed],
+        });
+      }
     }
   }
 }
